@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,11 +24,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake lcov
 
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake lcov
+
       - name: Configure (Linux with coverage)
         if: runner.os == 'Linux'
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_ENABLE_COVERAGE=ON -DATLASCORE_BUILD_TESTS=ON
 
-      - name: Configure (Windows / other)
+      - name: Configure (Windows / macOS)
         if: runner.os != 'Linux'
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_BUILD_TESTS=ON
 
@@ -53,7 +59,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd build
-          LINE_COV=$(lcov --list coverage.info | awk '/lines/ {print $2}' | sed 's/%//')
+          # Extract overall line coverage percentage robustly.
+          LINE_COV=$(lcov --list coverage.info | grep -E 'lines\.*:' | head -n1 | sed -E 's/.*lines.*: *([0-9]+\.?[0-9]*)%.*/\1/')
           THRESHOLD=65
           echo "Line coverage: ${LINE_COV}% (threshold ${THRESHOLD}%)"
           awk -v cov="$LINE_COV" -v thr="$THRESHOLD" 'BEGIN { if (cov+0 < thr+0) { exit 1 } }'
@@ -86,23 +93,4 @@ jobs:
             name: test-logs-${{ matrix.os }}
             path: build/Testing
 
-  codecov:
-    name: Upload to Codecov (Linux)
-    needs: build-test
-    runs-on: ubuntu-latest
-    if: needs.build-test.result == 'success'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download coverage artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-info
-          path: coverage
-      - name: Codecov Upload
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage/coverage.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unit
-          verbose: true
+  # Removed Codecov job; coverage artifacts retained for inspection only.
