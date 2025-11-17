@@ -59,10 +59,14 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd build
-          # Extract overall line coverage percentage robustly.
-          LINE_COV=$(lcov --list coverage.info | grep -E 'lines\.*:' | head -n1 | sed -E 's/.*lines.*: *([0-9]+\.?[0-9]*)%.*/\1/')
+          # Use lcov summary for reliable parsing.
+          echo "---- lcov summary ----"
+          lcov --summary coverage.info || true
+          LINE_COV=$(lcov --summary coverage.info | awk '/lines/ {print $2}' | sed 's/%//')
           THRESHOLD=65
-          echo "Line coverage: ${LINE_COV}% (threshold ${THRESHOLD}%)"
+          if [ -z "$LINE_COV" ]; then
+            echo "Failed to parse line coverage percentage."; exit 1; fi
+          echo "Line coverage parsed: ${LINE_COV}% (threshold ${THRESHOLD}%)"
           awk -v cov="$LINE_COV" -v thr="$THRESHOLD" 'BEGIN { if (cov+0 < thr+0) { exit 1 } }'
         shell: bash
 
