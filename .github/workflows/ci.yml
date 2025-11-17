@@ -26,9 +26,11 @@ jobs:
 
       - name: Configure (Coverage on Ubuntu)
         run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Debug \
-            ${{ runner.os == 'Linux' && ' -DATLASCORE_ENABLE_COVERAGE=ON' || '' }}
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_ENABLE_COVERAGE=ON -DATLASCORE_BUILD_TESTS=ON
+          else
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_BUILD_TESTS=ON
+          fi
 
       - name: Build
         run: cmake --build build --config Debug --parallel
@@ -42,10 +44,20 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd build
-          lcov --directory . --capture --output-file coverage.info
+          lcov --directory . --capture --output-file coverage.base.info
           # Remove system and test files
-          lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
+          lcov --remove coverage.base.info '/usr/*' '*/tests/*' --output-file coverage.info
           lcov --list coverage.info
+
+      - name: Enforce Coverage Threshold (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          LINE_COV=$(lcov --list coverage.info | awk '/lines/ {print $2}' | sed 's/%//')
+          THRESHOLD=60
+          echo "Line coverage: ${LINE_COV}% (threshold ${THRESHOLD}%)"
+          awk -v cov="$LINE_COV" -v thr="$THRESHOLD" 'BEGIN { if (cov+0 < thr+0) { exit 1 } }'
+        shell: bash
 
       - name: Generate HTML Report (Ubuntu)
         if: runner.os == 'Linux'

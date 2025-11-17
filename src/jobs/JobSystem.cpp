@@ -133,13 +133,11 @@ namespace jobs
         return Schedule(std::make_unique<FunctionJob>(fn));
     }
 
-    void JobSystem::Wait(const JobHandle&)
+    void JobSystem::Wait(const JobHandle& handle)
     {
-        // Minimal stub; will be extended with real per-job tracking.
+        // Portable stub: suppress unused parameter warning; future implementation will track job completion.
+        (void)handle;
         (void)m_impl;
-        (void)sizeof m_impl; // silence unused warning in some compilers
-        (void)sizeof &m_impl;
-        (void)sizeof JobHandle;
     }
 
     std::size_t JobSystem::WorkerCount() const noexcept
