@@ -7,6 +7,8 @@
 #include <typeinfo>
 #include <utility>
 
+#include "ecs/ComponentStorage.hpp"
+
 #include <cstdint>
 
 namespace ecs

@@ -16,6 +16,7 @@ add_library(atlascore
     src/ecs/World.cpp
     src/physics/Systems.cpp
     src/ascii/Renderer.cpp
+    src/ascii/TextRenderer.cpp
     src/simlab/DeterminismSmokeTest.cpp
     src/simlab/WorldHasher.cpp
     src/simlab/DeterminismHashScenario.cpp
@@ -58,10 +59,16 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_determinism_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreDeterminismTests COMMAND atlascore_determinism_tests)
 
+    add_executable(atlascore_text_renderer_tests tests/text_renderer_tests.cpp)
+    target_link_libraries(atlascore_text_renderer_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreTextRendererTests COMMAND atlascore_text_renderer_tests)
+
     if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_selftests PRIVATE --coverage)
         target_compile_options(atlascore_determinism_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_determinism_tests PRIVATE --coverage)
+        target_compile_options(atlascore_text_renderer_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_text_renderer_tests PRIVATE --coverage)
     endif()
 endif()

@@ -2,7 +2,9 @@
 
 #include <unordered_map>
 
-#include "ecs/World.hpp"
+// Forward declaration of EntityId to avoid circular include with World.hpp.
+#include <cstdint>
+namespace ecs { using EntityId = std::uint32_t; }
 
 namespace ecs
 {
