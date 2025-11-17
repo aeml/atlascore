@@ -5,14 +5,36 @@
 #include "simlab/Scenario.hpp"
 
 #include <atomic>
+#include <string>
+#include <string_view>
 
-int main()
+int main(int argc, char** argv)
 {
     core::Logger logger;
     logger.Info("AtlasCore starting up...");
 
     ecs::World world;
-    auto       scenario = simlab::CreateDeterminismSmokeTest();
+    // CLI scenario selection: default "smoke", optionally "hash"
+    std::string scenarioName = "smoke";
+    if (argc > 1 && argv[1])
+    {
+        scenarioName = argv[1];
+    }
+
+    std::unique_ptr<simlab::IScenario> scenario;
+    if (scenarioName == "smoke")
+    {
+        scenario = simlab::CreateDeterminismSmokeTest();
+    }
+    else if (scenarioName == "hash")
+    {
+        scenario = simlab::CreateDeterminismHashScenario();
+    }
+    else
+    {
+        logger.Error(std::string("Unknown scenario: ") + scenarioName + ". Available: smoke, hash");
+        scenario = simlab::CreateDeterminismSmokeTest();
+    }
     scenario->Setup(world);
 
     std::atomic<bool> running{true};
