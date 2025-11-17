@@ -15,6 +15,7 @@ add_library(atlascore
     src/jobs/JobSystem.cpp
     src/ecs/World.cpp
     src/physics/Systems.cpp
+    src/physics/CollisionSystem.cpp
     src/ascii/Renderer.cpp
     src/ascii/TextRenderer.cpp
     src/simlab/DeterminismSmokeTest.cpp
@@ -63,6 +64,22 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_text_renderer_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreTextRendererTests COMMAND atlascore_text_renderer_tests)
 
+    add_executable(atlascore_collision_tests tests/collision_tests.cpp)
+    target_link_libraries(atlascore_collision_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreCollisionTests COMMAND atlascore_collision_tests)
+
+    add_executable(atlascore_determinism_collision_tests tests/determinism_collision_tests.cpp)
+    target_link_libraries(atlascore_determinism_collision_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreDeterminismCollisionTests COMMAND atlascore_determinism_collision_tests)
+
+    add_executable(atlascore_text_renderer_extra_tests tests/text_renderer_extra_tests.cpp)
+    target_link_libraries(atlascore_text_renderer_extra_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreTextRendererExtraTests COMMAND atlascore_text_renderer_extra_tests)
+
+    add_executable(atlascore_ecs_extra_tests tests/ecs_extra_tests.cpp)
+    target_link_libraries(atlascore_ecs_extra_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreEcsExtraTests COMMAND atlascore_ecs_extra_tests)
+
     if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_selftests PRIVATE --coverage)
@@ -70,5 +87,13 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_determinism_tests PRIVATE --coverage)
         target_compile_options(atlascore_text_renderer_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_text_renderer_tests PRIVATE --coverage)
+        target_compile_options(atlascore_collision_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_collision_tests PRIVATE --coverage)
+        target_compile_options(atlascore_determinism_collision_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_determinism_collision_tests PRIVATE --coverage)
+        target_compile_options(atlascore_text_renderer_extra_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_text_renderer_extra_tests PRIVATE --coverage)
+        target_compile_options(atlascore_ecs_extra_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_ecs_extra_tests PRIVATE --coverage)
     endif()
 endif()

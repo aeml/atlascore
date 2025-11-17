@@ -54,7 +54,7 @@ jobs:
         run: |
           cd build
           LINE_COV=$(lcov --list coverage.info | awk '/lines/ {print $2}' | sed 's/%//')
-          THRESHOLD=60
+          THRESHOLD=65
           echo "Line coverage: ${LINE_COV}% (threshold ${THRESHOLD}%)"
           awk -v cov="$LINE_COV" -v thr="$THRESHOLD" 'BEGIN { if (cov+0 < thr+0) { exit 1 } }'
         shell: bash

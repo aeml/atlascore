@@ -30,4 +30,17 @@ namespace simlab
         }
         return h;
     }
+
+    std::uint64_t WorldHasher::HashAABBs(const std::vector<physics::AABBComponent>& aabbs) const noexcept
+    {
+        std::uint64_t h = kOffset;
+        for (const auto& box : aabbs)
+        {
+            HashBytes(h, &box.minX, sizeof(box.minX));
+            HashBytes(h, &box.minY, sizeof(box.minY));
+            HashBytes(h, &box.maxX, sizeof(box.maxX));
+            HashBytes(h, &box.maxY, sizeof(box.maxY));
+        }
+        return h;
+    }
 }
