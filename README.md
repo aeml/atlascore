@@ -36,8 +36,12 @@ cmake --build . --config Release
 From the `build` directory:
 
 ```powershell
-# Run the demo app
+# Run the demo app (interactive scenario menu)
 ./atlascore_app
+
+# Or pick a scenario via CLI argument
+./atlascore_app smoke
+./atlascore_app hash
 
 # Run self-tests (if CTest is available)
 ctest -C Release

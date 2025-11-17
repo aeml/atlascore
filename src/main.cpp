@@ -7,6 +7,8 @@
 #include <atomic>
 #include <string>
 #include <string_view>
+#include <iostream>
+#include <vector>
 
 int main(int argc, char** argv)
 {
@@ -14,26 +16,68 @@ int main(int argc, char** argv)
     logger.Info("AtlasCore starting up...");
 
     ecs::World world;
-    // CLI scenario selection: default "smoke", optionally "hash"
-    std::string scenarioName = "smoke";
+    struct ScenarioOption
+    {
+        const char* key;
+        const char* title;
+        std::unique_ptr<simlab::IScenario> (*factory)();
+    };
+
+    std::vector<ScenarioOption> options = {
+        {"smoke", "ECS falling bodies smoke test", &simlab::CreateDeterminismSmokeTest},
+        {"hash",  "Determinism hash dual-run scenario", &simlab::CreateDeterminismHashScenario},
+    };
+
+    // Determine scenario by CLI arg or interactive menu
+    std::unique_ptr<simlab::IScenario> scenario;
     if (argc > 1 && argv[1])
     {
-        scenarioName = argv[1];
-    }
-
-    std::unique_ptr<simlab::IScenario> scenario;
-    if (scenarioName == "smoke")
-    {
-        scenario = simlab::CreateDeterminismSmokeTest();
-    }
-    else if (scenarioName == "hash")
-    {
-        scenario = simlab::CreateDeterminismHashScenario();
+        std::string scenarioName = argv[1];
+        bool found = false;
+        for (const auto& opt : options)
+        {
+            if (scenarioName == opt.key)
+            {
+                scenario = opt.factory();
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            logger.Error(std::string("Unknown scenario: ") + scenarioName + ". Available: smoke, hash");
+            scenario = options.front().factory();
+        }
     }
     else
     {
-        logger.Error(std::string("Unknown scenario: ") + scenarioName + ". Available: smoke, hash");
-        scenario = simlab::CreateDeterminismSmokeTest();
+        std::cout << "Select a simulation to run:" << '\n';
+        for (size_t i = 0; i < options.size(); ++i)
+        {
+            std::cout << "  [" << (i + 1) << "] " << options[i].title << " (" << options[i].key << ")" << '\n';
+        }
+        std::cout << "Enter choice number (default 1): ";
+        std::string line;
+        std::getline(std::cin, line);
+        size_t choice = 1;
+        if (!line.empty())
+        {
+            try
+            {
+                size_t pos = 0;
+                unsigned long parsed = std::stoul(line, &pos);
+                if (pos == line.size() && parsed >= 1 && parsed <= options.size())
+                {
+                    choice = static_cast<size_t>(parsed);
+                }
+            }
+            catch (...)
+            {
+                // fallback to default
+            }
+        }
+        scenario = options[choice - 1].factory();
+        logger.Info(std::string("Running scenario: ") + options[choice - 1].key);
     }
     scenario->Setup(world);
 
