@@ -5,6 +5,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
 namespace jobs
 {
@@ -43,9 +44,11 @@ namespace jobs
         struct JobState
         {
             std::atomic<bool> completed{false};
+            std::mutex m;
+            std::condition_variable cv;
         };
 
-        std::vector<std::shared_ptr<JobState>> states;
+        std::unordered_map<std::size_t, std::shared_ptr<JobState>> states;
     };
 
     JobSystem::JobSystem()
@@ -116,12 +119,45 @@ namespace jobs
             return JobHandle{};
         }
 
+        struct WrappedJob : public IJob
+        {
+            std::unique_ptr<IJob> inner;
+            std::shared_ptr<Impl::JobState> state;
+            Impl* impl;
+            std::size_t id;
+            void Execute() override
+            {
+                if (inner)
+                {
+                    inner->Execute();
+                }
+                state->completed.store(true, std::memory_order_release);
+                {
+                    std::lock_guard<std::mutex> l{state->m};
+                    state->cv.notify_all();
+                }
+                // Cleanup state map entry to avoid growth
+                if (impl)
+                {
+                    std::lock_guard<std::mutex> lock{impl->mutex};
+                    impl->states.erase(id);
+                }
+            }
+        };
+
         JobHandle handle;
         handle.id = m_impl->nextId.fetch_add(1);
 
+        auto state = std::make_shared<Impl::JobState>();
         {
             std::lock_guard<std::mutex> lock{m_impl->mutex};
-            m_impl->jobs.push(std::move(job));
+            m_impl->states.emplace(handle.id, state);
+            auto wrapped = std::make_unique<WrappedJob>();
+            wrapped->inner = std::move(job);
+            wrapped->state = state;
+            wrapped->impl = m_impl.get();
+            wrapped->id = handle.id;
+            m_impl->jobs.push(std::move(wrapped));
         }
         m_impl->cv.notify_one();
 
@@ -135,9 +171,35 @@ namespace jobs
 
     void JobSystem::Wait(const JobHandle& handle)
     {
-        // Portable stub: suppress unused parameter warning; future implementation will track job completion.
-        (void)handle;
-        (void)m_impl;
+        if (!m_impl || handle.id == 0)
+        {
+            return;
+        }
+
+        std::shared_ptr<Impl::JobState> state;
+        {
+            std::lock_guard<std::mutex> lock{m_impl->mutex};
+            auto it = m_impl->states.find(handle.id);
+            if (it == m_impl->states.end())
+            {
+                // Already completed and cleaned up
+                return;
+            }
+            state = it->second;
+        }
+
+        if (!state)
+        {
+            return;
+        }
+
+        if (state->completed.load(std::memory_order_acquire))
+        {
+            return;
+        }
+
+        std::unique_lock<std::mutex> lk{state->m};
+        state->cv.wait(lk, [&]{ return state->completed.load(std::memory_order_acquire); });
     }
 
     std::size_t JobSystem::WorkerCount() const noexcept
