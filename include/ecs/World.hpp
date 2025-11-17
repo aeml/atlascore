@@ -56,6 +56,19 @@ namespace ecs
         void AddSystem(std::unique_ptr<ISystem> system);
         void Update(float dt);
 
+        template <typename TComponent, typename Fn>
+        void ForEach(Fn&& fn)
+        {
+            const std::size_t key = typeid(TComponent).hash_code();
+            auto it = m_componentStores.find(key);
+            if (it == m_componentStores.end())
+            {
+                return;
+            }
+            auto* storage = static_cast<StorageWrapper<TComponent>*>(it->second.get());
+            storage->storage.ForEach(std::forward<Fn>(fn));
+        }
+
     private:
         EntityId                                      m_nextEntity{1};
         std::vector<EntityId>                         m_entities;

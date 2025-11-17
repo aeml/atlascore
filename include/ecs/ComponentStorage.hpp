@@ -23,6 +23,15 @@ namespace ecs
             return it != m_components.end() ? &it->second : nullptr;
         }
 
+        template <typename Fn>
+        void ForEach(Fn&& fn)
+        {
+            for (auto& kv : m_components)
+            {
+                fn(kv.first, kv.second);
+            }
+        }
+
     private:
         std::unordered_map<EntityId, TComponent> m_components;
     };

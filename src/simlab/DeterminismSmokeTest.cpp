@@ -4,6 +4,7 @@
 #include "ecs/World.hpp"
 #include "physics/Components.hpp"
 #include "physics/Systems.hpp"
+#include "physics/EcsSystems.hpp"
 #include "ascii/Renderer.hpp"
 
 #include <vector>
@@ -18,40 +19,35 @@ namespace simlab
         public:
             void Setup(ecs::World& world) override
             {
-                (void)world;
-                m_logger.Info("[simlab] Setup determinism smoke test (falling bodies demo)");
-
-                // Create a few demo bodies.
+                m_logger.Info("[simlab] Setup determinism smoke test (ECS falling bodies)");
+                // Add systems
+                world.AddSystem(std::make_unique<physics::PhysicsEcsSystem>());
+                world.AddSystem(std::make_unique<physics::CollisionEcsSystem>());
+                // Create a few demo entities with components
                 const int bodyCount = 3;
-                m_transforms.reserve(bodyCount);
-                m_bodies.reserve(bodyCount);
-
                 for (int i = 0; i < bodyCount; ++i)
                 {
-                    physics::TransformComponent t;
-                    t.x = static_cast<float>(i * 2);
-                    t.y = 10.0f + static_cast<float>(i * 5);
-                    physics::RigidBodyComponent b;
-                    b.vx = 0.0f;
-                    b.vy = 0.0f;
-                    m_transforms.push_back(t);
-                    m_bodies.push_back(b);
+                    auto e = world.CreateEntity();
+                    world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{static_cast<float>(i*2), 10.0f + static_cast<float>(i*5)});
+                    world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{0.0f, 0.0f});
+                    // 1x1 box centered on position
+                    auto* t = world.GetComponent<physics::TransformComponent>(e);
+                    physics::AABBComponent box{t->x - 0.5f, t->y - 0.5f, t->x + 0.5f, t->y + 0.5f};
+                    world.AddComponent<physics::AABBComponent>(e, box);
                 }
             }
 
             void Step(ecs::World& world, float dt) override
             {
+                (void)dt;
                 (void)world;
-                m_physics.Integrate(m_transforms, m_bodies, dt);
-                m_renderer.RenderBodies(m_transforms, m_bodies);
+                // Rendering skipped here; systems run in world.Update from main loop
             }
 
         private:
             core::Logger                             m_logger;
-            physics::PhysicsIntegrationSystem        m_physics;
-            ascii::Renderer                          m_renderer{std::cout};
-            std::vector<physics::TransformComponent> m_transforms;
-            std::vector<physics::RigidBodyComponent> m_bodies;
+            physics::PhysicsIntegrationSystem        m_physics; // legacy (unused)
+            ascii::Renderer                          m_renderer{std::cout}; // legacy (unused)
         };
     }
 

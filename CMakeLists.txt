@@ -16,6 +16,7 @@ add_library(atlascore
     src/ecs/World.cpp
     src/physics/Systems.cpp
     src/physics/CollisionSystem.cpp
+    
     src/ascii/Renderer.cpp
     src/ascii/TextRenderer.cpp
     src/simlab/DeterminismSmokeTest.cpp
@@ -86,6 +87,14 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_ecs_extra_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreEcsExtraTests COMMAND atlascore_ecs_extra_tests)
 
+    add_executable(atlascore_ecs_physics_tests tests/ecs_physics_tests.cpp)
+    target_link_libraries(atlascore_ecs_physics_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreEcsPhysicsTests COMMAND atlascore_ecs_physics_tests)
+
+    add_executable(atlascore_ecs_collision_tests tests/ecs_collision_tests.cpp)
+    target_link_libraries(atlascore_ecs_collision_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreEcsCollisionTests COMMAND atlascore_ecs_collision_tests)
+
     if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_selftests PRIVATE --coverage)
@@ -101,5 +110,9 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_text_renderer_extra_tests PRIVATE --coverage)
         target_compile_options(atlascore_ecs_extra_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_ecs_extra_tests PRIVATE --coverage)
+        target_compile_options(atlascore_ecs_physics_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_ecs_physics_tests PRIVATE --coverage)
+        target_compile_options(atlascore_ecs_collision_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_ecs_collision_tests PRIVATE --coverage)
     endif()
 endif()
