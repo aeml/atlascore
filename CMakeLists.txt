@@ -16,6 +16,8 @@ add_library(atlascore
     src/physics/Systems.cpp
     src/ascii/Renderer.cpp
     src/simlab/DeterminismSmokeTest.cpp
+    src/simlab/WorldHasher.cpp
+    src/simlab/DeterminismHashScenario.cpp
 )
 
 # Public headers
@@ -40,4 +42,8 @@ if (ATLASCORE_BUILD_TESTS)
     add_executable(atlascore_selftests tests/selftests.cpp)
     target_link_libraries(atlascore_selftests PRIVATE atlascore)
     add_test(NAME AtlasCoreSelfTests COMMAND atlascore_selftests)
+
+    add_executable(atlascore_determinism_tests tests/determinism_tests.cpp)
+    target_link_libraries(atlascore_determinism_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreDeterminismTests COMMAND atlascore_determinism_tests)
 endif()

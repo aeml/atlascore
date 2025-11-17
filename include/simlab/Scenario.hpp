@@ -15,4 +15,5 @@ namespace simlab
     };
 
     std::unique_ptr<IScenario> CreateDeterminismSmokeTest();
+    std::unique_ptr<IScenario> CreateDeterminismHashScenario();
 }

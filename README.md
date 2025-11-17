@@ -10,6 +10,7 @@ This repository currently contains a **minimal evolving skeleton**:
 - `physics` module with `TransformComponent`, `RigidBodyComponent`, and gravity integration via `PhysicsIntegrationSystem`
 - `ascii` module providing a simple textual renderer of entity positions
 - `simlab` module featuring a determinism smoke-test scenario now demonstrating a falling-body demo
+ - `simlab` module featuring a falling-body demo and a determinism hash scenario (dual-run hash comparison)
 - A small `main` entry point that runs a short 60-step simulation
 - A basic self-test executable (CTest) covering core, jobs, and physics integration
 
@@ -47,6 +48,7 @@ ctest -C Release
 
 - Wire full ECS component storage into the `World`
 - Add determinism hashing harness
+ - Expand determinism tests (collision, multi-thread job scheduling impact)
 - Expand ASCII visualization / add optional CSV export utilities
 - Implement collision detection & resolution systems
 - Introduce benchmarking scenarios for job throughput and determinism
