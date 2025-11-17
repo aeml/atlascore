@@ -4,6 +4,7 @@
 #include "jobs/JobSystem.hpp"
 #include "physics/Systems.hpp"
 #include "physics/Components.hpp"
+#include "ecs/World.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -69,6 +70,15 @@ int main()
     // After one step, vy should be gravity * dt (negative) and y decreased.
     assert(bodies[0].vy < 0.0f);
     assert(transforms[0].y < 10.0f);
+
+    // ECS component storage integration: add and retrieve a TransformComponent.
+    ecs::World ecsWorld;
+    auto e = ecsWorld.CreateEntity();
+    auto& ecsTransform = ecsWorld.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{1.0f, 2.0f});
+    assert(ecsTransform.x == 1.0f && ecsTransform.y == 2.0f);
+    auto* ecsFetched = ecsWorld.GetComponent<physics::TransformComponent>(e);
+    assert(ecsFetched != nullptr);
+    assert(ecsFetched->x == 1.0f && ecsFetched->y == 2.0f);
 
     logger.Info("[PASS] Core and Jobs self-tests");
     std::cout << "All self-tests passed.\n";
