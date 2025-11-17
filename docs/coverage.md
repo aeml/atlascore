@@ -20,9 +20,12 @@ genhtml coverage.info --output-directory coverage-report
 
 Open `coverage-report/index.html` in a browser.
 
-## Codecov
+## CI & Publishing
 
-Configure the GitHub secret `CODECOV_TOKEN` for private repos. The CI workflow (`ci.yml`) uploads `coverage.info` and uses Codecov action if the token is present.
+On pushes to `main`, GitHub Actions generates coverage on Linux and publishes:
+
+- Doxygen API documentation at the GitHub Pages root.
+- The HTML coverage report under `/coverage`.
 
 ## Future Improvements
 

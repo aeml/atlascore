@@ -66,7 +66,7 @@ lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
 genhtml coverage.info --output-directory coverage-report
 ```
 
-Optional Codecov upload requires setting `CODECOV_TOKEN` secret. After each push to `main`:
+After each push to `main`:
 
-- Doxygen API documentation is published at the Pages root.
+- Doxygen API documentation is published at the GitHub Pages root.
 - Coverage HTML report is published under `/coverage`.
