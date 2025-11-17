@@ -75,4 +75,7 @@ namespace simlab
     {
         return std::make_unique<DeterminismHashScenario>();
     }
+
+    // Auto-register
+    static ScenarioAutoRegister g_reg_hash{"hash", "Determinism hash dual-run scenario", &CreateDeterminismHashScenario};
 }

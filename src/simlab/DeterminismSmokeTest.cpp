@@ -55,4 +55,7 @@ namespace simlab
     {
         return std::make_unique<DeterminismSmokeTest>();
     }
+
+    // Auto-register
+    static ScenarioAutoRegister g_reg_smoke{"smoke", "ECS falling bodies smoke test", &CreateDeterminismSmokeTest};
 }

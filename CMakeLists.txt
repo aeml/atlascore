@@ -22,6 +22,7 @@ add_library(atlascore
     src/simlab/DeterminismSmokeTest.cpp
     src/simlab/WorldHasher.cpp
     src/simlab/DeterminismHashScenario.cpp
+    src/simlab/ScenarioRegistry.cpp
 )
 
 # Public headers
@@ -99,6 +100,10 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_jobs_wait_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreJobsWaitTests COMMAND atlascore_jobs_wait_tests)
 
+    add_executable(atlascore_scenario_registry_tests tests/scenario_registry_tests.cpp)
+    target_link_libraries(atlascore_scenario_registry_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreScenarioRegistryTests COMMAND atlascore_scenario_registry_tests)
+
     if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_selftests PRIVATE --coverage)
@@ -120,5 +125,7 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_ecs_collision_tests PRIVATE --coverage)
         target_compile_options(atlascore_jobs_wait_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_jobs_wait_tests PRIVATE --coverage)
+        target_compile_options(atlascore_scenario_registry_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_scenario_registry_tests PRIVATE --coverage)
     endif()
 endif()

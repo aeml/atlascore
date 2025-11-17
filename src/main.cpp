@@ -16,37 +16,25 @@ int main(int argc, char** argv)
     logger.Info("AtlasCore starting up...");
 
     ecs::World world;
-    struct ScenarioOption
-    {
-        const char* key;
-        const char* title;
-        std::unique_ptr<simlab::IScenario> (*factory)();
-    };
-
-    std::vector<ScenarioOption> options = {
-        {"smoke", "ECS falling bodies smoke test", &simlab::CreateDeterminismSmokeTest},
-        {"hash",  "Determinism hash dual-run scenario", &simlab::CreateDeterminismHashScenario},
-    };
+    const auto& options = simlab::ScenarioRegistry::All();
 
     // Determine scenario by CLI arg or interactive menu
     std::unique_ptr<simlab::IScenario> scenario;
     if (argc > 1 && argv[1])
     {
         std::string scenarioName = argv[1];
-        bool found = false;
-        for (const auto& opt : options)
+        auto factory = simlab::ScenarioRegistry::FindFactory(scenarioName);
+        if (factory)
         {
-            if (scenarioName == opt.key)
-            {
-                scenario = opt.factory();
-                found = true;
-                break;
-            }
+            scenario = factory();
         }
-        if (!found)
+        else
         {
-            logger.Error(std::string("Unknown scenario: ") + scenarioName + ". Available: smoke, hash");
-            scenario = options.front().factory();
+            logger.Error(std::string("Unknown scenario: ") + scenarioName);
+            if (!options.empty())
+            {
+                scenario = options.front().factory();
+            }
         }
     }
     else
