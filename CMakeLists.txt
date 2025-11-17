@@ -40,6 +40,12 @@ add_executable(atlascore_app src/main.cpp)
 
 target_link_libraries(atlascore_app PRIVATE atlascore)
 
+# Apply coverage flags to app executable as well (needed for linking gcov symbols)
+if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(atlascore_app PRIVATE --coverage -O0 -g)
+    target_link_options(atlascore_app PRIVATE --coverage)
+endif()
+
 # Coverage instrumentation (GNU/Clang). Applied only if explicitly enabled.
 if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     message(STATUS "Coverage enabled")
