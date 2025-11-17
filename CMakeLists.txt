@@ -23,6 +23,7 @@ add_library(atlascore
     src/simlab/WorldHasher.cpp
     src/simlab/DeterminismHashScenario.cpp
     src/simlab/ScenarioRegistry.cpp
+    src/simlab/TextRendererPatternsScenario.cpp
 )
 
 # Public headers

@@ -22,6 +22,9 @@ namespace simlab
             // Ensure the two default scenarios are present without relying on TU static init
             ScenarioRegistry::Register("smoke", "ECS falling bodies smoke test", &CreateDeterminismSmokeTest);
             ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
+            // Text renderer patterns (grouped under Text Tests / Text Renderer Tests)
+            ScenarioRegistry::Register("text_patterns", "Text renderer patterns", &CreateTextRendererPatternsScenario,
+                                       "Text Tests", "Text Renderer Tests");
         }
     }
 
@@ -42,7 +45,28 @@ namespace simlab
         auto it = std::find_if(st.begin(), st.end(), [&](const ScenarioDesc& d){ return std::string(d.key) == key; });
         if (it == st.end())
         {
-            st.push_back(ScenarioDesc{key, title, factory});
+            st.push_back(ScenarioDesc{key, title, factory, nullptr, nullptr});
+        }
+    }
+
+    void ScenarioRegistry::Register(const char* key, const char* title, ScenarioFactory factory,
+                                    const char* category, const char* subcategory)
+    {
+        if (!key || !title || !factory)
+        {
+            return;
+        }
+        std::lock_guard<std::mutex> lock{regMutex()};
+        auto& st = Storage();
+        auto it = std::find_if(st.begin(), st.end(), [&](const ScenarioDesc& d){ return std::string(d.key) == key; });
+        if (it == st.end())
+        {
+            st.push_back(ScenarioDesc{key, title, factory, category, subcategory});
+        }
+        else
+        {
+            it->category = category;
+            it->subcategory = subcategory;
         }
     }
 

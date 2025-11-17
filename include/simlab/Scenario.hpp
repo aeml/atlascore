@@ -18,6 +18,7 @@ namespace simlab
 
     std::unique_ptr<IScenario> CreateDeterminismSmokeTest();
     std::unique_ptr<IScenario> CreateDeterminismHashScenario();
+    std::unique_ptr<IScenario> CreateTextRendererPatternsScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 
@@ -26,12 +27,16 @@ namespace simlab
         const char*    key;
         const char*    title;
         ScenarioFactory factory;
+        const char*    category;    // optional grouping, e.g., "Text Tests"
+        const char*    subcategory; // optional subgroup, e.g., "Text Renderer Tests"
     };
 
     class ScenarioRegistry
     {
     public:
         static void Register(const char* key, const char* title, ScenarioFactory factory);
+        static void Register(const char* key, const char* title, ScenarioFactory factory,
+                     const char* category, const char* subcategory);
         static const std::vector<ScenarioDesc>& All();
         static ScenarioFactory FindFactory(const std::string& key);
         static std::unique_ptr<IScenario> Create(const std::string& key);
@@ -45,6 +50,11 @@ namespace simlab
         ScenarioAutoRegister(const char* key, const char* title, ScenarioFactory factory)
         {
             ScenarioRegistry::Register(key, title, factory);
+        }
+        ScenarioAutoRegister(const char* key, const char* title, ScenarioFactory factory,
+                             const char* category, const char* subcategory)
+        {
+            ScenarioRegistry::Register(key, title, factory, category, subcategory);
         }
     };
 }
