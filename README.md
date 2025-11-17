@@ -1,4 +1,4 @@
-# AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-pages-blue)](https://aeml.github.io/atlascore/)
+# AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-%2Fcoverage-blue)](https://aeml.github.io/atlascore/coverage/) [![Docs](https://img.shields.io/badge/docs-doxygen-green)](https://aeml.github.io/atlascore/)
 
 AtlasCore is a C++ simulation framework showcasing a multithreaded job system, an Entity–Component–System (ECS) architecture, deterministic physics, and a small Simulation Lab for benchmarks and determinism tests.
 
@@ -66,4 +66,7 @@ lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
 genhtml coverage.info --output-directory coverage-report
 ```
 
-Optional Codecov upload requires setting `CODECOV_TOKEN` secret. An HTML report is published to GitHub Pages after each push to `main`.
+Optional Codecov upload requires setting `CODECOV_TOKEN` secret. After each push to `main`:
+
+- Doxygen API documentation is published at the Pages root.
+- Coverage HTML report is published under `/coverage`.

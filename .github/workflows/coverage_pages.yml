@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake lcov
+          sudo apt-get install -y build-essential cmake lcov doxygen graphviz
 
       - name: Configure (Coverage Enabled)
         run: |
@@ -45,15 +45,27 @@ jobs:
           lcov --remove coverage.base.info '/usr/*' '*/tests/*' --output-file coverage.info
           lcov --list coverage.info
 
-      - name: Generate HTML Report
+      - name: Generate Coverage HTML
         run: |
           cd build
           genhtml coverage.info --output-directory coverage-report
 
+      - name: Generate Doxygen Docs
+        run: |
+          doxygen Doxyfile
+
+      - name: Assemble Pages Artifact
+        run: |
+          mkdir -p build/site/coverage
+          cp -r build/coverage-report/* build/site/coverage/
+          cp -r build/doxygen/html/* build/site/
+          # Simple index note if missing
+          if [ ! -f build/site/index.html ]; then echo "<html><body><h1>AtlasCore Docs</h1><p>Doxygen generation failed.</p></body></html>" > build/site/index.html; fi
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/coverage-report
+          path: build/site
 
   deploy:
     needs: build-coverage

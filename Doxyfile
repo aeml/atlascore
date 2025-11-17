@@ -1,0 +1,18 @@
+# Doxygen configuration for AtlasCore
+PROJECT_NAME           = AtlasCore
+PROJECT_BRIEF          = "Modular C++ simulation framework skeleton"
+OUTPUT_DIRECTORY       = build/doxygen
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_TIMESTAMP         = NO
+INPUT                  = include src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.h *.cpp
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+GENERATE_TREEVIEW      = YES
+FULL_PATH_NAMES        = NO
+JAVADOC_AUTOBRIEF      = YES
+USE_MDFILE_AS_MAINPAGE = README.md
