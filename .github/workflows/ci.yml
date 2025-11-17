@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake lcov
+
+      - name: Configure (Coverage on Ubuntu)
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            ${{ runner.os == 'Linux' && ' -DATLASCORE_ENABLE_COVERAGE=ON' || '' }}
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest -C Debug --output-on-failure
+
+      - name: Collect Coverage (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          lcov --directory . --capture --output-file coverage.info
+          # Remove system and test files
+          lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
+          lcov --list coverage.info
+
+      - name: Generate HTML Report (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          genhtml coverage.info --output-directory coverage-report
+
+      - name: Upload Coverage Artifact (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage-report
+
+      - name: Upload Raw Coverage Data (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-info
+          path: build/coverage.info
+
+      - name: Upload Test Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+            name: test-logs-${{ matrix.os }}
+            path: build/Testing
+
+  codecov:
+    name: Upload to Codecov (Linux)
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: needs.build-test.result == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-info
+          path: coverage
+      - name: Codecov Upload
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage/coverage.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unit
+          verbose: true

@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(ATLASCORE_BUILD_TESTS "Build AtlasCore tests" ON)
+option(ATLASCORE_ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 
 add_library(atlascore
     src/core/Logger.cpp
@@ -37,6 +38,16 @@ add_executable(atlascore_app src/main.cpp)
 
 target_link_libraries(atlascore_app PRIVATE atlascore)
 
+# Coverage instrumentation (GNU/Clang). Applied only if explicitly enabled.
+if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(STATUS "Coverage enabled")
+    target_compile_options(atlascore PRIVATE --coverage -O0 -g)
+    target_link_options(atlascore PRIVATE --coverage)
+    if (ATLASCORE_BUILD_TESTS)
+        # Apply to test targets after they are created (below we handle selftests + determinism)
+    endif()
+endif()
+
 if (ATLASCORE_BUILD_TESTS)
     enable_testing()
     add_executable(atlascore_selftests tests/selftests.cpp)
@@ -46,4 +57,11 @@ if (ATLASCORE_BUILD_TESTS)
     add_executable(atlascore_determinism_tests tests/determinism_tests.cpp)
     target_link_libraries(atlascore_determinism_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreDeterminismTests COMMAND atlascore_determinism_tests)
+
+    if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_selftests PRIVATE --coverage)
+        target_compile_options(atlascore_determinism_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_determinism_tests PRIVATE --coverage)
+    endif()
 endif()
