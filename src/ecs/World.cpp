@@ -1,4 +1,5 @@
 #include "ecs/World.hpp"
+#include <algorithm>
 
 namespace ecs
 {

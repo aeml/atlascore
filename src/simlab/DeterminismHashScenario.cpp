@@ -6,6 +6,7 @@
 #include "physics/Systems.hpp"
 
 #include <vector>
+#include <fstream>
 
 namespace simlab
 {
@@ -17,6 +18,12 @@ namespace simlab
             void Setup(ecs::World& world) override
             {
                 (void)world;
+                auto logFile = std::make_shared<std::ofstream>("simlab_hash.log", std::ios::app);
+                if (logFile->is_open())
+                {
+                    m_logger.SetOutput(logFile);
+                }
+
                 m_logger.Info("[simlab] Setup determinism hash scenario");
                 InitBodies(m_transformsA, m_bodiesA);
                 InitBodies(m_transformsB, m_bodiesB);

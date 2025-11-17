@@ -26,6 +26,10 @@ add_library(atlascore
     src/simlab/TextRendererPatternsScenario.cpp
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(atlascore PRIVATE ATLASCORE_DEBUG_SIMLAB=1)
+endif()
+
 # Public headers
 target_include_directories(atlascore
     PUBLIC

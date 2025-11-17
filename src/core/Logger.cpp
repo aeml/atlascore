@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -29,28 +30,38 @@ namespace
         return oss.str();
     }
 
-    void LogWithLevel(const char* level, const std::string& message)
+    void LogWithLevel(std::ostream& os, const char* level, const std::string& message)
     {
         std::lock_guard<std::mutex> lock{g_logMutex};
-        std::cout << "[" << CurrentTimeString() << "] "
-                  << level << ": " << message << '\n';
+        os << "[" << CurrentTimeString() << "] "
+           << level << ": " << message << '\n';
     }
 }
 
 namespace core
 {
+    Logger::Logger() = default;
+
     void Logger::Info(const std::string& message) const
     {
-        LogWithLevel("INFO", message);
+        auto& os = m_stream ? *m_stream : std::cout;
+        LogWithLevel(os, "INFO", message);
     }
 
     void Logger::Warn(const std::string& message) const
     {
-        LogWithLevel("WARN", message);
+        auto& os = m_stream ? *m_stream : std::cout;
+        LogWithLevel(os, "WARN", message);
     }
 
     void Logger::Error(const std::string& message) const
     {
-        LogWithLevel("ERROR", message);
+        auto& os = m_stream ? *m_stream : std::cout;
+        LogWithLevel(os, "ERROR", message);
+    }
+
+    void Logger::SetOutput(std::shared_ptr<std::ostream> stream)
+    {
+        m_stream = std::move(stream);
     }
 }

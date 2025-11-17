@@ -59,6 +59,13 @@ namespace ascii
         const Cell* cur = m_current.Data();
         const Cell* prev = m_previous.Data();
         std::size_t changed = 0;
+
+        // Save cursor position so we can render into our viewport and then
+        // restore the terminal state for the caller (e.g., prompts/logs).
+        out << "\x1b[s"; // save cursor
+
+        constexpr int originRow = 1;
+        constexpr int originCol = 1;
         for (int y = 0; y < h; ++y)
         {
             bool lineChanged = false;
@@ -73,8 +80,9 @@ namespace ascii
             }
             if (lineChanged)
             {
-                // Re-render entire changed line for simplicity
-                out << "\x1b[" << (y + 1) << ";1H"; // move cursor (1-based)
+                // Re-render entire changed line for simplicity into our viewport
+                const int row = originRow + y;
+                out << "\x1b[" << row << ";" << originCol << "H"; // move cursor
                 for (int x = 0; x < w; ++x)
                 {
                     out << cur[static_cast<std::size_t>(y * w + x)].ch;
@@ -88,6 +96,9 @@ namespace ascii
         {
             prevMut[i] = cur[i];
         }
+
+        // Restore cursor to where it was before rendering.
+        out << "\x1b[u";
         return changed;
     }
 }

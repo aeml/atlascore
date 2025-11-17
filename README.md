@@ -1,17 +1,20 @@
 # AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-%2Fcoverage-blue)](https://aeml.github.io/atlascore/coverage/) [![Docs](https://img.shields.io/badge/docs-doxygen-green)](https://aeml.github.io/atlascore/)
 
-AtlasCore is a C++ simulation framework showcasing a multithreaded job system, an Entity–Component–System (ECS) architecture, deterministic physics, and a small Simulation Lab for benchmarks and determinism tests.
+AtlasCore is a C++ simulation framework showcasing a multithreaded job system, an Entity–Component–System (ECS) architecture, deterministic physics, and a small Simulation Lab for interactive demos and determinism tests, rendered entirely as text.
 
-This repository currently contains a **minimal evolving skeleton**:
+This repository currently contains a **minimal but growing engine**:
 
-- `core` module with `Logger`, `Clock`, and `FixedTimestepLoop`
-- `jobs` module with a simple `JobSystem` interface and worker pool
+- `core` module with `Logger`, `Clock`, and `FixedTimestepLoop` for driving fixed-timestep simulations
+- `jobs` module with a simple `JobSystem` interface and worker pool for parallel workloads
 - `ecs` module with a `World` / `ISystem` abstraction and integrated component storage (type-erased wrappers over `ComponentStorage<T>`) 
-- `physics` module with `TransformComponent`, `RigidBodyComponent`, and gravity integration via `PhysicsIntegrationSystem`
-- `ascii` module providing a simple textual renderer of entity positions
-- `simlab` module featuring a falling-body demo and a determinism hash scenario (dual-run hash comparison)
-- A small `main` entry point that runs a short 60-step simulation
-- A basic self-test executable (CTest) covering core, jobs, and physics integration
+- `physics` module with `TransformComponent`, `RigidBodyComponent`, gravity integration via `PhysicsIntegrationSystem`, and basic collision helpers
+- `ascii` module providing an ANSI-friendly `TextRenderer` for efficient terminal rendering (diff-based text frames)
+- `simlab` module featuring:
+	- `smoke` demo: ECS bodies falling under physics, visualized as continuously dropping characters
+	- `text_patterns` demo: animated sine waves and Lissajous patterns using the `TextRenderer`
+	- determinism/hash scenarios for dual-run comparison
+- A `main` entry point that lets you pick and run scenarios interactively
+- A CTest suite covering core, jobs, physics, ECS, and simlab behavior
 
 Refer to `sysarchitecture.md` for the high-level design and roadmap.
 
@@ -47,14 +50,24 @@ From the `build` directory:
 ctest -C Release
 ```
 
-## Next Steps
+## Next Steps / Roadmap
+
+Short-term goals:
+
+- Make the Simulation Lab a showcase of the engine:
+	- Refine the **smoke** demo (soft drifting + continuous spawn)
+	- Add a **rain** demo (fast vertical motion, optional bouncing at ground)
+	- Add a **clouds** demo (slow horizontal motion, layering, wind-style effects)
+	- Integrate the **job system** to drive large numbers of entities in these demos
+- Expand ASCII visualization patterns and utilities (e.g., debug overlays, simple HUD text)
+- Expand determinism tests (collision, multi-thread job scheduling impact)
+
+Engine-oriented work:
 
 - Optimize ECS storage layout (chunked / archetype approach)
-- Expand determinism tests (collision, multi-thread job scheduling impact)
- - Expand determinism tests (collision, multi-thread job scheduling impact)
-- Expand ASCII visualization / add optional CSV export utilities
-- Implement collision detection & resolution systems
-- Introduce benchmarking scenarios for job throughput and determinism
+- Improve physics (collision detection, resolution, constraints)
+- Add simple profiling/metrics hooks for job throughput and ECS/physics performance
+- Introduce dedicated benchmarking scenarios for job throughput, ECS iteration, and determinism
 
 ## Code Coverage
 

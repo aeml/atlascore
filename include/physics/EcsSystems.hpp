@@ -3,6 +3,7 @@
 #include "ecs/World.hpp"
 #include "physics/Components.hpp"
 #include "physics/CollisionSystem.hpp"
+#include "physics/Systems.hpp"
 
 #include <memory>
 #include <vector>
@@ -11,31 +12,40 @@ namespace physics {
 
 class PhysicsEcsSystem : public ecs::ISystem {
 public:
+    PhysicsEcsSystem() = default; // default: uses zeroed EnvironmentForces
+    explicit PhysicsEcsSystem(const PhysicsIntegrationSystem* integration)
+        : m_integration(integration) {}
+
     void Update(ecs::World& world, float dt) override {
-        const float g = -9.81f;
+        const EnvironmentForces env = m_integration ? m_integration->Environment()
+                                                    : EnvironmentForces{};
+
         world.ForEach<physics::TransformComponent>([&](ecs::EntityId id, physics::TransformComponent& t){
-            auto* rb = world.GetComponent<physics::RigidBodyComponent>(id);
-            float oldX = t.x; float oldY = t.y;
-            if (rb) {
-                rb->vy += g * dt;
-                t.x += rb->vx * dt;
-                t.y += rb->vy * dt;
-            }
-            float dx = t.x - oldX; float dy = t.y - oldY;
-            if (auto* aabb = world.GetComponent<physics::AABBComponent>(id)) {
-                aabb->minX += dx; aabb->maxX += dx;
-                aabb->minY += dy; aabb->maxY += dy;
-            }
-            // Simple ground plane at y=0
-            if (t.y < 0.0f) {
-                float correction = -t.y;
-                t.y = 0.0f; if (rb) rb->vy = 0.0f;
-                if (auto* aabb = world.GetComponent<physics::AABBComponent>(id)) {
-                    aabb->minY += correction; aabb->maxY += correction;
-                }
-            }
+            auto* rb   = world.GetComponent<physics::RigidBodyComponent>(id);
+            auto* aabb = world.GetComponent<physics::AABBComponent>(id);
+            if (!rb || !aabb) return;
+
+            float oldX = t.x;
+            float oldY = t.y;
+
+            const float ax = env.windX - env.drag * rb->vx;
+            const float ay = env.gravityY + env.windY - env.drag * rb->vy;
+
+            rb->vx += ax * dt;
+            rb->vy += ay * dt;
+
+            t.x += rb->vx * dt;
+            t.y += rb->vy * dt;
+
+            const float dx = t.x - oldX;
+            const float dy = t.y - oldY;
+            aabb->minX += dx; aabb->maxX += dx;
+            aabb->minY += dy; aabb->maxY += dy;
         });
     }
+
+private:
+    const PhysicsIntegrationSystem* m_integration{};
 };
 
 class CollisionEcsSystem : public ecs::ISystem {

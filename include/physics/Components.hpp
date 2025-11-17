@@ -16,6 +16,15 @@ namespace physics
         float vy{0.0f};
     };
 
+    // Simple environment-wide forces for weather-like simulations.
+    struct EnvironmentForces
+    {
+        float gravityY{-9.81f}; // downward acceleration
+        float windX{0.0f};      // horizontal wind
+        float windY{0.0f};      // vertical wind / updrafts
+        float drag{0.0f};       // linear drag coefficient
+    };
+
     // Axis-aligned bounding box for simple collision tests.
     struct AABBComponent
     {

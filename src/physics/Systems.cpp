@@ -18,8 +18,13 @@ namespace physics
         {
             auto& t = transforms[i];
             auto& b = bodies[i];
-            // Gravity affects vertical velocity (y-axis).
-            b.vy += m_gravity * dt;
+            // Apply simple environment forces: gravity, wind, and linear drag.
+            const float ax = m_env.windX - m_env.drag * b.vx;
+            const float ay = m_env.gravityY + m_env.windY - m_env.drag * b.vy;
+
+            b.vx += ax * dt;
+            b.vy += ay * dt;
+
             // Integrate position.
             t.x += b.vx * dt;
             t.y += b.vy * dt;

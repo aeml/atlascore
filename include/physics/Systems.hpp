@@ -7,7 +7,7 @@
 
 namespace physics
 {
-    // Integrates rigid bodies into transforms applying gravity.
+    // Integrates rigid bodies into transforms applying gravity / environment forces.
     class PhysicsIntegrationSystem : public ecs::ISystem
     {
     public:
@@ -17,9 +17,12 @@ namespace physics
                        std::vector<RigidBodyComponent>& bodies,
                        float                            dt) const;
 
-        float Gravity() const noexcept { return m_gravity; }
+        float Gravity() const noexcept { return m_env.gravityY; }
+
+        void SetEnvironment(const EnvironmentForces& env) { m_env = env; }
+        const EnvironmentForces& Environment() const noexcept { return m_env; }
 
     private:
-        float m_gravity{-9.81f};
+        EnvironmentForces m_env{};
     };
 }

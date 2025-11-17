@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 namespace simlab {
 namespace {
@@ -12,6 +13,12 @@ namespace {
 class TextRendererPatternsScenario final : public IScenario {
 public:
     void Setup(ecs::World& /*world*/) override {
+        auto logFile = std::make_shared<std::ofstream>("simlab_text_patterns.log", std::ios::app);
+        if (logFile->is_open())
+        {
+            m_logger.SetOutput(logFile);
+        }
+
         m_logger.Info("[simlab] Setup TextRenderer patterns scenario");
         // Initialize a text surface
         m_width = 80;
