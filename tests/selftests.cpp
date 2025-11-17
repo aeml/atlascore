@@ -2,6 +2,8 @@
 #include "core/FixedTimestepLoop.hpp"
 #include "core/Logger.hpp"
 #include "jobs/JobSystem.hpp"
+#include "physics/Systems.hpp"
+#include "physics/Components.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -55,6 +57,18 @@ int main()
     // Sleep briefly to allow the job to run
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     assert(jobCounter.load() >= 1);
+
+    // Physics integration: single body should move under gravity.
+    physics::PhysicsIntegrationSystem physicsSystem;
+    std::vector<physics::TransformComponent> transforms(1);
+    std::vector<physics::RigidBodyComponent> bodies(1);
+    transforms[0].y = 10.0f;
+    bodies[0].vy = 0.0f;
+    const float dt = 1.0f / 60.0f;
+    physicsSystem.Integrate(transforms, bodies, dt);
+    // After one step, vy should be gravity * dt (negative) and y decreased.
+    assert(bodies[0].vy < 0.0f);
+    assert(transforms[0].y < 10.0f);
 
     logger.Info("[PASS] Core and Jobs self-tests");
     std::cout << "All self-tests passed.\n";
