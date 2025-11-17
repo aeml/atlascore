@@ -1,0 +1,25 @@
+# Build directories
+/build/
+/out/
+/bin/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.vcxproj*
+*.sln
+
+# IDE files
+.vscode/
+.idea/
+*.user
+*.opendb
+*.obj
+*.pdb
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
