@@ -15,9 +15,11 @@ int main() {
     assert(t1 && t2);
     assert(t1->x == 1.f && t1->y == 2.f);
     assert(t2->x == 3.f && t2->y == 4.f);
+    (void)t1; (void)t2;
     // Missing component returns nullptr.
     auto* rbMissing = world.GetComponent<physics::RigidBodyComponent>(e1);
     assert(rbMissing == nullptr);
+    (void)rbMissing;
     std::cout << "ECS extra tests passed.\n";
     return 0;
 }

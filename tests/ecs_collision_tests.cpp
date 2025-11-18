@@ -17,6 +17,7 @@ int main(){
 
     world.Update(0.0f);
     assert(collisionPtr->Events().size() == 1);
+    (void)collisionPtr;
     std::cout << "ECS collision test passed\n";
     return 0;
 }

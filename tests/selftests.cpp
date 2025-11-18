@@ -21,6 +21,7 @@ int main()
     const auto t1 = core::Clock::NowMicroseconds();
     const auto t2 = core::Clock::NowMicroseconds();
     assert(t2 >= t1);
+    (void)t1; (void)t2;
 
     // Basic FixedTimestepLoop check: ensure it calls update
     std::atomic<bool> running{true};
@@ -103,6 +104,7 @@ int main()
     auto* ecsFetched = ecsWorld.GetComponent<physics::TransformComponent>(e);
     assert(ecsFetched != nullptr);
     assert(ecsFetched->x == 1.0f && ecsFetched->y == 2.0f);
+    (void)ecsTransform; (void)ecsFetched;
 
     logger.Info("[PASS] Core and Jobs self-tests");
     std::cout << "All self-tests passed.\n";

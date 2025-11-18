@@ -36,11 +36,11 @@ target_include_directories(atlascore
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Warnings
+# Warnings and Compiler Options
 if (MSVC)
-    target_compile_options(atlascore PRIVATE /W4 /permissive-)
+    target_compile_options(atlascore PUBLIC /W4 /permissive- /EHsc)
 else()
-    target_compile_options(atlascore PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(atlascore PUBLIC -Wall -Wextra -Wpedantic)
 endif()
 
 add_executable(atlascore_app src/main.cpp)
@@ -109,6 +109,10 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_scenario_registry_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreScenarioRegistryTests COMMAND atlascore_scenario_registry_tests)
 
+    add_executable(atlascore_coverage_tests tests/coverage_tests.cpp)
+    target_link_libraries(atlascore_coverage_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreCoverageTests COMMAND atlascore_coverage_tests)
+
     if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(atlascore_selftests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_selftests PRIVATE --coverage)
@@ -132,5 +136,7 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_jobs_wait_tests PRIVATE --coverage)
         target_compile_options(atlascore_scenario_registry_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_scenario_registry_tests PRIVATE --coverage)
+        target_compile_options(atlascore_coverage_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_coverage_tests PRIVATE --coverage)
     endif()
 endif()

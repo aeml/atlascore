@@ -23,6 +23,7 @@ int main(){
     // AABB should have moved down by same delta
     float dy = t->y - 10.0f;
     assert(aabb->minY < 9.5f && aabb->maxY < 10.5f);
+    (void)rb; (void)aabb; (void)dy;
     std::cout << "ECS physics test passed\n";
     return 0;
 }

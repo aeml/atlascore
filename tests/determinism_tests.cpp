@@ -36,6 +36,7 @@ int main()
         const auto hA = hasher.HashBodies(tA, bA);
         const auto hB = hasher.HashBodies(tB, bB);
         assert(hA == hB);
+        (void)hA; (void)hB;
     }
 
     logger.Info("[PASS] Determinism hashes matched");
