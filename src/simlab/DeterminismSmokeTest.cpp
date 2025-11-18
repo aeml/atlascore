@@ -6,6 +6,7 @@
 #include "physics/Systems.hpp"
 #include "physics/EcsSystems.hpp"
 #include "ascii/TextRenderer.hpp"
+#include "jobs/JobSystem.hpp"
 
 #include <vector>
 #include <iostream>
@@ -81,6 +82,7 @@ namespace simlab
                 env.windY    =  0.0f;
                 env.drag     =  0.2f;   // keep velocities bounded
                 m_physics.SetEnvironment(env);
+                m_physics.SetJobSystem(&m_jobSystem);
                 // Clear screen and draw a simple title banner on first setup
                 m_renderer->Clear(' ');
                 const char* title = "ECS falling bodies";
@@ -145,7 +147,6 @@ namespace simlab
 
                     // World-space bottom: once the AABB's minY drops below worldMinY,
                     // treat it as having left the smoke volume.
-                    const float centerX = 0.5f * (aabb->minX + aabb->maxX);
                     const float y       = aabb->minY;
 
                     const bool hitBottom = (y < m_cfg.worldMinY);
@@ -230,12 +231,13 @@ namespace simlab
             }
 
         private:
-            core::Logger                                      m_logger;
-            physics::PhysicsIntegrationSystem                 m_physics;
-            std::unique_ptr<ascii::TextRenderer>              m_renderer;
-            int                                               m_width{0};
-            int                                               m_height{0};
-            FallDemoConfig                                    m_cfg;
+            int                                       m_width{80};
+            int                                       m_height{24};
+            std::unique_ptr<ascii::TextRenderer>      m_renderer;
+            jobs::JobSystem                           m_jobSystem;
+            physics::PhysicsIntegrationSystem         m_physics;
+            FallDemoConfig                            m_cfg;
+            core::Logger                              m_logger;
 
             void SpawnSmokeParticle(ecs::World& world, float seed)
             {

@@ -5,6 +5,8 @@
 
 #include <vector>
 
+namespace jobs { class JobSystem; }
+
 namespace physics
 {
     // Integrates rigid bodies into transforms applying gravity / environment forces.
@@ -22,7 +24,10 @@ namespace physics
         void SetEnvironment(const EnvironmentForces& env) { m_env = env; }
         const EnvironmentForces& Environment() const noexcept { return m_env; }
 
+        void SetJobSystem(jobs::JobSystem* jobSystem) { m_jobSystem = jobSystem; }
+
     private:
         EnvironmentForces m_env{};
+        jobs::JobSystem* m_jobSystem{nullptr};
     };
 }

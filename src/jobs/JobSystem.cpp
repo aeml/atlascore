@@ -202,6 +202,32 @@ namespace jobs
         state->cv.wait(lk, [&]{ return state->completed.load(std::memory_order_acquire); });
     }
 
+    std::vector<JobHandle> JobSystem::Dispatch(std::size_t jobCount, std::size_t batchSize, const std::function<void(std::size_t, std::size_t)>& job)
+    {
+        std::vector<JobHandle> handles;
+        if (jobCount == 0 || batchSize == 0)
+        {
+            return handles;
+        }
+
+        for (std::size_t i = 0; i < jobCount; i += batchSize)
+        {
+            std::size_t end = std::min(i + batchSize, jobCount);
+            handles.push_back(ScheduleFunction([=]() {
+                job(i, end);
+            }));
+        }
+        return handles;
+    }
+
+    void JobSystem::Wait(const std::vector<JobHandle>& handles)
+    {
+        for (const auto& handle : handles)
+        {
+            Wait(handle);
+        }
+    }
+
     std::size_t JobSystem::WorkerCount() const noexcept
     {
         return m_impl ? m_impl->workers.size() : 0;

@@ -71,6 +71,30 @@ int main()
     assert(bodies[0].vy < 0.0f);
     assert(transforms[0].y < 10.0f);
 
+    // Parallel Physics integration test
+    {
+        physics::PhysicsIntegrationSystem parallelPhysics;
+        parallelPhysics.SetJobSystem(&jobSystem);
+
+        const size_t count = 300;
+        std::vector<physics::TransformComponent> pTransforms(count);
+        std::vector<physics::RigidBodyComponent> pBodies(count);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            pTransforms[i].y = 10.0f;
+            pBodies[i].vy = 0.0f;
+        }
+
+        parallelPhysics.Integrate(pTransforms, pBodies, dt);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            assert(pBodies[i].vy < 0.0f);
+            assert(pTransforms[i].y < 10.0f);
+        }
+    }
+
     // ECS component storage integration: add and retrieve a TransformComponent.
     ecs::World ecsWorld;
     auto e = ecsWorld.CreateEntity();
