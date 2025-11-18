@@ -1,11 +1,14 @@
 #include "core/Logger.hpp"
 #include "ecs/World.hpp"
 #include "simlab/Scenario.hpp"
+#include "simlab/WorldHasher.hpp"
+#include "physics/Components.hpp"
 
 #include <cassert>
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <vector>
 
 // Mock system for ECS testing
 class MockSystem : public ecs::ISystem
@@ -69,7 +72,60 @@ int main()
     }
 
     // ------------------------------------------------------------------------
-    // SimLab: Scenario Coverage
+    // SimLab: Scenario Coverage (Execution)
+    // ------------------------------------------------------------------------
+    {
+        ecs::World world;
+
+        // 1. Smoke Test
+        auto smoke = simlab::CreateDeterminismSmokeTest();
+        if (smoke)
+        {
+            smoke->Setup(world);
+            // Run a few steps to cover update logic, spawning, and rendering
+            for (int i = 0; i < 5; ++i)
+            {
+                smoke->Step(world, 1.0f / 60.0f);
+            }
+        }
+
+        // 2. Hash Scenario
+        auto hash = simlab::CreateDeterminismHashScenario();
+        if (hash)
+        {
+            hash->Setup(world);
+            hash->Step(world, 1.0f / 60.0f);
+        }
+
+        // 3. Text Patterns
+        auto patterns = simlab::CreateTextRendererPatternsScenario();
+        if (patterns)
+        {
+            patterns->Setup(world);
+            patterns->Step(world, 0.1f);
+        }
+
+        std::cout << "[PASS] SimLab Scenarios execution coverage\n";
+    }
+
+    // ------------------------------------------------------------------------
+    // SimLab: WorldHasher Extra Coverage
+    // ------------------------------------------------------------------------
+    {
+        simlab::WorldHasher hasher;
+        std::vector<physics::AABBComponent> aabbs;
+        aabbs.push_back({0.f, 0.f, 1.f, 1.f});
+        aabbs.push_back({2.f, 2.f, 3.f, 3.f});
+
+        std::uint64_t h = hasher.HashAABBs(aabbs);
+        assert(h != 0); // Basic check that it produces something
+        (void)h;
+
+        std::cout << "[PASS] WorldHasher AABB coverage\n";
+    }
+
+    // ------------------------------------------------------------------------
+    // SimLab: Scenario Registry Coverage
     // ------------------------------------------------------------------------
     {
         // Force instantiation of all registered scenarios to cover their factories
@@ -80,20 +136,21 @@ int main()
             {
                 auto scenario = desc.factory();
                 assert(scenario != nullptr);
-                // We don't run them (too long/interactive), just create them.
             }
         }
         
-        // Explicitly create specific ones if they aren't in the registry by default 
-        // (though they should be via auto-registration)
-        auto s1 = simlab::CreateDeterminismSmokeTest();
-        assert(s1);
-        auto s2 = simlab::CreateDeterminismHashScenario();
-        assert(s2);
-        auto s3 = simlab::CreateTextRendererPatternsScenario();
-        assert(s3);
+        // Test FindFactory and Create
+        auto factory = simlab::ScenarioRegistry::FindFactory("smoke");
+        assert(factory != nullptr);
+        (void)factory;
+        
+        auto instance = simlab::ScenarioRegistry::Create("smoke");
+        assert(instance != nullptr);
 
-        std::cout << "[PASS] SimLab Scenario factories coverage\n";
+        auto missing = simlab::ScenarioRegistry::Create("non_existent");
+        assert(missing == nullptr);
+
+        std::cout << "[PASS] SimLab ScenarioRegistry coverage\n";
     }
 
     std::cout << "All coverage tests passed.\n";
