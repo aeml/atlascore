@@ -154,7 +154,7 @@ namespace simlab
                     if (hitBottom)
                     {
 #ifdef ATLASCORE_DEBUG_SIMLAB
-                        m_logger.Info("[smoke] entity hit bottom; applying policy (id=" + std::to_string(id.Get()) + ")");
+                        m_logger.Info("[smoke] entity hit bottom; applying policy (id=" + std::to_string(id) + ")");
 #endif
                         switch (m_cfg.onBottom)
                         {
