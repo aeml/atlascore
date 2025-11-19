@@ -195,10 +195,25 @@ namespace physics
             float cx = correction * event.normalX;
             float cy = correction * event.normalY;
 
-            tA->x -= cx * bA->invMass;
-            tA->y -= cy * bA->invMass;
-            tB->x += cx * bB->invMass;
-            tB->y += cy * bB->invMass;
+            float dxA = -cx * bA->invMass;
+            float dyA = -cy * bA->invMass;
+            float dxB = cx * bB->invMass;
+            float dyB = cy * bB->invMass;
+
+            tA->x += dxA;
+            tA->y += dyA;
+            tB->x += dxB;
+            tB->y += dyB;
+
+            // Sync AABBs
+            if (auto* boxA = aabbStorage->Get(idA)) {
+                boxA->minX += dxA; boxA->maxX += dxA;
+                boxA->minY += dyA; boxA->maxY += dyA;
+            }
+            if (auto* boxB = aabbStorage->Get(idB)) {
+                boxB->minX += dxB; boxB->maxX += dxB;
+                boxB->minY += dyB; boxB->maxY += dyB;
+            }
         }
     }
 
