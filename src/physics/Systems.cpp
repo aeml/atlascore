@@ -274,19 +274,25 @@ namespace physics
 
     void PhysicsSystem::Update(ecs::World& world, float dt)
     {
-        // 1. Integration
-        m_integration.Update(world, dt);
+        const int substeps = 8;
+        const float subDt = dt / substeps;
 
-        // 2. Detection
-        auto* aabbStorage = world.GetStorage<AABBComponent>();
-        if (aabbStorage) {
-            const auto& aabbs = aabbStorage->GetData();
-            m_collision.Detect(aabbs, m_events, m_jobSystem);
-        }
+        for (int i = 0; i < substeps; ++i)
+        {
+            // 1. Integration
+            m_integration.Update(world, subDt);
 
-        // 3. Resolution
-        if (!m_events.empty()) {
-            m_resolution.Resolve(m_events, world);
+            // 2. Detection
+            auto* aabbStorage = world.GetStorage<AABBComponent>();
+            if (aabbStorage) {
+                const auto& aabbs = aabbStorage->GetData();
+                m_collision.Detect(aabbs, m_events, m_jobSystem);
+            }
+
+            // 3. Resolution
+            if (!m_events.empty()) {
+                m_resolution.Resolve(m_events, world);
+            }
         }
     }
 }
