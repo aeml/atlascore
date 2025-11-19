@@ -9,6 +9,7 @@ namespace physics
     {
         auto* rbStorage = world.GetStorage<RigidBodyComponent>();
         auto* tfStorage = world.GetStorage<TransformComponent>();
+        auto* aabbStorage = world.GetStorage<AABBComponent>();
 
         if (!rbStorage || !tfStorage) return;
 
@@ -28,8 +29,23 @@ namespace physics
                     b.vx += ax * dt;
                     b.vy += ay * dt;
 
+                    float oldX = tf->x;
+                    float oldY = tf->y;
+
                     tf->x += b.vx * dt;
                     tf->y += b.vy * dt;
+
+                    // Update AABB if present
+                    if (aabbStorage) {
+                        if (auto* aabb = aabbStorage->Get(id)) {
+                            float dx = tf->x - oldX;
+                            float dy = tf->y - oldY;
+                            aabb->minX += dx;
+                            aabb->maxX += dx;
+                            aabb->minY += dy;
+                            aabb->maxY += dy;
+                        }
+                    }
                 }
             }
         };
@@ -80,12 +96,80 @@ namespace physics
         }
     }
 
+    void CollisionResolutionSystem::Resolve(const std::vector<CollisionEvent>& events, ecs::World& world) const
+    {
+        auto* tfStorage = world.GetStorage<TransformComponent>();
+        auto* rbStorage = world.GetStorage<RigidBodyComponent>();
+        auto* aabbStorage = world.GetStorage<AABBComponent>();
+
+        if (!tfStorage || !rbStorage || !aabbStorage) return;
+
+        const auto& entities = aabbStorage->GetEntities();
+
+        for (const auto& event : events)
+        {
+            if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
+
+            ecs::EntityId idA = entities[event.indexA];
+            ecs::EntityId idB = entities[event.indexB];
+
+            auto* tA = tfStorage->Get(idA);
+            auto* bA = rbStorage->Get(idA);
+            auto* tB = tfStorage->Get(idB);
+            auto* bB = rbStorage->Get(idB);
+
+            if (!tA || !bA || !tB || !bB) continue;
+
+            // Relative velocity
+            float rvx = bB->vx - bA->vx;
+            float rvy = bB->vy - bA->vy;
+
+            // Velocity along normal
+            float velAlongNormal = rvx * event.normalX + rvy * event.normalY;
+
+            // Do not resolve if velocities are separating
+            if (velAlongNormal > 0)
+                continue;
+
+            // Restitution (min of both)
+            float e = std::min(bA->restitution, bB->restitution);
+
+            // Impulse scalar
+            float j = -(1 + e) * velAlongNormal;
+            j /= (bA->invMass + bB->invMass);
+
+            // Apply impulse
+            float impulseX = j * event.normalX;
+            float impulseY = j * event.normalY;
+
+            bA->vx -= impulseX * bA->invMass;
+            bA->vy -= impulseY * bA->invMass;
+            bB->vx += impulseX * bB->invMass;
+            bB->vy += impulseY * bB->invMass;
+
+            // Positional correction (Linear Projection)
+            const float percent = 0.2f;
+            const float slop = 0.01f;
+            float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
+            
+            float cx = correction * event.normalX;
+            float cy = correction * event.normalY;
+
+            tA->x -= cx * bA->invMass;
+            tA->y -= cy * bA->invMass;
+            tB->x += cx * bB->invMass;
+            tB->y += cy * bB->invMass;
+        }
+    }
+
     void CollisionResolutionSystem::Resolve(const std::vector<CollisionEvent>& events,
                                             std::vector<TransformComponent>& transforms,
                                             std::vector<RigidBodyComponent>& bodies) const
     {
         for (const auto& event : events)
         {
+            if (event.indexA >= transforms.size() || event.indexB >= transforms.size()) continue;
+
             auto& tA = transforms[event.indexA];
             auto& bA = bodies[event.indexA];
             auto& tB = transforms[event.indexB];
@@ -119,8 +203,8 @@ namespace physics
             bB.vy += impulseY * bB.invMass;
 
             // Positional correction (Linear Projection)
-            const float percent = 0.2f; // usually 20% to 80%
-            const float slop = 0.01f; // usually 0.01 to 0.1
+            const float percent = 0.2f;
+            const float slop = 0.01f;
             float correction = std::max(event.penetration - slop, 0.0f) / (bA.invMass + bB.invMass) * percent;
             
             float cx = correction * event.normalX;
@@ -130,6 +214,24 @@ namespace physics
             tA.y -= cy * bA.invMass;
             tB.x += cx * bB.invMass;
             tB.y += cy * bB.invMass;
+        }
+    }
+
+    void PhysicsSystem::Update(ecs::World& world, float dt)
+    {
+        // 1. Integration
+        m_integration.Update(world, dt);
+
+        // 2. Detection
+        auto* aabbStorage = world.GetStorage<AABBComponent>();
+        if (aabbStorage) {
+            const auto& aabbs = aabbStorage->GetData();
+            m_collision.Detect(aabbs, m_events, m_jobSystem);
+        }
+
+        // 3. Resolution
+        if (!m_events.empty()) {
+            m_resolution.Resolve(m_events, world);
         }
     }
 }

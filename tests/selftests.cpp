@@ -267,6 +267,43 @@ int main()
         }
     }
 
+    // Full Physics Pipeline Test (PhysicsSystem)
+    {
+        ecs::World world;
+        auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
+        physicsSystem->SetJobSystem(&jobSystem);
+        world.AddSystem(std::move(physicsSystem));
+
+        // Entity A: moving right
+        auto e1 = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(e1, physics::TransformComponent{0.0f, 0.0f});
+        world.AddComponent<physics::RigidBodyComponent>(e1, physics::RigidBodyComponent{1.0f, 0.0f}); // vx=1
+        world.AddComponent<physics::AABBComponent>(e1, physics::AABBComponent{0.0f, 0.0f, 1.0f, 1.0f});
+
+        // Entity B: moving left, colliding path
+        auto e2 = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(e2, physics::TransformComponent{1.5f, 0.0f});
+        world.AddComponent<physics::RigidBodyComponent>(e2, physics::RigidBodyComponent{-1.0f, 0.0f}); // vx=-1
+        world.AddComponent<physics::AABBComponent>(e2, physics::AABBComponent{1.5f, 0.0f, 2.5f, 1.0f});
+
+        // Step 1: Move them closer (Integration)
+        // t=0: A at 0, B at 1.5. Distance 1.5. No overlap (A max 1, B min 1.5).
+        // Update 0.5s: A -> 0.5, B -> 1.0.
+        // AABB A: 0.5-1.5. AABB B: 1.0-2.0. Overlap!
+        world.Update(0.5f);
+
+        // Check if collision was resolved.
+        // If resolved, velocities should have flipped (elastic collision).
+        auto* b1 = world.GetComponent<physics::RigidBodyComponent>(e1);
+        auto* b2 = world.GetComponent<physics::RigidBodyComponent>(e2);
+
+        if (b1->vx >= 0.0f || b2->vx <= 0.0f) {
+             std::cerr << "Physics Pipeline test failed: Velocities not resolved. "
+                       << "A.vx=" << b1->vx << ", B.vx=" << b2->vx << std::endl;
+             return 1;
+        }
+    }
+
     logger.Info("[PASS] Core and Jobs self-tests");
     std::cout << "All self-tests passed.\n";
     return 0;

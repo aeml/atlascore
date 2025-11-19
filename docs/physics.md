@@ -18,9 +18,11 @@ Collision support includes:
   - Supports parallel execution via `JobSystem`.
   - Falls back to O(N^2) for small datasets.
 - `CollisionResolutionSystem`: resolves collisions using impulse-based response and positional correction.
+- `PhysicsSystem`: orchestrates the full pipeline (Integration -> Detection -> Resolution).
 
 Determinism hashing now includes AABB data and collision event counts in dedicated tests. Future iterations will:
 
-- Integrate AABBs into ECS component storage.
+- Integrate AABBs into ECS component storage (Done).
+
 
 

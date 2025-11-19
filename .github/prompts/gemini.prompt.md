@@ -39,3 +39,21 @@ Response Guidelines:
 When editing files, prefer replace_string_in_file for precision.
 Do not leave "unused variable" warnings in tests; fix them immediately.
 Always check for CI/CD implications (e.g., debug macros in release builds).
+
+Commit Message Instructions
+When generating git commit messages, strictly follow the Conventional Commits format: type(scope): description.
+
+Header:
+Type: Use feat, fix, docs, style, refactor, test, chore, perf, or ci.
+Scope: (Optional) The specific module affected (e.g., physics, ecs, jobs).
+Description: Use imperative mood ("add" not "added"), lowercase, and no trailing period.
+Body:
+Leave one blank line after the header.
+Use a bulleted list (-) to detail specific changes.
+Example:
+
+for collision detection
+
+Add SpatialHash class for O(N) broad-phase checks.
+Update CollisionSystem to use spatial hashing when body count > 100.
+Add unit tests for grid cell mapping.

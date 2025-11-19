@@ -193,6 +193,7 @@ Systems may internally create jobs to parallelize their work.
 
 #### `PhysicsIntegrationSystem`
 - Applies velocity → position integration
+- Updates AABB positions
 - Uses ECS contiguous storage to run parallel updates via `JobSystem`.
 
 #### `CollisionSystem`
@@ -201,6 +202,10 @@ Systems may internally create jobs to parallelize their work.
 
 #### `CollisionResolutionSystem`
 - Resolves collisions using impulse-based response.
+
+#### `PhysicsSystem`
+- Orchestrates the full pipeline: Integration → Detection → Resolution.
+
 
 ---
 
