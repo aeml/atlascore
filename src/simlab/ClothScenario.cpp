@@ -43,20 +43,22 @@ namespace simlab
             
             physics::EnvironmentForces env;
             env.gravityY = -9.81f;
-            env.drag = 0.05f; // Higher drag for cloth to stop it going crazy
-            env.windX = 3.0f; // Add some wind to make it flutter!
+            env.drag = 0.05f; // Increased drag for stability
+            env.windX = 0.0f; // No wind
             
+            std::cout << "ClothScenario Setup: Gravity=" << env.gravityY << " Wind=" << env.windX << std::endl;
+
             auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
             physicsSystem->SetEnvironment(env);
             physicsSystem->SetJobSystem(&m_jobSystem);
             world.AddSystem(std::move(physicsSystem));
 
             // Cloth parameters
-            int rows = 10;
-            int cols = 10;
-            float spacing = 1.0f;
+            int rows = 12;
+            int cols = 12;
+            float spacing = 0.8f;
             float startX = 0.0f;
-            float startY = 4.0f;
+            float startY = 4.0f; // Start lower to be visible
 
             std::vector<std::vector<ecs::EntityId>> grid(rows, std::vector<ecs::EntityId>(cols));
 
@@ -67,8 +69,8 @@ namespace simlab
                     float x = startX + c * spacing;
                     float y = startY - r * spacing;
                     
-                    // Top row is static (pinned)
-                    float mass = (r == 0) ? 0.0f : 1.0f;
+                    // Unpinned cloth (all mass = 1.0f)
+                    float mass = 1.0f;
                     
                     grid[r][c] = CreateBody(world, x, y, mass);
                 }
@@ -96,15 +98,41 @@ namespace simlab
                     }
                 }
             }
+
+            // Positioned to intercept the cloth
+            // Cloth center X is startX + (cols-1)*spacing/2 = 0 + 11*0.8/2 = 4.4
+            // Let's put obstacle at 4.4
+            m_obstacleId = CreateObstacle(world, 4.4f, -2.0f, 2.5f);
         }
 
         void Step(ecs::World& world, float dt) override
         {
-            m_renderer->Clear();
+            m_renderer->Clear(' ', ascii::Color::Default);
             
+            // Draw obstacle
+            auto* tfStorage = world.GetStorage<physics::TransformComponent>();
+            if (tfStorage)
+            {
+                auto* obsTf = tfStorage->Get(m_obstacleId);
+                if (obsTf)
+                {
+                    int sx, sy;
+                    WorldToScreen(obsTf->x, obsTf->y, m_width, m_height, m_cfg, sx, sy);
+                    
+                    // Calculate screen radii
+                    float spanX = m_cfg.worldMaxX - m_cfg.worldMinX;
+                    float spanY = m_cfg.worldMaxY - m_cfg.worldMinY;
+                    
+                    // Radius is 2.5f
+                    int rx = static_cast<int>((2.5f / spanX) * m_width);
+                    int ry = static_cast<int>((2.5f / spanY) * m_height);
+                    
+                    m_renderer->FillEllipse(sx, sy, rx, ry, 'O', ascii::Color::Red);
+                }
+            }
+
             // Draw joints
             auto* jointStorage = world.GetStorage<physics::DistanceJointComponent>();
-            auto* tfStorage = world.GetStorage<physics::TransformComponent>();
             
             if (jointStorage && tfStorage)
             {
@@ -115,18 +143,26 @@ namespace simlab
                     auto* tB = tfStorage->Get(joint.entityB);
                     if (tA && tB)
                     {
-                        DrawLine(tA->x, tA->y, tB->x, tB->y);
+                        DrawLine(tA->x, tA->y, tB->x, tB->y, ascii::Color::White);
                     }
                 }
             }
 
-            // Draw bodies
+            // Draw bodies (cloth particles)
+            // We iterate all transforms, but we should filter out the obstacle.
+            // The obstacle has mass 0, but so do pinned cloth points.
+            // We can just draw all bodies as Cyan, and the obstacle (drawn first) might be overwritten or we draw obstacle last.
+            // Let's draw obstacle first (above), then joints, then particles.
+            // Actually, let's just draw particles that are NOT the obstacle.
+            
             world.ForEach<physics::TransformComponent>([&](ecs::EntityId id, physics::TransformComponent& tf) {
+                if (id == m_obstacleId) return; // Skip obstacle, handled separately
+
                 int sx, sy;
                 WorldToScreen(tf.x, tf.y, m_width, m_height, m_cfg, sx, sy);
                 if (sx >= 0 && sx < m_width && sy >= 0 && sy < m_height)
                 {
-                    m_renderer->Put(sx, sy, '#');
+                    m_renderer->Put(sx, sy, '*', ascii::Color::Cyan);
                 }
             });
 
@@ -139,6 +175,7 @@ namespace simlab
         ClothConfig m_cfg;
         int m_width;
         int m_height;
+        ecs::EntityId m_obstacleId;
 
         ecs::EntityId CreateBody(ecs::World& world, float x, float y, float mass)
         {
@@ -151,7 +188,9 @@ namespace simlab
                 .lastX = x, 
                 .lastY = y, 
                 .mass = mass, 
-                .invMass = invMass
+                .invMass = invMass,
+                .restitution = 0.1f, // Low bounce for cloth
+                .friction = 0.5f
             });
             // Small AABB for cloth particles
             world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{x - 0.1f, y - 0.1f, x + 0.1f, y + 0.1f});
@@ -169,12 +208,31 @@ namespace simlab
             });
         }
 
-        void DrawLine(float x1, float y1, float x2, float y2)
+        ecs::EntityId CreateObstacle(ecs::World& world, float x, float y, float radius)
+        {
+            auto e = world.CreateEntity();
+            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y});
+            world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{
+                .vx = 0.0f, 
+                .vy = 0.0f, 
+                .lastX = x, 
+                .lastY = y, 
+                .mass = 0.0f, 
+                .invMass = 0.0f,
+                .restitution = 0.0f, // No bounce
+                .friction = 0.3f     // Lower friction to allow sliding
+            });
+            world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{x - radius, y - radius, x + radius, y + radius});
+            world.AddComponent<physics::CircleColliderComponent>(e, physics::CircleColliderComponent{radius, 0.0f, 0.0f});
+            return e;
+        }
+
+        void DrawLine(float x1, float y1, float x2, float y2, ascii::Color color)
         {
             int sx1, sy1, sx2, sy2;
             WorldToScreen(x1, y1, m_width, m_height, m_cfg, sx1, sy1);
             WorldToScreen(x2, y2, m_width, m_height, m_cfg, sx2, sy2);
-            m_renderer->DrawLine(sx1, sy1, sx2, sy2, '.');
+            m_renderer->DrawLine(sx1, sy1, sx2, sy2, '.', color);
         }
     };
 

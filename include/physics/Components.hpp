@@ -47,4 +47,11 @@ namespace physics
         float maxX{0.0f};
         float maxY{0.0f};
     };
+
+    struct CircleColliderComponent
+    {
+        float radius{1.0f};
+        float offsetX{0.0f};
+        float offsetY{0.0f};
+    };
 }

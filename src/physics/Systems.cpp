@@ -104,6 +104,7 @@ namespace physics
         auto* tfStorage = world.GetStorage<TransformComponent>();
         auto* rbStorage = world.GetStorage<RigidBodyComponent>();
         auto* aabbStorage = world.GetStorage<AABBComponent>();
+        auto* circleStorage = world.GetStorage<CircleColliderComponent>();
 
         if (!tfStorage || !rbStorage || !aabbStorage) return;
 
@@ -122,15 +123,55 @@ namespace physics
 
                 auto* bA = rbStorage->Get(idA);
                 auto* bB = rbStorage->Get(idB);
+                auto* tA = tfStorage->Get(idA);
+                auto* tB = tfStorage->Get(idB);
 
-                if (!bA || !bB) continue;
+                if (!bA || !bB || !tA || !tB) continue;
+
+                float nx = event.normalX;
+                float ny = event.normalY;
+                float pen = event.penetration;
+
+                // Refine collision if CircleCollider is present
+                if (circleStorage)
+                {
+                    auto* cA = circleStorage->Get(idA);
+                    auto* cB = circleStorage->Get(idB);
+
+                    if (cA && !cB) // A is Circle
+                    {
+                        float dx = tB->x - tA->x;
+                        float dy = tB->y - tA->y;
+                        float dist = std::sqrt(dx*dx + dy*dy);
+                        if (dist > 0.0001f)
+                        {
+                            nx = dx / dist;
+                            ny = dy / dist;
+                            pen = cA->radius - dist;
+                        }
+                    }
+                    else if (!cA && cB) // B is Circle
+                    {
+                        float dx = tA->x - tB->x;
+                        float dy = tA->y - tB->y;
+                        float dist = std::sqrt(dx*dx + dy*dy);
+                        if (dist > 0.0001f)
+                        {
+                            nx = -dx / dist; // Normal points from A to B
+                            ny = -dy / dist;
+                            pen = cB->radius - dist;
+                        }
+                    }
+                }
+
+                if (pen <= 0.0f) continue;
 
                 // Relative velocity
                 float rvx = bB->vx - bA->vx;
                 float rvy = bB->vy - bA->vy;
 
                 // Velocity along normal
-                float velAlongNormal = rvx * event.normalX + rvy * event.normalY;
+                float velAlongNormal = rvx * nx + rvy * ny;
 
                 // Do not resolve if velocities are separating
                 if (velAlongNormal > 0)
@@ -144,12 +185,12 @@ namespace physics
                 j /= (bA->invMass + bB->invMass);
 
                 // Apply impulse
-                float impulseX = j * event.normalX;
-                float impulseY = j * event.normalY;
+                float impulseX = j * nx;
+                float impulseY = j * ny;
 
                 // Friction
-                float tx = -event.normalY;
-                float ty = event.normalX;
+                float tx = -ny;
+                float ty = nx;
                 float velAlongTangent = rvx * tx + rvy * ty;
 
                 float jt = -velAlongTangent;
@@ -195,11 +236,49 @@ namespace physics
 
                 if (!tA || !bA || !tB || !bB) continue;
 
+                float nx = event.normalX;
+                float ny = event.normalY;
+                float pen = event.penetration;
+
+                // Refine collision if CircleCollider is present
+                if (circleStorage)
+                {
+                    auto* cA = circleStorage->Get(idA);
+                    auto* cB = circleStorage->Get(idB);
+
+                    if (cA && !cB)
+                    {
+                        float dx = tB->x - tA->x;
+                        float dy = tB->y - tA->y;
+                        float dist = std::sqrt(dx*dx + dy*dy);
+                        if (dist > 0.0001f)
+                        {
+                            nx = dx / dist;
+                            ny = dy / dist;
+                            pen = cA->radius - dist;
+                        }
+                    }
+                    else if (!cA && cB)
+                    {
+                        float dx = tA->x - tB->x;
+                        float dy = tA->y - tB->y;
+                        float dist = std::sqrt(dx*dx + dy*dy);
+                        if (dist > 0.0001f)
+                        {
+                            nx = -dx / dist;
+                            ny = -dy / dist;
+                            pen = cB->radius - dist;
+                        }
+                    }
+                }
+
+                if (pen <= 0.0f) continue;
+
                 // Positional correction (Linear Projection)
-                float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
+                float correction = std::max(pen - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
                 
-                float cx = correction * event.normalX;
-                float cy = correction * event.normalY;
+                float cx = correction * nx;
+                float cy = correction * ny;
 
                 float dxA = -cx * bA->invMass;
                 float dyA = -cy * bA->invMass;
