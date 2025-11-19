@@ -214,6 +214,11 @@ namespace physics
                 boxB->minX += dxB; boxB->maxX += dxB;
                 boxB->minY += dyB; boxB->maxY += dyB;
             }
+
+            // Debug print for floor collision
+            if (idA == 15 || idB == 15) { // Assuming floor is low ID, but let's just print all
+                 // std::cout << "Resolved collision: " << idA << " <-> " << idB << " Pen: " << event.penetration << " Normal: " << event.normalX << "," << event.normalY << std::endl;
+            }
         }
     }
 
