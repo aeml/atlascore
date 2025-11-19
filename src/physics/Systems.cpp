@@ -106,59 +106,83 @@ namespace physics
 
         const auto& entities = aabbStorage->GetEntities();
 
-        for (const auto& event : events)
+        // 1. Velocity Solver (Iterative)
+        const int velocityIterations = 8;
+        for (int i = 0; i < velocityIterations; ++i)
         {
-            if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
+            for (const auto& event : events)
+            {
+                if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
 
-            ecs::EntityId idA = entities[event.indexA];
-            ecs::EntityId idB = entities[event.indexB];
+                ecs::EntityId idA = entities[event.indexA];
+                ecs::EntityId idB = entities[event.indexB];
 
-            auto* tA = tfStorage->Get(idA);
-            auto* bA = rbStorage->Get(idA);
-            auto* tB = tfStorage->Get(idB);
-            auto* bB = rbStorage->Get(idB);
+                auto* bA = rbStorage->Get(idA);
+                auto* bB = rbStorage->Get(idB);
 
-            if (!tA || !bA || !tB || !bB) continue;
+                if (!bA || !bB) continue;
 
-            // Relative velocity
-            float rvx = bB->vx - bA->vx;
-            float rvy = bB->vy - bA->vy;
+                // Relative velocity
+                float rvx = bB->vx - bA->vx;
+                float rvy = bB->vy - bA->vy;
 
-            // Velocity along normal
-            float velAlongNormal = rvx * event.normalX + rvy * event.normalY;
+                // Velocity along normal
+                float velAlongNormal = rvx * event.normalX + rvy * event.normalY;
 
-            // Do not resolve if velocities are separating
-            if (velAlongNormal > 0)
-                continue;
+                // Do not resolve if velocities are separating
+                if (velAlongNormal > 0)
+                    continue;
 
-            // Restitution (min of both)
-            float e = std::min(bA->restitution, bB->restitution);
+                // Restitution (min of both)
+                float e = std::min(bA->restitution, bB->restitution);
 
-            // Impulse scalar
-            float j = -(1 + e) * velAlongNormal;
-            j /= (bA->invMass + bB->invMass);
+                // Impulse scalar
+                float j = -(1 + e) * velAlongNormal;
+                j /= (bA->invMass + bB->invMass);
 
-            // Apply impulse
-            float impulseX = j * event.normalX;
-            float impulseY = j * event.normalY;
+                // Apply impulse
+                float impulseX = j * event.normalX;
+                float impulseY = j * event.normalY;
 
-            bA->vx -= impulseX * bA->invMass;
-            bA->vy -= impulseY * bA->invMass;
-            bB->vx += impulseX * bB->invMass;
-            bB->vy += impulseY * bB->invMass;
+                bA->vx -= impulseX * bA->invMass;
+                bA->vy -= impulseY * bA->invMass;
+                bB->vx += impulseX * bB->invMass;
+                bB->vy += impulseY * bB->invMass;
+            }
+        }
 
-            // Positional correction (Linear Projection)
-            const float percent = 0.2f;
-            const float slop = 0.01f;
-            float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
-            
-            float cx = correction * event.normalX;
-            float cy = correction * event.normalY;
+        // 2. Position Correction (Linear Projection)
+        // Iterating here helps reduce deep penetration in stacks
+        const int positionIterations = 2;
+        for (int i = 0; i < positionIterations; ++i)
+        {
+            for (const auto& event : events)
+            {
+                if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
 
-            tA->x -= cx * bA->invMass;
-            tA->y -= cy * bA->invMass;
-            tB->x += cx * bB->invMass;
-            tB->y += cy * bB->invMass;
+                ecs::EntityId idA = entities[event.indexA];
+                ecs::EntityId idB = entities[event.indexB];
+
+                auto* tA = tfStorage->Get(idA);
+                auto* bA = rbStorage->Get(idA);
+                auto* tB = tfStorage->Get(idB);
+                auto* bB = rbStorage->Get(idB);
+
+                if (!tA || !bA || !tB || !bB) continue;
+
+                // Positional correction (Linear Projection)
+                const float percent = 0.2f;
+                const float slop = 0.01f;
+                float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
+                
+                float cx = correction * event.normalX;
+                float cy = correction * event.normalY;
+
+                tA->x -= cx * bA->invMass;
+                tA->y -= cy * bA->invMass;
+                tB->x += cx * bB->invMass;
+                tB->y += cy * bB->invMass;
+            }
         }
     }
 
