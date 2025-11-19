@@ -171,37 +171,34 @@ namespace physics
         }
 
         // 2. Position Correction (Linear Projection)
-        // Iterating here helps reduce deep penetration in stacks
-        const int positionIterations = 2;
-        for (int i = 0; i < positionIterations; ++i)
+        // We use a high percentage to resolve penetration quickly, as we don't iterate on positions with re-checks.
+        const float percent = 0.8f;
+        const float slop = 0.01f;
+        
+        for (const auto& event : events)
         {
-            for (const auto& event : events)
-            {
-                if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
+            if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
 
-                ecs::EntityId idA = entities[event.indexA];
-                ecs::EntityId idB = entities[event.indexB];
+            ecs::EntityId idA = entities[event.indexA];
+            ecs::EntityId idB = entities[event.indexB];
 
-                auto* tA = tfStorage->Get(idA);
-                auto* bA = rbStorage->Get(idA);
-                auto* tB = tfStorage->Get(idB);
-                auto* bB = rbStorage->Get(idB);
+            auto* tA = tfStorage->Get(idA);
+            auto* bA = rbStorage->Get(idA);
+            auto* tB = tfStorage->Get(idB);
+            auto* bB = rbStorage->Get(idB);
 
-                if (!tA || !bA || !tB || !bB) continue;
+            if (!tA || !bA || !tB || !bB) continue;
 
-                // Positional correction (Linear Projection)
-                const float percent = 0.2f;
-                const float slop = 0.01f;
-                float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
-                
-                float cx = correction * event.normalX;
-                float cy = correction * event.normalY;
+            // Positional correction (Linear Projection)
+            float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
+            
+            float cx = correction * event.normalX;
+            float cy = correction * event.normalY;
 
-                tA->x -= cx * bA->invMass;
-                tA->y -= cy * bA->invMass;
-                tB->x += cx * bB->invMass;
-                tB->y += cy * bB->invMass;
-            }
+            tA->x -= cx * bA->invMass;
+            tA->y -= cy * bA->invMass;
+            tB->x += cx * bB->invMass;
+            tB->y += cy * bB->invMass;
         }
     }
 
