@@ -1,12 +1,12 @@
 #include "ecs/World.hpp"
-#include "physics/EcsSystems.hpp"
+#include "physics/Systems.hpp"
 #include "physics/Components.hpp"
 #include <cassert>
 #include <iostream>
 
 int main(){
     ecs::World world;
-    world.AddSystem(std::make_unique<physics::PhysicsEcsSystem>());
+    world.AddSystem(std::make_unique<physics::PhysicsSystem>());
     auto e = world.CreateEntity();
     world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{0.f, 10.f});
     world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{0.f, 0.f});

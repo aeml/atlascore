@@ -4,7 +4,6 @@
 #include "ecs/World.hpp"
 #include "physics/Components.hpp"
 #include "physics/Systems.hpp"
-#include "physics/EcsSystems.hpp"
 #include "ascii/TextRenderer.hpp"
 #include "jobs/JobSystem.hpp"
 
@@ -95,8 +94,11 @@ namespace simlab
                 }
                 m_renderer->PresentDiff(std::cout);
                 // Add systems (wire ECS physics to the configured environment).
-                world.AddSystem(std::make_unique<physics::PhysicsEcsSystem>(&m_physics));
-                world.AddSystem(std::make_unique<physics::CollisionEcsSystem>());
+                auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
+                physicsSystem->SetEnvironment(env);
+                physicsSystem->SetJobSystem(&m_jobSystem);
+                world.AddSystem(std::move(physicsSystem));
+                
                 // Create initial demo entities with components; we will maintain
                 // a target particle count over time.
                 const int initialCount = 8;
