@@ -34,6 +34,11 @@ namespace ascii
         TextRenderer(int width, int height);
         void Clear(char fill = ' ');
         void Put(int x, int y, char ch);
+        
+        // Primitives
+        void DrawLine(int x0, int y0, int x1, int y1, char ch);
+        void DrawRect(int x, int y, int w, int h, char ch);
+
         // Compute number of changed cells vs previous frame (no output side effects).
         std::size_t ComputeDiff() const;
         // Present diff to stream and update previous buffer; returns changed cell count.

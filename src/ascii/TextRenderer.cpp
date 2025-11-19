@@ -39,6 +39,41 @@ namespace ascii
         m_current.Put(x, y, ch);
     }
 
+    void TextRenderer::DrawLine(int x0, int y0, int x1, int y1, char ch)
+    {
+        int dx = std::abs(x1 - x0);
+        int dy = std::abs(y1 - y0);
+        int sx = (x0 < x1) ? 1 : -1;
+        int sy = (y0 < y1) ? 1 : -1;
+        int err = dx - dy;
+
+        while (true)
+        {
+            Put(x0, y0, ch);
+            if (x0 == x1 && y0 == y1) break;
+            int e2 = 2 * err;
+            if (e2 > -dy)
+            {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx)
+            {
+                err += dx;
+                y0 += sy;
+            }
+        }
+    }
+
+    void TextRenderer::DrawRect(int x, int y, int w, int h, char ch)
+    {
+        if (w <= 0 || h <= 0) return;
+        DrawLine(x, y, x + w - 1, y, ch);
+        DrawLine(x, y + h - 1, x + w - 1, y + h - 1, ch);
+        DrawLine(x, y, x, y + h - 1, ch);
+        DrawLine(x + w - 1, y, x + w - 1, y + h - 1, ch);
+    }
+
     std::size_t TextRenderer::ComputeDiff() const
     {
         const Cell* cur = m_current.Data();

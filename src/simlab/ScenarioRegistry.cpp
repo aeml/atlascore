@@ -22,6 +22,7 @@ namespace simlab
             // Ensure the two default scenarios are present without relying on TU static init
             ScenarioRegistry::Register("smoke", "ECS falling bodies smoke test", &CreateDeterminismSmokeTest);
             ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
+            ScenarioRegistry::Register("stack", "Pyramid stacking test", &CreateStackingScenario);
             // Text renderer patterns (grouped under Text Tests / Text Renderer Tests)
             ScenarioRegistry::Register("text_patterns", "Text renderer patterns", &CreateTextRendererPatternsScenario,
                                        "Text Tests", "Text Renderer Tests");

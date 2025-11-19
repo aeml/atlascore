@@ -19,6 +19,7 @@ namespace simlab
     std::unique_ptr<IScenario> CreateDeterminismSmokeTest();
     std::unique_ptr<IScenario> CreateDeterminismHashScenario();
     std::unique_ptr<IScenario> CreateTextRendererPatternsScenario();
+    std::unique_ptr<IScenario> CreateStackingScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 

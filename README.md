@@ -11,6 +11,7 @@ This repository currently contains a **minimal but growing engine**:
 - `ascii` module providing an ANSI-friendly `TextRenderer` for efficient terminal rendering (diff-based text frames)
 - `simlab` module featuring:
 	- `smoke` demo: ECS bodies falling under physics, visualized as continuously dropping characters
+	- `stack` demo: A pyramid of boxes to test collision resolution and stability
 	- `text_patterns` demo: animated sine waves and Lissajous patterns using the `TextRenderer`
 	- determinism/hash scenarios for dual-run comparison
 - A `main` entry point that lets you pick and run scenarios interactively
