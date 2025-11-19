@@ -17,6 +17,7 @@ namespace physics
         float mass{1.0f};
         float invMass{1.0f}; // 1.0 / mass, 0.0 for static bodies
         float restitution{0.5f}; // Bounciness [0, 1]
+        float friction{0.5f}; // Friction coefficient [0, 1]
     };
 
     // Simple environment-wide forces for weather-like simulations.

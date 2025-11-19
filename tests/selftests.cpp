@@ -270,9 +270,9 @@ int main()
     // Full Physics Pipeline Test (PhysicsSystem)
     {
         ecs::World world;
-        auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
-        physicsSystem->SetJobSystem(&jobSystem);
-        world.AddSystem(std::move(physicsSystem));
+        auto fullPhysicsSystem = std::make_unique<physics::PhysicsSystem>();
+        fullPhysicsSystem->SetJobSystem(&jobSystem);
+        world.AddSystem(std::move(fullPhysicsSystem));
 
         // Entity A: moving right
         auto e1 = world.CreateEntity();

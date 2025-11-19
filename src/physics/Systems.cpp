@@ -144,10 +144,29 @@ namespace physics
                 float impulseX = j * event.normalX;
                 float impulseY = j * event.normalY;
 
-                bA->vx -= impulseX * bA->invMass;
-                bA->vy -= impulseY * bA->invMass;
-                bB->vx += impulseX * bB->invMass;
-                bB->vy += impulseY * bB->invMass;
+                // Friction
+                float tx = -event.normalY;
+                float ty = event.normalX;
+                float velAlongTangent = rvx * tx + rvy * ty;
+
+                float jt = -velAlongTangent;
+                jt /= (bA->invMass + bB->invMass);
+
+                // Coulomb friction
+                float mu = std::sqrt(bA->friction * bA->friction + bB->friction * bB->friction);
+                float maxJt = mu * j;
+                if (std::abs(jt) > maxJt)
+                {
+                    jt = (jt > 0) ? maxJt : -maxJt;
+                }
+
+                float frictionImpulseX = jt * tx;
+                float frictionImpulseY = jt * ty;
+
+                bA->vx -= (impulseX + frictionImpulseX) * bA->invMass;
+                bA->vy -= (impulseY + frictionImpulseY) * bA->invMass;
+                bB->vx += (impulseX + frictionImpulseX) * bB->invMass;
+                bB->vy += (impulseY + frictionImpulseY) * bB->invMass;
             }
         }
 
