@@ -25,14 +25,15 @@ namespace physics
                     auto& b = bodies[i];
                     if (b.invMass == 0.0f) continue;
 
+                    // Store previous position for PBD velocity update
+                    b.lastX = tf->x;
+                    b.lastY = tf->y;
+
                     const float ax = m_env.windX - m_env.drag * b.vx;
                     const float ay = m_env.gravityY + m_env.windY - m_env.drag * b.vy;
 
                     b.vx += ax * dt;
                     b.vy += ay * dt;
-
-                    float oldX = tf->x;
-                    float oldY = tf->y;
 
                     tf->x += b.vx * dt;
                     tf->y += b.vy * dt;
@@ -40,8 +41,8 @@ namespace physics
                     // Update AABB if present
                     if (aabbStorage) {
                         if (auto* aabb = aabbStorage->Get(id)) {
-                            float dx = tf->x - oldX;
-                            float dy = tf->y - oldY;
+                            float dx = tf->x - b.lastX;
+                            float dy = tf->y - b.lastY;
                             aabb->minX += dx;
                             aabb->maxX += dx;
                             aabb->minY += dy;
@@ -278,6 +279,66 @@ namespace physics
         }
     }
 
+    void ConstraintResolutionSystem::Resolve(ecs::World& world) const
+    {
+        auto* jointStorage = world.GetStorage<DistanceJointComponent>();
+        auto* tfStorage = world.GetStorage<TransformComponent>();
+        auto* rbStorage = world.GetStorage<RigidBodyComponent>();
+        auto* aabbStorage = world.GetStorage<AABBComponent>();
+
+        if (!jointStorage || !tfStorage || !rbStorage) return;
+
+        const auto& joints = jointStorage->GetData();
+        
+        const int iterations = 4;
+        for (int iter = 0; iter < iterations; ++iter)
+        {
+            for (const auto& joint : joints)
+            {
+                auto* tA = tfStorage->Get(joint.entityA);
+                auto* tB = tfStorage->Get(joint.entityB);
+                auto* bA = rbStorage->Get(joint.entityA);
+                auto* bB = rbStorage->Get(joint.entityB);
+
+                if (!tA || !tB || !bA || !bB) continue;
+                if (bA->invMass == 0.0f && bB->invMass == 0.0f) continue;
+
+                float dx = tB->x - tA->x;
+                float dy = tB->y - tA->y;
+                float dist = std::sqrt(dx*dx + dy*dy);
+                if (dist < 0.0001f) continue;
+
+                float diff = dist - joint.targetDistance;
+                float correction = diff / (bA->invMass + bB->invMass);
+
+                float px = (dx / dist) * correction;
+                float py = (dy / dist) * correction;
+
+                tA->x += px * bA->invMass;
+                tA->y += py * bA->invMass;
+                tB->x -= px * bB->invMass;
+                tB->y -= py * bB->invMass;
+
+                // Sync AABBs
+                if (aabbStorage) {
+                    if (auto* boxA = aabbStorage->Get(joint.entityA)) {
+                        // Re-center AABB (approximate, assuming size doesn't change)
+                        float w = boxA->maxX - boxA->minX;
+                        float h = boxA->maxY - boxA->minY;
+                        boxA->minX = tA->x - w/2; boxA->maxX = tA->x + w/2;
+                        boxA->minY = tA->y - h/2; boxA->maxY = tA->y + h/2;
+                    }
+                    if (auto* boxB = aabbStorage->Get(joint.entityB)) {
+                        float w = boxB->maxX - boxB->minX;
+                        float h = boxB->maxY - boxB->minY;
+                        boxB->minX = tB->x - w/2; boxB->maxX = tB->x + w/2;
+                        boxB->minY = tB->y - h/2; boxB->maxY = tB->y + h/2;
+                    }
+                }
+            }
+        }
+    }
+
     void PhysicsSystem::Update(ecs::World& world, float dt)
     {
         const int substeps = 8;
@@ -298,6 +359,35 @@ namespace physics
             // 3. Resolution
             if (!m_events.empty()) {
                 m_resolution.Resolve(m_events, world);
+            }
+            
+            // 4. Constraints
+            m_constraints.Resolve(world);
+
+            // 5. Velocity Update (PBD)
+            m_integration.UpdateVelocities(world, subDt);
+        }
+    }
+
+    void PhysicsIntegrationSystem::UpdateVelocities(ecs::World& world, float dt)
+    {
+        auto* rbStorage = world.GetStorage<RigidBodyComponent>();
+        auto* tfStorage = world.GetStorage<TransformComponent>();
+        if (!rbStorage || !tfStorage) return;
+
+        auto& bodies = rbStorage->GetData();
+        const auto& entities = rbStorage->GetEntities();
+        size_t count = bodies.size();
+
+        for (size_t i = 0; i < count; ++i) {
+            ecs::EntityId id = entities[i];
+            TransformComponent* tf = tfStorage->Get(id);
+            if (tf) {
+                auto& b = bodies[i];
+                if (b.invMass == 0.0f) continue;
+
+                b.vx = (tf->x - b.lastX) / dt;
+                b.vy = (tf->y - b.lastY) / dt;
             }
         }
     }

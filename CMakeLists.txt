@@ -25,6 +25,7 @@ add_library(atlascore
     src/simlab/ScenarioRegistry.cpp
     src/simlab/TextRendererPatternsScenario.cpp
     src/simlab/StackingScenario.cpp
+    src/simlab/PendulumScenario.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
