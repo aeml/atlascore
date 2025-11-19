@@ -23,6 +23,8 @@ namespace physics
                 TransformComponent* tf = tfStorage->Get(id);
                 if (tf) {
                     auto& b = bodies[i];
+                    if (b.invMass == 0.0f) continue;
+
                     const float ax = m_env.windX - m_env.drag * b.vx;
                     const float ay = m_env.gravityY + m_env.windY - m_env.drag * b.vy;
 
@@ -171,53 +173,52 @@ namespace physics
         }
 
         // 2. Position Correction (Linear Projection)
-        // We use a high percentage to resolve penetration quickly, as we don't iterate on positions with re-checks.
-        const float percent = 0.8f;
+        // Iterate to propagate corrections up the stack
+        const int positionIterations = 4;
+        const float percent = 0.5f;
         const float slop = 0.01f;
         
-        for (const auto& event : events)
+        for (int i = 0; i < positionIterations; ++i)
         {
-            if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
+            for (const auto& event : events)
+            {
+                if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
 
-            ecs::EntityId idA = entities[event.indexA];
-            ecs::EntityId idB = entities[event.indexB];
+                ecs::EntityId idA = entities[event.indexA];
+                ecs::EntityId idB = entities[event.indexB];
 
-            auto* tA = tfStorage->Get(idA);
-            auto* bA = rbStorage->Get(idA);
-            auto* tB = tfStorage->Get(idB);
-            auto* bB = rbStorage->Get(idB);
+                auto* tA = tfStorage->Get(idA);
+                auto* bA = rbStorage->Get(idA);
+                auto* tB = tfStorage->Get(idB);
+                auto* bB = rbStorage->Get(idB);
 
-            if (!tA || !bA || !tB || !bB) continue;
+                if (!tA || !bA || !tB || !bB) continue;
 
-            // Positional correction (Linear Projection)
-            float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
-            
-            float cx = correction * event.normalX;
-            float cy = correction * event.normalY;
+                // Positional correction (Linear Projection)
+                float correction = std::max(event.penetration - slop, 0.0f) / (bA->invMass + bB->invMass) * percent;
+                
+                float cx = correction * event.normalX;
+                float cy = correction * event.normalY;
 
-            float dxA = -cx * bA->invMass;
-            float dyA = -cy * bA->invMass;
-            float dxB = cx * bB->invMass;
-            float dyB = cy * bB->invMass;
+                float dxA = -cx * bA->invMass;
+                float dyA = -cy * bA->invMass;
+                float dxB = cx * bB->invMass;
+                float dyB = cy * bB->invMass;
 
-            tA->x += dxA;
-            tA->y += dyA;
-            tB->x += dxB;
-            tB->y += dyB;
+                tA->x += dxA;
+                tA->y += dyA;
+                tB->x += dxB;
+                tB->y += dyB;
 
-            // Sync AABBs
-            if (auto* boxA = aabbStorage->Get(idA)) {
-                boxA->minX += dxA; boxA->maxX += dxA;
-                boxA->minY += dyA; boxA->maxY += dyA;
-            }
-            if (auto* boxB = aabbStorage->Get(idB)) {
-                boxB->minX += dxB; boxB->maxX += dxB;
-                boxB->minY += dyB; boxB->maxY += dyB;
-            }
-
-            // Debug print for floor collision
-            if (idA == 15 || idB == 15) { // Assuming floor is low ID, but let's just print all
-                 // std::cout << "Resolved collision: " << idA << " <-> " << idB << " Pen: " << event.penetration << " Normal: " << event.normalX << "," << event.normalY << std::endl;
+                // Sync AABBs
+                if (auto* boxA = aabbStorage->Get(idA)) {
+                    boxA->minX += dxA; boxA->maxX += dxA;
+                    boxA->minY += dyA; boxA->maxY += dyA;
+                }
+                if (auto* boxB = aabbStorage->Get(idB)) {
+                    boxB->minX += dxB; boxB->maxX += dxB;
+                    boxB->minY += dyB; boxB->maxY += dyB;
+                }
             }
         }
     }
