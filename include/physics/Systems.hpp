@@ -2,6 +2,7 @@
 
 #include "ecs/World.hpp"
 #include "physics/Components.hpp"
+#include "physics/CollisionSystem.hpp"
 
 #include <vector>
 
@@ -9,6 +10,15 @@ namespace jobs { class JobSystem; }
 
 namespace physics
 {
+    // Resolves collisions by applying impulses.
+    class CollisionResolutionSystem
+    {
+    public:
+        void Resolve(const std::vector<CollisionEvent>& events,
+                     std::vector<TransformComponent>& transforms,
+                     std::vector<RigidBodyComponent>& bodies) const;
+    };
+
     // Integrates rigid bodies into transforms applying gravity / environment forces.
     class PhysicsIntegrationSystem : public ecs::ISystem
     {

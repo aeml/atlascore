@@ -149,9 +149,9 @@ The Job System is intentionally *agnostic* of ECS or physics.
 
 #### `ComponentStorage<T>`
 - Responsible for:
-  - Creating
-  - Removing
-  - Accessing components of type `T`
+  - Creating, removing, and accessing components of type `T`
+  - Implements a **Sparse Set** (Dense Vector + Sparse Map) for cache-friendly iteration and O(1) access.
+  - Exposes raw data vectors for parallel job processing.
 
 #### `ISystem`
 - Base interface for all systems
@@ -193,10 +193,14 @@ Systems may internally create jobs to parallelize their work.
 
 #### `PhysicsIntegrationSystem`
 - Applies velocity → position integration
+- Uses ECS contiguous storage to run parallel updates via `JobSystem`.
 
-#### `CollisionDetectionSystem`
-- Detects and resolves collisions
+#### `CollisionSystem`
+- Detects collisions (Spatial Hash or O(N^2))
 - Can parallelize via job batching
+
+#### `CollisionResolutionSystem`
+- Resolves collisions using impulse-based response.
 
 ---
 

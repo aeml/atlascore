@@ -53,6 +53,19 @@ namespace ecs
             return storage->storage.Get(id);
         }
 
+        template <typename TComponent>
+        ComponentStorage<TComponent>* GetStorage()
+        {
+            const std::size_t key = typeid(TComponent).hash_code();
+            auto it = m_componentStores.find(key);
+            if (it == m_componentStores.end())
+            {
+                return nullptr;
+            }
+            auto* storage = static_cast<StorageWrapper<TComponent>*>(it->second.get());
+            return &storage->storage;
+        }
+
         void AddSystem(std::unique_ptr<ISystem> system);
         void Update(float dt);
 

@@ -3,20 +3,24 @@
 The `physics` module defines physics-related components and systems.
 
 - `TransformComponent`: position in 2D (x, y).
-- `RigidBodyComponent`: velocity in 2D (vx, vy).
+- `RigidBodyComponent`: velocity (vx, vy), mass, inverse mass, and restitution.
 - `PhysicsIntegrationSystem`: integrates velocity into position applying a gravity constant (currently -9.81 m/s² along y). Supports parallel execution via `JobSystem`.
 
 In the current skeleton, integration operates over local vectors of components inside the simulation scenario. Future work will route this through ECS-managed component storage.
 
-## Collision (Stub)
+## Collision
 
-Initial collision support introduces:
+Collision support includes:
 
 - `AABBComponent`: axis-aligned bounding box storing min/max coordinates.
-- `CollisionSystem`: naive O(N^2) pairwise overlap checks producing `CollisionEvent` entries (indices of colliding boxes).
+- `CollisionSystem`: 
+  - Uses a **Spatial Hash** broad-phase for efficient collision detection when body count > 100.
+  - Supports parallel execution via `JobSystem`.
+  - Falls back to O(N^2) for small datasets.
+- `CollisionResolutionSystem`: resolves collisions using impulse-based response and positional correction.
 
 Determinism hashing now includes AABB data and collision event counts in dedicated tests. Future iterations will:
 
 - Integrate AABBs into ECS component storage.
-- Add broad-phase (spatial hash or sweep) before narrow AABB checks.
-- Provide collision resolution (contact points, simple positional correction).
+
+
