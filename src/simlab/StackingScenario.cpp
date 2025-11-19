@@ -4,8 +4,10 @@
 #include "physics/Systems.hpp"
 #include "jobs/JobSystem.hpp"
 #include "ascii/TextRenderer.hpp"
+#include "core/Logger.hpp"
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <algorithm>
 
@@ -40,6 +42,10 @@ namespace simlab
     public:
         void Setup(ecs::World& world) override
         {
+            auto logFile = std::make_shared<std::ofstream>("simlab_stack.log");
+            m_logger.SetOutput(logFile);
+            m_logger.Info("Stacking Scenario Setup");
+
             m_width = 80;
             m_height = 24;
             m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
@@ -77,6 +83,24 @@ namespace simlab
         void Step(ecs::World& world, float dt) override
         {
             (void)dt;
+            
+            // Debug logging for the top box (last created entity usually)
+            static int frame = 0;
+            if (frame++ % 10 == 0) {
+                world.ForEach<physics::RigidBodyComponent>([&](ecs::EntityId id, physics::RigidBodyComponent& rb) {
+                    if (rb.invMass > 0.0f && id > 15) { // Just pick one high up
+                         auto* tf = world.GetComponent<physics::TransformComponent>(id);
+                         auto* aabb = world.GetComponent<physics::AABBComponent>(id);
+                         if (tf && aabb) {
+                             m_logger.Info("Frame " + std::to_string(frame) + " Entity " + std::to_string(id) + 
+                                           ": Pos(" + std::to_string(tf->x) + ", " + std::to_string(tf->y) + 
+                                           ") Vel(" + std::to_string(rb.vx) + ", " + std::to_string(rb.vy) + 
+                                           ") AABB(" + std::to_string(aabb->minY) + ", " + std::to_string(aabb->maxY) + ")");
+                         }
+                    }
+                });
+            }
+
             if (!m_renderer) return;
             m_renderer->Clear(' ');
 
@@ -93,6 +117,7 @@ namespace simlab
         jobs::JobSystem m_jobSystem;
         std::unique_ptr<ascii::TextRenderer> m_renderer;
         StackingConfig m_cfg;
+        core::Logger m_logger;
         int m_width{80};
         int m_height{24};
 
