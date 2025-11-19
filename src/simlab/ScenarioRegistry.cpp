@@ -24,6 +24,7 @@ namespace simlab
             ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
             ScenarioRegistry::Register("stack", "Pyramid stacking test", &CreateStackingScenario);
             ScenarioRegistry::Register("pendulum", "Pendulum chain test", &CreatePendulumScenario);
+            ScenarioRegistry::Register("cloth", "Cloth simulation test", &CreateClothScenario);
             // Text renderer patterns (grouped under Text Tests / Text Renderer Tests)
             ScenarioRegistry::Register("text_patterns", "Text renderer patterns", &CreateTextRendererPatternsScenario,
                                        "Text Tests", "Text Renderer Tests");

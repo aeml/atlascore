@@ -21,6 +21,7 @@ namespace simlab
     std::unique_ptr<IScenario> CreateTextRendererPatternsScenario();
     std::unique_ptr<IScenario> CreateStackingScenario();
     std::unique_ptr<IScenario> CreatePendulumScenario();
+    std::unique_ptr<IScenario> CreateClothScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 
