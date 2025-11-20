@@ -49,12 +49,24 @@ namespace simlab
             m_width = 80;
             m_height = 24;
             m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
+            if (simlab::IsHeadlessRendering())
+            {
+                m_renderer->SetHeadless(true);
+            }
             
             physics::EnvironmentForces env;
             env.gravityY = -9.81f;
             env.drag = 0.05f;
             
             auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
+            physics::PhysicsSettings settings;
+            settings.substeps = 24;
+            settings.positionIterations = 32;
+            settings.velocityIterations = 18;
+            settings.constraintIterations = 12;
+            settings.correctionPercent = 0.3f;
+            settings.maxPositionCorrection = 0.1f;
+            physicsSystem->SetSettings(settings);
             physicsSystem->SetEnvironment(env);
             physicsSystem->SetJobSystem(&m_jobSystem);
             world.AddSystem(std::move(physicsSystem));
@@ -158,9 +170,22 @@ namespace simlab
         void CreateBox(ecs::World& world, float x, float y, float w, float h, float mass)
         {
             auto e = world.CreateEntity();
-            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y});
+            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y, 0.0f});
             float invMass = (mass > 0.0f) ? 1.0f / mass : 0.0f;
-            world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{0.0f, 0.0f, mass, invMass});
+            physics::RigidBodyComponent rb{};
+            rb.vx = 0.0f;
+            rb.vy = 0.0f;
+            rb.lastX = x;
+            rb.lastY = y;
+            rb.lastAngle = 0.0f;
+            rb.mass = mass;
+            rb.invMass = invMass;
+            rb.restitution = 0.05f;
+            rb.friction = (mass > 0.0f) ? 0.8f : 1.0f;
+            rb.angularFriction = 0.4f;
+            rb.angularDrag = 0.02f;
+            physics::ConfigureBoxInertia(rb, w, h);
+            world.AddComponent<physics::RigidBodyComponent>(e, rb);
             world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{x - w/2, y - h/2, x + w/2, y + h/2});
         }
 

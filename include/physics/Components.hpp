@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 
 namespace physics
@@ -8,6 +9,7 @@ namespace physics
     {
         float x{0.0f};
         float y{0.0f};
+        float rotation{0.0f};
     };
 
     struct RigidBodyComponent
@@ -16,10 +18,17 @@ namespace physics
         float vy{0.0f};
         float lastX{0.0f}; // For PBD
         float lastY{0.0f}; // For PBD
+        float lastAngle{0.0f};
         float mass{1.0f};
         float invMass{1.0f}; // 1.0 / mass, 0.0 for static bodies
+        float inertia{1.0f};
+        float invInertia{1.0f};
         float restitution{0.5f}; // Bounciness [0, 1]
         float friction{0.5f}; // Friction coefficient [0, 1]
+        float angularVelocity{0.0f};
+        float torque{0.0f};
+        float angularFriction{0.5f};
+        float angularDrag{0.0f};
     };
 
     // Simple environment-wide forces for weather-like simulations.
@@ -54,4 +63,31 @@ namespace physics
         float offsetX{0.0f};
         float offsetY{0.0f};
     };
+
+    inline void ConfigureCircleInertia(RigidBodyComponent& body, float radius)
+    {
+        if (body.mass <= 0.0f || radius <= 0.0f)
+        {
+            body.inertia = 0.0f;
+            body.invInertia = 0.0f;
+            return;
+        }
+        const float r = radius;
+        body.inertia = 0.5f * body.mass * r * r;
+        body.invInertia = body.inertia > 0.0f ? 1.0f / body.inertia : 0.0f;
+    }
+
+    inline void ConfigureBoxInertia(RigidBodyComponent& body, float width, float height)
+    {
+        if (body.mass <= 0.0f)
+        {
+            body.inertia = 0.0f;
+            body.invInertia = 0.0f;
+            return;
+        }
+        const float w = width;
+        const float h = height;
+        body.inertia = (body.mass / 12.0f) * (w * w + h * h);
+        body.invInertia = body.inertia > 0.0f ? 1.0f / body.inertia : 0.0f;
+    }
 }

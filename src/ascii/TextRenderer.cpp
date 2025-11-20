@@ -242,6 +242,23 @@ namespace ascii
 
     std::size_t TextRenderer::PresentDiff(std::ostream& out)
     {
+        if (m_headless)
+        {
+            const Cell* cur = m_current.Data();
+            Cell* prev = m_previous.Data();
+            const std::size_t total = static_cast<std::size_t>(m_current.Width() * m_current.Height());
+            std::size_t changed = 0;
+            for (std::size_t i = 0; i < total; ++i)
+            {
+                if (cur[i] != prev[i])
+                {
+                    ++changed;
+                    prev[i] = cur[i];
+                }
+            }
+            return changed;
+        }
+
         const int w = m_current.Width();
         const int h = m_current.Height();
         const Cell* cur = m_current.Data();

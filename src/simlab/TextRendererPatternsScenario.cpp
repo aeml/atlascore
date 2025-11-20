@@ -24,6 +24,10 @@ public:
         m_width = 80;
         m_height = 24;
         m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
+        if (simlab::IsHeadlessRendering())
+        {
+            m_renderer->SetHeadless(true);
+        }
         m_time = 0.0f;
     }
 

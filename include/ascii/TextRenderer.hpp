@@ -56,8 +56,13 @@ namespace ascii
         std::size_t ComputeDiff() const;
         // Present diff to stream and update previous buffer; returns changed cell count.
         std::size_t PresentDiff(std::ostream& out);
+
+        void SetHeadless(bool headless) { m_headless = headless; }
+        bool IsHeadless() const noexcept { return m_headless; }
+
     private:
         TextSurface m_current;
         TextSurface m_previous;
+        bool m_headless{false};
     };
 }

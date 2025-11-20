@@ -40,15 +40,27 @@ namespace simlab
             m_width = 80;
             m_height = 24;
             m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
+            if (simlab::IsHeadlessRendering())
+            {
+                m_renderer->SetHeadless(true);
+            }
             
             physics::EnvironmentForces env;
             env.gravityY = -9.81f;
-            env.drag = 0.05f; // Increased drag for stability
+            env.drag = 0.5f; // High drag for damping
             env.windX = 0.0f; // No wind
             
             std::cout << "ClothScenario Setup: Gravity=" << env.gravityY << " Wind=" << env.windX << std::endl;
 
             auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
+            physics::PhysicsSettings settings;
+            settings.substeps = 20;
+            settings.positionIterations = 28;
+            settings.velocityIterations = 14;
+            settings.constraintIterations = 20;
+            settings.correctionPercent = 0.25f;
+            settings.maxPositionCorrection = 0.08f;
+            physicsSystem->SetSettings(settings);
             physicsSystem->SetEnvironment(env);
             physicsSystem->SetJobSystem(&m_jobSystem);
             world.AddSystem(std::move(physicsSystem));
@@ -69,8 +81,8 @@ namespace simlab
                     float x = startX + c * spacing;
                     float y = startY - r * spacing;
                     
-                    // Unpinned cloth (all mass = 1.0f)
-                    float mass = 1.0f;
+                    bool pinned = (r == 0);
+                    float mass = pinned ? 0.0f : 1.0f;
                     
                     grid[r][c] = CreateBody(world, x, y, mass);
                 }
@@ -105,7 +117,7 @@ namespace simlab
             m_obstacleId = CreateObstacle(world, 4.4f, -2.0f, 2.5f);
         }
 
-        void Step(ecs::World& world, float dt) override
+        void Step(ecs::World& world, float /*dt*/) override
         {
             m_renderer->Clear(' ', ascii::Color::Default);
             
@@ -180,19 +192,21 @@ namespace simlab
         ecs::EntityId CreateBody(ecs::World& world, float x, float y, float mass)
         {
             auto e = world.CreateEntity();
-            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y});
-            float invMass = (mass > 0.0f) ? 1.0f / mass : 0.0f;
-            world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{
-                .vx = 0.0f, 
-                .vy = 0.0f, 
-                .lastX = x, 
-                .lastY = y, 
-                .mass = mass, 
-                .invMass = invMass,
-                .restitution = 0.1f, // Low bounce for cloth
-                .friction = 0.5f
-            });
-            // Small AABB for cloth particles
+            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y, 0.0f});
+            physics::RigidBodyComponent rb{};
+            rb.vx = 0.0f;
+            rb.vy = 0.0f;
+            rb.lastX = x;
+            rb.lastY = y;
+            rb.lastAngle = 0.0f;
+            rb.mass = mass;
+            rb.invMass = (mass > 0.0f) ? 1.0f / mass : 0.0f;
+            rb.restitution = 0.0f;
+            rb.friction = 10.0f;
+            rb.angularFriction = 1.0f;
+            rb.angularDrag = 0.05f;
+            physics::ConfigureCircleInertia(rb, 0.1f);
+            world.AddComponent<physics::RigidBodyComponent>(e, rb);
             world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{x - 0.1f, y - 0.1f, x + 0.1f, y + 0.1f});
             return e;
         }
@@ -211,17 +225,20 @@ namespace simlab
         ecs::EntityId CreateObstacle(ecs::World& world, float x, float y, float radius)
         {
             auto e = world.CreateEntity();
-            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y});
-            world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{
-                .vx = 0.0f, 
-                .vy = 0.0f, 
-                .lastX = x, 
-                .lastY = y, 
-                .mass = 0.0f, 
-                .invMass = 0.0f,
-                .restitution = 0.0f, // No bounce
-                .friction = 0.3f     // Lower friction to allow sliding
-            });
+            world.AddComponent<physics::TransformComponent>(e, physics::TransformComponent{x, y, 0.0f});
+            physics::RigidBodyComponent rb{};
+            rb.vx = 0.0f;
+            rb.vy = 0.0f;
+            rb.lastX = x;
+            rb.lastY = y;
+            rb.lastAngle = 0.0f;
+            rb.mass = 0.0f;
+            rb.invMass = 0.0f;
+            rb.restitution = 0.0f;
+            rb.friction = 10.0f;
+            rb.inertia = 0.0f;
+            rb.invInertia = 0.0f;
+            world.AddComponent<physics::RigidBodyComponent>(e, rb);
             world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{x - radius, y - radius, x + radius, y + radius});
             world.AddComponent<physics::CircleColliderComponent>(e, physics::CircleColliderComponent{radius, 0.0f, 0.0f});
             return e;

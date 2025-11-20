@@ -68,6 +68,10 @@ namespace simlab
                 m_width = 80;
                 m_height = 24;
                 m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
+                if (simlab::IsHeadlessRendering())
+                {
+                    m_renderer->SetHeadless(true);
+                }
                 m_cfg.worldMinX = -10.0f;
                 m_cfg.worldMaxX =  10.0f;
                 m_cfg.worldMinY = -10.0f;

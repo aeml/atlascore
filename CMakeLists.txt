@@ -27,6 +27,7 @@ add_library(atlascore
     src/simlab/StackingScenario.cpp
     src/simlab/PendulumScenario.cpp
     src/simlab/ClothScenario.cpp
+    src/simlab/BallShowcaseScenario.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -100,6 +101,14 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_ecs_physics_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreEcsPhysicsTests COMMAND atlascore_ecs_physics_tests)
 
+    add_executable(atlascore_physics_ball_tests tests/physics_ball_tests.cpp)
+    target_link_libraries(atlascore_physics_ball_tests PRIVATE atlascore)
+    add_test(NAME AtlasCorePhysicsBallTests COMMAND atlascore_physics_ball_tests)
+
+    add_executable(atlascore_simlab_scenarios_tests tests/simlab_scenarios_tests.cpp)
+    target_link_libraries(atlascore_simlab_scenarios_tests PRIVATE atlascore)
+    add_test(NAME AtlasCoreSimlabScenariosTests COMMAND atlascore_simlab_scenarios_tests)
+
     add_executable(atlascore_ecs_collision_tests tests/ecs_collision_tests.cpp)
     target_link_libraries(atlascore_ecs_collision_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreEcsCollisionTests COMMAND atlascore_ecs_collision_tests)
@@ -133,6 +142,10 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_ecs_extra_tests PRIVATE --coverage)
         target_compile_options(atlascore_ecs_physics_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_ecs_physics_tests PRIVATE --coverage)
+        target_compile_options(atlascore_physics_ball_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_physics_ball_tests PRIVATE --coverage)
+        target_compile_options(atlascore_simlab_scenarios_tests PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_simlab_scenarios_tests PRIVATE --coverage)
         target_compile_options(atlascore_ecs_collision_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_ecs_collision_tests PRIVATE --coverage)
         target_compile_options(atlascore_jobs_wait_tests PRIVATE --coverage -O0 -g)
@@ -141,5 +154,7 @@ if (ATLASCORE_BUILD_TESTS)
         target_link_options(atlascore_scenario_registry_tests PRIVATE --coverage)
         target_compile_options(atlascore_coverage_tests PRIVATE --coverage -O0 -g)
         target_link_options(atlascore_coverage_tests PRIVATE --coverage)
+        target_compile_options(atlascore_physics_fix_test PRIVATE --coverage -O0 -g)
+        target_link_options(atlascore_physics_fix_test PRIVATE --coverage)
     endif()
 endif()

@@ -5,6 +5,7 @@
 #include "simlab/Scenario.hpp"
 
 #include <atomic>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 #include <iostream>
@@ -19,19 +20,69 @@ int main(int argc, char** argv)
     ecs::World world;
     const auto& options = simlab::ScenarioRegistry::All();
 
+    auto envTruthy = [](const char* value) {
+        if (!value || !*value) return false;
+        switch (value[0])
+        {
+        case '1':
+        case 'y': case 'Y':
+        case 't': case 'T':
+            return true;
+        default:
+            return false;
+        }
+    };
+
+    auto getEnvValue = [](const char* key) -> std::string {
+#ifdef _WIN32
+        char* buffer = nullptr;
+        size_t len = 0;
+        if (_dupenv_s(&buffer, &len, key) == 0 && buffer)
+        {
+            std::string value(buffer);
+            free(buffer);
+            return value;
+        }
+        return {};
+#else
+        const char* value = std::getenv(key);
+        return value ? std::string(value) : std::string{};
+#endif
+    };
+
+    std::string headlessEnvValue = getEnvValue("ATLASCORE_HEADLESS");
+    bool headless = envTruthy(headlessEnvValue.c_str());
+    std::string scenarioArg;
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string_view arg{argv[i]};
+        if (arg == "--headless")
+        {
+            headless = true;
+        }
+        else if (scenarioArg.empty())
+        {
+            scenarioArg = std::string(arg);
+        }
+    }
+    simlab::SetHeadlessRendering(headless);
+    if (headless)
+    {
+        logger.Info("Headless renderer enabled");
+    }
+
     // Determine scenario by CLI arg or interactive menu
     std::unique_ptr<simlab::IScenario> scenario;
-    if (argc > 1 && argv[1])
+    if (!scenarioArg.empty())
     {
-        std::string scenarioName = argv[1];
-        auto factory = simlab::ScenarioRegistry::FindFactory(scenarioName);
+        auto factory = simlab::ScenarioRegistry::FindFactory(scenarioArg);
         if (factory)
         {
             scenario = factory();
         }
         else
         {
-            logger.Error(std::string("Unknown scenario: ") + scenarioName);
+            logger.Error(std::string("Unknown scenario: ") + scenarioArg);
             if (!options.empty())
             {
                 scenario = options.front().factory();
@@ -144,6 +195,17 @@ int main(int argc, char** argv)
             logger.Info(std::string("Running scenario: ") + options[choice - 1].key);
         }
     }
+    if (!scenario && !options.empty())
+    {
+        scenario = options.front().factory();
+    }
+
+    if (!scenario)
+    {
+        logger.Error("No scenario available to run.");
+        return 1;
+    }
+
     scenario->Setup(world);
 
     std::atomic<bool> running{true};

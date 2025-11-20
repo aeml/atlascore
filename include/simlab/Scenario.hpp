@@ -22,6 +22,8 @@ namespace simlab
     std::unique_ptr<IScenario> CreateStackingScenario();
     std::unique_ptr<IScenario> CreatePendulumScenario();
     std::unique_ptr<IScenario> CreateClothScenario();
+    std::unique_ptr<IScenario> CreateBallShowcaseScenario();
+    std::unique_ptr<IScenario> CreateBallShowcaseScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 
@@ -60,4 +62,7 @@ namespace simlab
             ScenarioRegistry::Register(key, title, factory, category, subcategory);
         }
     };
+
+    void SetHeadlessRendering(bool enabled);
+    bool IsHeadlessRendering();
 }
