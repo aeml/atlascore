@@ -112,13 +112,8 @@ namespace simlab
                 }
             }
 
-            void Step(ecs::World& world, float dt) override
+            void Update(ecs::World& world, float dt) override
             {
-                if (!m_renderer)
-                {
-                    return;
-                }
-
 #ifdef ATLASCORE_DEBUG_SIMLAB
                 m_logger.Info("[smoke] Step begin");
 #endif
@@ -201,6 +196,14 @@ namespace simlab
                 // Integrate physics for non-ECS demo bodies as well.
                 // (For now they are managed manually; this still shows environment behavior.)
                 (void)dt; // dt is currently driven externally; integration is handled by ECS systems.
+            }
+
+            void Render(ecs::World& world) override
+            {
+                if (!m_renderer)
+                {
+                    return;
+                }
 
                 // Visual mode: draw current bodies with the text renderer.
                 m_renderer->Clear(' ');

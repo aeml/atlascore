@@ -92,7 +92,7 @@ namespace simlab
             }
         }
 
-        void Step(ecs::World& world, float dt) override
+        void Update(ecs::World& world, float dt) override
         {
             (void)dt;
             
@@ -112,7 +112,10 @@ namespace simlab
                     }
                 });
             }
+        }
 
+        void Render(ecs::World& world) override
+        {
             if (!m_renderer) return;
             m_renderer->Clear(' ');
 

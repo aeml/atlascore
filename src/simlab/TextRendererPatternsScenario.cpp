@@ -31,8 +31,11 @@ public:
         m_time = 0.0f;
     }
 
-    void Step(ecs::World& /*world*/, float dt) override {
+    void Update(ecs::World& /*world*/, float dt) override {
         m_time += dt;
+    }
+
+    void Render(ecs::World& /*world*/) override {
         drawPatterns(m_time);
         m_renderer->PresentDiff(std::cout);
     }

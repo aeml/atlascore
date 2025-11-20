@@ -224,8 +224,12 @@ int main(int argc, char** argv)
     loop.Run(
         [&](float dt)
         {
-            scenario->Step(world, dt);
+            scenario->Update(world, dt);
             world.Update(dt);
+            if (!headless)
+            {
+                scenario->Render(world);
+            }
 
             // Runs until Enter is pressed (quitThread toggles running=false)
         },

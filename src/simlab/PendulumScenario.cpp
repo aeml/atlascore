@@ -81,7 +81,12 @@ namespace simlab
             }
         }
 
-        void Step(ecs::World& world, float /*dt*/) override
+        void Update(ecs::World& /*world*/, float /*dt*/) override
+        {
+            // Physics is handled by systems in world.Update()
+        }
+
+        void Render(ecs::World& world) override
         {
             m_renderer->Clear();
             

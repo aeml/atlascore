@@ -76,7 +76,12 @@ namespace simlab
                 BuildScenes(world);
             }
 
-            void Step(ecs::World& world, float /*dt*/) override
+            void Update(ecs::World& /*world*/, float /*dt*/) override
+            {
+                // Physics handled by systems
+            }
+
+            void Render(ecs::World& world) override
             {
                 if (!m_renderer)
                 {

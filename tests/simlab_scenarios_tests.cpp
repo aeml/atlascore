@@ -118,7 +118,7 @@ namespace
 
         for (int i = 0; i < steps; ++i)
         {
-            scenario->Step(world, dt);
+            scenario->Update(world, dt);
             world.Update(dt);
             AssertFiniteState(world);
             motionDetected = motionDetected || HasDynamicMotion(world, 0.05f);

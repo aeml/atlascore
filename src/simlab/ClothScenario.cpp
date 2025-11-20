@@ -117,7 +117,12 @@ namespace simlab
             m_obstacleId = CreateObstacle(world, 4.4f, -2.0f, 2.5f);
         }
 
-        void Step(ecs::World& world, float /*dt*/) override
+        void Update(ecs::World& /*world*/, float /*dt*/) override
+        {
+            // Physics handled by systems
+        }
+
+        void Render(ecs::World& world) override
         {
             m_renderer->Clear(' ', ascii::Color::Default);
             

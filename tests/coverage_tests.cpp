@@ -85,7 +85,8 @@ int main()
             // Run a few steps to cover update logic, spawning, and rendering
             for (int i = 0; i < 5; ++i)
             {
-                smoke->Step(world, 1.0f / 60.0f);
+                smoke->Update(world, 1.0f / 60.0f);
+                smoke->Render(world);
             }
         }
 
@@ -94,7 +95,8 @@ int main()
         if (hash)
         {
             hash->Setup(world);
-            hash->Step(world, 1.0f / 60.0f);
+            hash->Update(world, 1.0f / 60.0f);
+            hash->Render(world);
         }
 
         // 3. Text Patterns
@@ -102,7 +104,8 @@ int main()
         if (patterns)
         {
             patterns->Setup(world);
-            patterns->Step(world, 0.1f);
+            patterns->Update(world, 0.1f);
+            patterns->Render(world);
         }
 
         std::cout << "[PASS] SimLab Scenarios execution coverage\n";

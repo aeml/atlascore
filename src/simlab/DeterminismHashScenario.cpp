@@ -29,7 +29,7 @@ namespace simlab
                 InitBodies(m_transformsB, m_bodiesB);
             }
 
-            void Step(ecs::World& world, float dt) override
+            void Update(ecs::World& world, float dt) override
             {
                 (void)world;
                 m_physics.Integrate(m_transformsA, m_bodiesA, dt);
@@ -46,6 +46,11 @@ namespace simlab
                 {
                     m_logger.Info("[determinism] step hash=" + std::to_string(hA));
                 }
+            }
+
+            void Render(ecs::World& /*world*/) override
+            {
+                // No visual output for this scenario
             }
 
         private:
