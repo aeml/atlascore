@@ -177,34 +177,31 @@ Systems may internally create jobs to parallelize their work.
 **Namespace:** `physics`
 
 **Responsibilities:**
-- Define physics-related components
-- Update world physics deterministically
+* Deterministic integration of rigid bodies (fixed timestep)
+* Collision detection & impulse-based resolution
+* Constraint / joint solving (distance joints)
+* Optional parallel execution where safe (integration, collision pass partitioning)
 
-**Key Components:**
+**Implemented Components:**
 
-#### `TransformComponent`
-- Position, rotation, scale
+* `TransformComponent` – Position (x,y) + rotation
+* `RigidBodyComponent` – Velocities, mass/inertia, friction, restitution, angular state, PBD backup positions
+* `AABBComponent` – Broad‑phase axis-aligned bounds
+* `CircleColliderComponent` – Simple circle collider + local offset
+* `DistanceJointComponent` – Soft/rigid distance constraint with compliance parameter
+* `EnvironmentForces` – Global gravity, wind, drag
 
-#### `RigidBodyComponent`
-- Velocity, mass, forces
+Helper inertia configuration functions (`ConfigureCircleInertia`, `ConfigureBoxInertia`) maintain consistent rotational dynamics.
 
-#### `ColliderComponent`
-- Shape definitions (AABB, circle, sphere, etc.)
+**Systems Pipeline:**
 
-#### `PhysicsIntegrationSystem`
-- Applies velocity → position integration
-- Updates AABB positions
-- Uses ECS contiguous storage to run parallel updates via `JobSystem`.
+1. `PhysicsIntegrationSystem` – Applies environment forces; integrates velocities & transforms; maintains deterministic ordering; optionally parallelizable
+2. `CollisionSystem` – Broad‑phase AABB overlap detection generating `CollisionEvent` list
+3. `ConstraintResolutionSystem` – Iterative distance joint enforcement
+4. `CollisionResolutionSystem` – Impulse + positional correction (separate velocity/position iterations)
+5. `PhysicsSystem` – Orchestrator bundling the above, exposing tuning via `PhysicsSettings` (substeps, iteration counts, slop/correction factors)
 
-#### `CollisionSystem`
-- Detects collisions (Spatial Hash or O(N^2))
-- Can parallelize via job batching
-
-#### `CollisionResolutionSystem`
-- Resolves collisions using impulse-based response.
-
-#### `PhysicsSystem`
-- Orchestrates the full pipeline: Integration → Detection → Resolution.
+Determinism is preserved through fixed iteration orders and controlled parallel partitioning (no unordered reductions). World hashing includes transform state, rigid body state, AABB bounds, and collision event counts.
 
 
 ---

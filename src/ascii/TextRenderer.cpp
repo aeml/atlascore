@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2025 aeml
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "ascii/TextRenderer.hpp"
 #include <iostream>
 #include <cmath>
@@ -336,6 +353,34 @@ namespace ascii
         out << "\x1b[?25h";
         
         out.flush(); // Ensure output is sent
+        return changed;
+    }
+
+    std::size_t TextRenderer::PresentFull(std::ostream& out)
+    {
+        const Cell* cur = m_current.Data();
+        Cell* prev = m_previous.Data();
+        const int w = m_current.Width();
+        const int h = m_current.Height();
+        const std::size_t total = static_cast<std::size_t>(w * h);
+        std::size_t changed = 0;
+
+        out << "--- FRAME START ---\n";
+        for (int y = 0; y < h; ++y)
+        {
+            for (int x = 0; x < w; ++x)
+            {
+                const std::size_t idx = static_cast<std::size_t>(y * w + x);
+                if (cur[idx] != prev[idx]) ++changed;
+                out << cur[idx].ch;
+            }
+            out << '\n';
+        }
+        out << "--- FRAME END ---\n";
+        out.flush();
+
+        // Update previous buffer to current state
+        for (std::size_t i = 0; i < total; ++i) prev[i] = cur[i];
         return changed;
     }
 }

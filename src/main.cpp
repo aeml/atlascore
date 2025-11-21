@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2025 aeml
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "core/Logger.hpp"
 #include "core/Clock.hpp"
 #include "core/FixedTimestepLoop.hpp"
@@ -12,6 +29,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <filesystem>
 
 int main(int argc, char** argv)
 {
@@ -54,12 +72,22 @@ int main(int argc, char** argv)
     std::string headlessEnvValue = getEnvValue("ATLASCORE_HEADLESS");
     bool headless = envTruthy(headlessEnvValue.c_str());
     std::string scenarioArg;
+    int maxFrames = -1; // Headless auto-termination after N frames if >0
     for (int i = 1; i < argc; ++i)
     {
         std::string_view arg{argv[i]};
         if (arg == "--headless")
         {
             headless = true;
+        }
+        else if (arg.rfind("--frames=", 0) == 0)
+        {
+            // Parse --frames=N
+            auto value = std::string(arg.substr(9));
+            try { maxFrames = std::stoi(value); } catch(...) { maxFrames = -1; }
+            if (maxFrames < 0) {
+                logger.Warn("Ignoring invalid --frames value: " + std::string(value));
+            }
         }
         else if (scenarioArg.empty())
         {
@@ -230,8 +258,18 @@ int main(int argc, char** argv)
         {
             logger.Error("Failed to open headless_output.txt");
         }
+        else
+        {
+            try {
+                auto cwd = std::filesystem::current_path();
+                logger.Info(std::string("Headless output path: ") + (cwd / "headless_output.txt").string());
+            } catch(...) {
+                logger.Warn("Could not determine current working directory for headless output");
+            }
+        }
     }
 
+    int frameCounter = 0;
     loop.Run(
         [&](float dt)
         {
@@ -249,7 +287,15 @@ int main(int argc, char** argv)
                 scenario->Render(world, std::cout);
             }
 
-            // Runs until Enter is pressed (quitThread toggles running=false)
+            if (maxFrames > 0)
+            {
+                ++frameCounter;
+                if (frameCounter >= maxFrames)
+                {
+                    running.store(false);
+                }
+            }
+            // Otherwise runs until Enter is pressed.
         },
         running);
 

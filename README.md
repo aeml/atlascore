@@ -138,7 +138,7 @@ See `docs/contributing.md` and module docs (`docs/*.md`). Please keep changes sm
 
 ## License
 
-(Project currently does not state an explicit license in this README. Add one if distribution is intended.)
+This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
 
 ---
 Enjoy exploring AtlasCore – feedback & improvements welcome.

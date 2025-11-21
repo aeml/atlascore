@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2025 aeml
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "simlab/Scenario.hpp"
 
 #include "ascii/TextRenderer.hpp"
@@ -51,6 +68,10 @@ namespace simlab
             void Setup(ecs::World& world) override
             {
                 m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
+                if (IsHeadlessRendering())
+                {
+                    m_renderer->SetHeadless(false); // we'll control full vs diff manually
+                }
 
                 physics::EnvironmentForces env{};
                 env.gravityY = -12.0f;
@@ -58,12 +79,13 @@ namespace simlab
 
                 auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
                 physics::PhysicsSettings settings;
-                settings.substeps = 20;
-                settings.positionIterations = 28;
-                settings.velocityIterations = 16;
-                settings.constraintIterations = 12;
-                settings.correctionPercent = 0.25f;
-                settings.maxPositionCorrection = 0.08f;
+                // Tuned down for stability (iterative refinement): fewer substeps & iterations reduce overshoot.
+                settings.substeps = 8;
+                settings.positionIterations = 12;
+                settings.velocityIterations = 8;
+                settings.constraintIterations = 6;
+                settings.correctionPercent = 0.15f;
+                settings.maxPositionCorrection = 0.02f;
                 physicsSystem->SetSettings(settings);
                 physicsSystem->SetEnvironment(env);
                 physicsSystem->SetJobSystem(&m_jobSystem);
@@ -106,36 +128,123 @@ namespace simlab
                     }
                 });
 
-                m_renderer->PresentDiff(out);
+                // Every k frames, emit a full frame snapshot; otherwise emit diff for compaction.
+                if (IsHeadlessRendering())
+                {
+                    // Clamp excessive velocities for stability (scenario-local safeguard).
+                    const float maxSpeed = 15.0f;
+                    world.ForEach<physics::RigidBodyComponent>([&](ecs::EntityId id, physics::RigidBodyComponent& rb)
+                    {
+                        if (rb.mass > 0.0f)
+                        {
+                            float speed = std::sqrt(rb.vx * rb.vx + rb.vy * rb.vy);
+                            if (speed > maxSpeed && speed > 0.0f)
+                            {
+                                float scale = maxSpeed / speed;
+                                rb.vx *= scale;
+                                rb.vy *= scale;
+                            }
+                        }
+                    });
+                    // Rendering order fix: draw platforms first, then circles (balls) so circles appear on top.
+                    // Rebuild the frame with proper layering.
+                    m_renderer->Clear(' ');
+                    DrawGrid();
+                    // Draw platforms (static AABBs) first
+                    world.ForEach<physics::AABBComponent>([&](ecs::EntityId id, physics::AABBComponent& box)
+                    {
+                        auto* rb = world.GetComponent<physics::RigidBodyComponent>(id);
+                        if (rb && rb->mass == 0.0f)
+                        {
+                            DrawPlatform(box);
+                        }
+                    });
+                    // Then dynamic circles
+                    world.ForEach<physics::CircleColliderComponent>([&](ecs::EntityId id, physics::CircleColliderComponent& circle)
+                    {
+                        auto* tf = world.GetComponent<physics::TransformComponent>(id);
+                        if (!tf) return;
+                        DrawCircle(*tf, circle.radius);
+                    });
+
+                    if ((m_frameCounter % m_fullFrameInterval) == 0)
+                    {
+                        out << "--- FRAME " << m_frameCounter << " START ---\n";
+                        // Diagnostic: dump ball positions & velocities for analysis.
+                        for (size_t i = 0; i < m_balls.size(); ++i)
+                        {
+                            auto id = m_balls[i];
+                            auto* tf = world.GetComponent<physics::TransformComponent>(id);
+                            auto* rb = world.GetComponent<physics::RigidBodyComponent>(id);
+                            if (tf && rb)
+                            {
+                                out << "#BALL " << i << " id=" << id << " x=" << tf->x << " y=" << tf->y
+                                    << " vx=" << rb->vx << " vy=" << rb->vy << " m=" << rb->mass << "\n";
+                            }
+                        }
+                        m_renderer->PresentFull(out); // includes its own START/END markers; custom header assists indexing
+                    }
+                    else
+                    {
+                        m_renderer->PresentDiff(out);
+                    }
+                    ++m_frameCounter;
+                }
+                else
+                {
+                    m_renderer->PresentDiff(out);
+                }
             }
 
         private:
             void BuildScenes(ecs::World& world)
             {
-                // Contain the action so balls can't leave the screen instantly.
+                // Full viewport boundary: left, right (existing), plus top & bottom so balls remain inside.
+                // Left and right vertical walls.
                 CreateBoundary(world, m_cfg.worldMinX + 0.2f, m_cfg.worldMinY, m_cfg.worldMinX + 0.6f, m_cfg.worldMaxY);
                 CreateBoundary(world, m_cfg.worldMaxX - 0.6f, m_cfg.worldMinY, m_cfg.worldMaxX - 0.2f, m_cfg.worldMaxY);
+                // Bottom floor (thin horizontal strip).
+                CreateBoundary(world, m_cfg.worldMinX, m_cfg.worldMinY, m_cfg.worldMaxX, m_cfg.worldMinY + 0.4f);
+                // Top ceiling.
+                CreateBoundary(world, m_cfg.worldMinX, m_cfg.worldMaxY - 0.4f, m_cfg.worldMaxX, m_cfg.worldMaxY);
 
-                // Lane 1: horizontal hit (left side) with moderate impact
-                CreateStaticPlatform(world, -8.0f, -3.0f, 6.0f, 0.5f);
-                CreateBall(world, BallDesc{-10.2f, -1.7f, 0.65f, 1.3f, 3.8f, -0.1f, 0.7f, 0.3f});
-                CreateBall(world, BallDesc{-7.0f, -1.7f, 0.65f, 1.2f, 0.0f, 0.0f, 0.6f, 0.35f});
+                // Two platforms only: one higher on the left, one lower on the right; empty space in the middle.
+                const float leftPlatformCenterX = -8.0f;
+                const float leftPlatformCenterY = 2.0f;   // higher platform (adjusted for visual alignment)
+                const float leftPlatformWidth   = 5.5f;
+                const float leftPlatformHeight  = 0.8f;
+                CreateStaticPlatform(world, leftPlatformCenterX, leftPlatformCenterY, leftPlatformWidth, leftPlatformHeight);
 
-                // Lane 2: dropping hammer on cluster (center)
-                CreateStaticPlatform(world, -0.5f, -3.6f, 6.0f, 0.8f);
-                const float baseY = -2.9f;
-                CreateBall(world, BallDesc{-1.0f, baseY, 0.55f, 1.0f, 0.0f, 0.0f, 0.35f, 0.65f});
-                CreateBall(world, BallDesc{0.0f, baseY, 0.55f, 1.0f, 0.0f, 0.0f, 0.35f, 0.65f});
-                CreateBall(world, BallDesc{1.0f, baseY, 0.55f, 1.0f, 0.0f, 0.0f, 0.35f, 0.65f});
-                CreateBall(world, BallDesc{-0.5f, baseY + 0.8f, 0.55f, 1.0f, 0.0f, 0.0f, 0.35f, 0.65f});
-                CreateBall(world, BallDesc{0.5f, baseY + 0.8f, 0.55f, 1.0f, 0.0f, 0.0f, 0.35f, 0.65f});
-                CreateBall(world, BallDesc{0.0f, 1.2f, 0.7f, 2.5f, 0.0f, -1.5f, 0.5f, 0.25f});
+                const float rightPlatformCenterX = 8.0f;
+                const float rightPlatformCenterY = -2.8f; // lower platform
+                const float rightPlatformWidth   = 5.5f;
+                const float rightPlatformHeight  = 0.8f;
+                CreateStaticPlatform(world, rightPlatformCenterX, rightPlatformCenterY, rightPlatformWidth, rightPlatformHeight);
 
-                // Lane 3: glancing strike (right side) with downward entry to keep it on screen
-                CreateStaticPlatform(world, 8.0f, -1.0f, 5.0f, 0.4f);
-                CreateBall(world, BallDesc{7.5f, 0.0f, 0.6f, 1.2f, 0.0f, 0.0f, 0.7f, 0.2f});
-                CreateBall(world, BallDesc{9.0f, 0.7f, 0.6f, 1.2f, 0.0f, 0.0f, 0.7f, 0.2f});
-                CreateBall(world, BallDesc{6.0f, 0.4f, 0.55f, 1.0f, 4.2f, -0.35f, 0.55f, 0.2f});
+                // Spawn balls above platforms & in middle so they either land on a platform or the bottom floor.
+                // Ball radius kept moderate; minimal initial horizontal velocity for unbiased falling.
+                const float r = 0.6f;
+                auto spawnAbove = [&](float cx, float cy, float extraHeight, float mass, float vx, float vy, float restitution)
+                {
+                    float top = cy + ( (cx == leftPlatformCenterX) ? leftPlatformHeight * 0.5f : rightPlatformHeight * 0.5f );
+                    float y = top + r + extraHeight;
+                    CreateBall(world, BallDesc{cx, y, r, mass, vx, vy, restitution, 0.25f});
+                };
+
+                // Left platform cluster (higher) - slight horizontal spread.
+                spawnAbove(leftPlatformCenterX - 1.2f, leftPlatformCenterY, 0.2f, 1.0f, 0.15f, 0.0f, 0.35f);
+                spawnAbove(leftPlatformCenterX,          leftPlatformCenterY, 0.4f, 1.1f, 0.0f, 0.0f, 0.35f);
+                spawnAbove(leftPlatformCenterX + 1.2f, leftPlatformCenterY, 0.25f, 0.9f, -0.15f, 0.0f, 0.35f);
+
+                // Middle free-fall balls (will land on bottom).
+                CreateBall(world, BallDesc{-1.5f, 7.0f, r, 1.0f, 0.05f, -0.2f, 0.38f, 0.25f});
+                CreateBall(world, BallDesc{0.0f,  7.6f, r, 1.2f, 0.0f,  -0.3f, 0.40f, 0.25f});
+                CreateBall(world, BallDesc{1.5f,  7.3f, r, 0.95f,-0.05f,-0.2f, 0.38f, 0.25f});
+
+                // Right platform cluster (lower) - spawn high up to fall onto platform.
+                CreateBall(world, BallDesc{rightPlatformCenterX - 1.4f, 7.0f, r, 1.05f, 0.12f, 0.0f, 0.32f, 0.25f});
+                CreateBall(world, BallDesc{rightPlatformCenterX,        7.6f, r, 1.15f, 0.0f,  0.0f, 0.32f, 0.25f});
+                CreateBall(world, BallDesc{rightPlatformCenterX + 1.4f, 7.3f, r, 0.9f, -0.12f, 0.0f, 0.32f, 0.25f});
             }
 
             void CreateBoundary(ecs::World& world, float minX, float minY, float maxX, float maxY)
@@ -230,6 +339,7 @@ namespace simlab
                 physics::CircleColliderComponent circle{};
                 circle.radius = desc.radius;
                 world.AddComponent<physics::CircleColliderComponent>(entity, circle);
+                m_balls.push_back(entity);
                 return entity;
             }
 
@@ -304,6 +414,9 @@ namespace simlab
             ShowcaseConfig m_cfg;
             int m_width{90};
             int m_height{28};
+            int m_frameCounter{0};
+            int m_fullFrameInterval{15};
+            std::vector<ecs::EntityId> m_balls; // instrumented list of dynamic balls
         };
     }
 

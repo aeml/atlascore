@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2025 aeml
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "physics/Systems.hpp"
 #include "jobs/JobSystem.hpp"
 
@@ -249,6 +266,7 @@ namespace physics
             const float bx = tB.x + cB.offsetX;
             const float by = tB.y + cB.offsetY;
 
+            // Vector from A to B (Normal direction for solver)
             const float dx = bx - ax;
             const float dy = by - ay;
             const float radiusA = std::max(cA.radius, 0.0f);
@@ -260,11 +278,9 @@ namespace physics
             if (distSq <= kContactEpsilon)
             {
                 penetration = radii;
-                if (std::abs(nx) < kContactEpsilon && std::abs(ny) < kContactEpsilon)
-                {
-                    nx = 1.0f;
-                    ny = 0.0f;
-                }
+                // Arbitrary normal if centers coincide
+                nx = 0.0f;
+                ny = 1.0f;
                 return true;
             }
 
@@ -292,7 +308,7 @@ namespace physics
             const float closestX = std::clamp(cx, box.minX, box.maxX);
             const float closestY = std::clamp(cy, box.minY, box.maxY);
             
-            // Vector from Circle to Box (A -> B)
+            // Vector from Circle to Box (Normal direction for solver)
             const float dx = closestX - cx;
             const float dy = closestY - cy;
             const float distSq = dx * dx + dy * dy;
@@ -311,12 +327,15 @@ namespace physics
                 return penetration > 0.0f;
             }
 
-            // Circle center inside the box. Push out along the closest face if the circle overlaps it.
+            // Circle center inside the box. Push out along the closest face.
             const float left = cx - box.minX;
             const float right = box.maxX - cx;
             const float bottom = cy - box.minY;
             const float top = box.maxY - cy;
             float minDist = left;
+            
+            // Default to pushing Left (towards minX). Solver applies -Normal to A.
+            // To push Left (-1,0), we need Normal = (1,0).
             nx = 1.0f;
             ny = 0.0f;
 
@@ -324,8 +343,7 @@ namespace physics
             if (bottom < minDist) { minDist = bottom; nx = 0.0f; ny = 1.0f; }
             if (top < minDist) { minDist = top; nx = 0.0f; ny = -1.0f; }
 
-            // If center is inside, we are always colliding.
-            // We need to push the circle out by minDist (to reach edge) + radius (to clear edge).
+            // Penetration is radius + distance to edge (to clear the edge)
             penetration = radius + minDist;
             return true;
         }

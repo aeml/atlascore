@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2025 aeml
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include <vector>
@@ -56,6 +73,10 @@ namespace ascii
         std::size_t ComputeDiff() const;
         // Present diff to stream and update previous buffer; returns changed cell count.
         std::size_t PresentDiff(std::ostream& out);
+
+        // Present full frame regardless of diff state (does not alter headless flag logic).
+        // Returns number of changed cells vs previous (same metric as ComputeDiff) and updates previous.
+        std::size_t PresentFull(std::ostream& out);
 
         void SetHeadless(bool headless) { m_headless = headless; }
         bool IsHeadless() const noexcept { return m_headless; }
