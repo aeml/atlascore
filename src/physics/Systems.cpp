@@ -431,6 +431,8 @@ namespace physics
                 c.restitution = std::min(bA->restitution, bB->restitution);
                 c.friction = std::sqrt(bA->friction * bA->friction + bB->friction * bB->friction);
                 c.invMassSum = bA->invMass + bB->invMass;
+                if (c.invMassSum == 0.0f) continue;
+
                 contacts.push_back(c);
             }
             return contacts;
