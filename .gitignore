@@ -25,5 +25,5 @@ Makefile
 .DS_Store
 Thumbs.db
 atlascore.code-workspace
-.github/prompts/gemini.prompt.md
+.github/prompts/
 

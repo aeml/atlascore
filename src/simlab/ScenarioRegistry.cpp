@@ -28,7 +28,7 @@ namespace simlab
         {
             // Ensure the two default scenarios are present without relying on TU static init
             ScenarioRegistry::Register("smoke", "ECS falling bodies smoke test", &CreateDeterminismSmokeTest);
-            // ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
+            ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
             ScenarioRegistry::Register("stack", "Pyramid stacking test", &CreateStackingScenario);
             ScenarioRegistry::Register("pendulum", "Pendulum chain test", &CreatePendulumScenario);
             ScenarioRegistry::Register("cloth", "Cloth simulation test", &CreateClothScenario);
