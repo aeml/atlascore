@@ -246,8 +246,24 @@ namespace ascii
         {
             const Cell* cur = m_current.Data();
             Cell* prev = m_previous.Data();
-            const std::size_t total = static_cast<std::size_t>(m_current.Width() * m_current.Height());
+            const int w = m_current.Width();
+            const int h = m_current.Height();
+            const std::size_t total = static_cast<std::size_t>(w * h);
             std::size_t changed = 0;
+
+            // In headless mode, dump the full frame to the stream
+            out << "--- FRAME START ---\n";
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    out << cur[y * w + x].ch;
+                }
+                out << '\n';
+            }
+            out << "--- FRAME END ---\n";
+            out.flush();
+
             for (std::size_t i = 0; i < total; ++i)
             {
                 if (cur[i] != prev[i])

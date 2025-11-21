@@ -83,10 +83,11 @@ int main()
         {
             smoke->Setup(world);
             // Run a few steps to cover update logic, spawning, and rendering
+            std::stringstream ss;
             for (int i = 0; i < 5; ++i)
             {
                 smoke->Update(world, 1.0f / 60.0f);
-                smoke->Render(world);
+                smoke->Render(world, ss);
             }
         }
 
@@ -96,7 +97,8 @@ int main()
         {
             hash->Setup(world);
             hash->Update(world, 1.0f / 60.0f);
-            hash->Render(world);
+            std::stringstream ss;
+            hash->Render(world, ss);
         }
 
         // 3. Text Patterns
@@ -105,7 +107,8 @@ int main()
         {
             patterns->Setup(world);
             patterns->Update(world, 0.1f);
-            patterns->Render(world);
+            std::stringstream ss;
+            patterns->Render(world, ss);
         }
 
         std::cout << "[PASS] SimLab Scenarios execution coverage\n";

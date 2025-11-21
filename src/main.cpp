@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <iostream>
@@ -221,14 +222,31 @@ int main(int argc, char** argv)
     });
     quitThread.detach();
 
+    std::ofstream headlessOut;
+    if (headless)
+    {
+        headlessOut.open("headless_output.txt");
+        if (!headlessOut.is_open())
+        {
+            logger.Error("Failed to open headless_output.txt");
+        }
+    }
+
     loop.Run(
         [&](float dt)
         {
             scenario->Update(world, dt);
             world.Update(dt);
-            if (!headless)
+            if (headless)
             {
-                scenario->Render(world);
+                if (headlessOut.is_open())
+                {
+                    scenario->Render(world, headlessOut);
+                }
+            }
+            else
+            {
+                scenario->Render(world, std::cout);
             }
 
             // Runs until Enter is pressed (quitThread toggles running=false)

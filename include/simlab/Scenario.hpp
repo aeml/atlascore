@@ -14,7 +14,7 @@ namespace simlab
         virtual ~IScenario() = default;
         virtual void Setup(ecs::World& world) = 0;
         virtual void Update(ecs::World& world, float dt) = 0;
-        virtual void Render(ecs::World& world) = 0;
+        virtual void Render(ecs::World& world, std::ostream& out) = 0;
     };
 
     std::unique_ptr<IScenario> CreateDeterminismSmokeTest();
@@ -24,7 +24,7 @@ namespace simlab
     std::unique_ptr<IScenario> CreatePendulumScenario();
     std::unique_ptr<IScenario> CreateClothScenario();
     std::unique_ptr<IScenario> CreateBallShowcaseScenario();
-    std::unique_ptr<IScenario> CreateBallShowcaseScenario();
+    std::unique_ptr<IScenario> CreateStressTestScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 

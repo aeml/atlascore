@@ -48,7 +48,7 @@ namespace simlab
                 }
             }
 
-            void Render(ecs::World& /*world*/) override
+            void Render(ecs::World& /*world*/, std::ostream& /*out*/) override
             {
                 // No visual output for this scenario
             }

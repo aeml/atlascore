@@ -43,10 +43,6 @@ namespace simlab
             m_width = 80;
             m_height = 24;
             m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
-            if (simlab::IsHeadlessRendering())
-            {
-                m_renderer->SetHeadless(true);
-            }
             
             physics::EnvironmentForces env;
             env.gravityY = -9.81f;
@@ -86,7 +82,7 @@ namespace simlab
             // Physics is handled by systems in world.Update()
         }
 
-        void Render(ecs::World& world) override
+        void Render(ecs::World& world, std::ostream& out) override
         {
             m_renderer->Clear();
             
@@ -118,7 +114,7 @@ namespace simlab
                 }
             });
 
-            m_renderer->PresentDiff(std::cout);
+            m_renderer->PresentDiff(out);
         }
 
     private:

@@ -198,7 +198,7 @@ namespace simlab
                 (void)dt; // dt is currently driven externally; integration is handled by ECS systems.
             }
 
-            void Render(ecs::World& world) override
+            void Render(ecs::World& world, std::ostream& out) override
             {
                 if (!m_renderer)
                 {
@@ -232,7 +232,7 @@ namespace simlab
                     m_renderer->Put(x, m_height - 2, '-');
                 }
 
-                m_renderer->PresentDiff(std::cout);
+                m_renderer->PresentDiff(out);
 
 #ifdef ATLASCORE_DEBUG_SIMLAB
                 m_logger.Info("[smoke] debug step; bodies=" + std::to_string(bodyCount));

@@ -51,10 +51,6 @@ namespace simlab
             void Setup(ecs::World& world) override
             {
                 m_renderer = std::make_unique<ascii::TextRenderer>(m_width, m_height);
-                if (simlab::IsHeadlessRendering())
-                {
-                    m_renderer->SetHeadless(true);
-                }
 
                 physics::EnvironmentForces env{};
                 env.gravityY = -12.0f;
@@ -81,7 +77,7 @@ namespace simlab
                 // Physics handled by systems
             }
 
-            void Render(ecs::World& world) override
+            void Render(ecs::World& world, std::ostream& out) override
             {
                 if (!m_renderer)
                 {
@@ -110,7 +106,7 @@ namespace simlab
                     }
                 });
 
-                m_renderer->PresentDiff(std::cout);
+                m_renderer->PresentDiff(out);
             }
 
         private:

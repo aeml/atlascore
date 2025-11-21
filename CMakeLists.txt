@@ -28,6 +28,7 @@ add_library(atlascore
     src/simlab/PendulumScenario.cpp
     src/simlab/ClothScenario.cpp
     src/simlab/BallShowcaseScenario.cpp
+    src/simlab/StressTestScenario.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

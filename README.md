@@ -12,8 +12,11 @@ This repository currently contains a **minimal but growing engine**:
 - `simlab` module featuring:
 	- `smoke` demo: ECS bodies falling under physics, visualized as continuously dropping characters
 	- `stack` demo: A pyramid of boxes to test collision resolution and stability
+	- `pendulum` demo: A chain of bodies connected by distance joints
+	- `cloth` demo: A grid of particles connected by springs, interacting with an obstacle
+	- `ball_showcase` demo: Various collision scenarios (bouncing, stacking, glancing hits)
+	- `stress` demo: A performance test with 2000 particles to showcase the job system
 	- `text_patterns` demo: animated sine waves and Lissajous patterns using the `TextRenderer`
-	- determinism/hash scenarios for dual-run comparison
 - A `main` entry point that lets you pick and run scenarios interactively
 - A CTest suite covering core, jobs, physics, ECS, and simlab behavior
 
@@ -45,7 +48,10 @@ From the `build` directory:
 
 # Or pick a scenario via CLI argument
 ./atlascore_app smoke
-./atlascore_app hash
+./atlascore_app stress
+
+# Headless mode (outputs to headless_output.txt)
+./atlascore_app stress --headless
 
 # Run self-tests (if CTest is available)
 ctest -C Release
