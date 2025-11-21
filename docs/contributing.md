@@ -22,7 +22,7 @@ This project is intended as a clean, portfolio-quality C++ systems codebase.
 
 ## Modules
 
-See the module docs under `docs/` and `sysarchitecture.md` for intent:
+See the module docs under `docs/` and [sysarchitecture.md](../sysarchitecture.md) for intent:
 
 - `core`: logging, timing, fixed timestep loop.
 - `jobs`: job system and worker pool.
@@ -39,5 +39,5 @@ See the module docs under `docs/` and `sysarchitecture.md` for intent:
 
 ## Documentation
 
-- Update `README.md`, `sysarchitecture.md`, and the relevant `docs/*.md` when you change public behavior.
+- Update `README.md`, [sysarchitecture.md](../sysarchitecture.md), and the relevant `docs/*.md` when you change public behavior.
 - Keep comments high-signal; avoid restating obvious code.

@@ -47,7 +47,7 @@ AtlasCore is composed of the following modules:
    - Physics components and deterministic update systems
 5. **Simulation Lab**
    - Configurable scenarios, benchmarks, determinism tests, visualization
-6. **ASCII Renderer (Optional)**
+6. **ASCII Renderer (Optional)** (See [docs/ascii.md](docs/ascii.md))
    - Lightweight textual visualization for simulation states
 7. **Testing & Determinism Framework**
    - Automated verification of consistency and correctness
@@ -63,6 +63,8 @@ All modules are loosely coupled, with the Job System independent from ECS and Ph
 ## 4. Module Architecture
 
 ### 4.1 Core Module
+
+(See [docs/core.md](docs/core.md))
 
 **Namespace:** `core`
 
@@ -96,6 +98,8 @@ Each class performs a *single* responsibility.
 ---
 
 ### 4.2 Job System Module
+
+(See [docs/jobs.md](docs/jobs.md))
 
 **Namespace:** `jobs`
 
@@ -131,6 +135,8 @@ The Job System is intentionally *agnostic* of ECS or physics.
 ---
 
 ### 4.3 ECS Module
+
+(See [docs/ecs.md](docs/ecs.md))
 
 **Namespace:** `ecs`
 
@@ -174,6 +180,8 @@ Systems may internally create jobs to parallelize their work.
 
 ### 4.4 Physics Module
 
+(See [docs/physics.md](docs/physics.md))
+
 **Namespace:** `physics`
 
 **Responsibilities:**
@@ -207,6 +215,8 @@ Determinism is preserved through fixed iteration orders and controlled parallel 
 ---
 
 ## 5. Simulation Lab
+
+(See [docs/simlab.md](docs/simlab.md))
 
 **Namespace:** `simlab`
 

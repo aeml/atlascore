@@ -9,7 +9,7 @@ AtlasCore is a modern C++20 simulation framework demonstrating:
 * A Simulation Lab of interactive + headless scenarios (benchmarks, determinism tests, visual demos)
 * Extensive self‑tests + determinism hashing across scenarios
 
-See `sysarchitecture.md` for deeper design notes. Module‑specific docs live under `docs/`.
+See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module‑specific docs live under [docs/](docs/).
 
 ## Modules
 
@@ -134,7 +134,7 @@ Longer term:
 
 ## Contributing
 
-See `docs/contributing.md` and module docs (`docs/*.md`). Please keep changes small, add/extend tests, and preserve deterministic behavior when modifying physics or scheduling.
+See [docs/contributing.md](docs/contributing.md) and module docs (`docs/*.md`). Please keep changes small, add/extend tests, and preserve deterministic behavior when modifying physics or scheduling.
 
 ## License
 
