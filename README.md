@@ -1,96 +1,144 @@
 # AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-%2Fcoverage-blue)](https://aeml.github.io/atlascore/coverage/) [![Docs](https://img.shields.io/badge/docs-doxygen-green)](https://aeml.github.io/atlascore/)
 
-AtlasCore is a C++ simulation framework showcasing a multithreaded job system, an Entity–Component–System (ECS) architecture, deterministic physics, and a small Simulation Lab for interactive demos and determinism tests, rendered entirely as text.
+AtlasCore is a modern C++20 simulation framework demonstrating:
 
-This repository currently contains a **minimal but growing engine**:
+* Multithreaded job scheduling (work queues + optional parallel physics/collision)
+* An Entity–Component–System (ECS) with type‑erased component registries
+* Deterministic, fixed‑timestep physics (integration, collision detection, resolution, constraints)
+* ASCII (ANSI) text rendering for lightweight visualization (diff/frame based)
+* A Simulation Lab of interactive + headless scenarios (benchmarks, determinism tests, visual demos)
+* Extensive self‑tests + determinism hashing across scenarios
 
-- `core` module with `Logger`, `Clock`, and `FixedTimestepLoop` for driving fixed-timestep simulations
-- `jobs` module with a simple `JobSystem` interface and worker pool for parallel workloads
-- `ecs` module with a `World` / `ISystem` abstraction and integrated component storage (type-erased wrappers over `ComponentStorage<T>`) 
-- `physics` module with `TransformComponent`, `RigidBodyComponent`, gravity integration via `PhysicsIntegrationSystem`, and basic collision helpers
-- `ascii` module providing an ANSI-friendly `TextRenderer` for efficient terminal rendering (diff-based text frames)
-- `simlab` module featuring:
-	- `smoke` demo: ECS bodies falling under physics, visualized as continuously dropping characters
-	- `stack` demo: A pyramid of boxes to test collision resolution and stability
-	- `pendulum` demo: A chain of bodies connected by distance joints
-	- `cloth` demo: A grid of particles connected by springs, interacting with an obstacle
-	- `ball_showcase` demo: Various collision scenarios (bouncing, stacking, glancing hits)
-	- `stress` demo: A performance test with 2000 particles to showcase the job system
-	- `text_patterns` demo: animated sine waves and Lissajous patterns using the `TextRenderer`
-- A `main` entry point that lets you pick and run scenarios interactively
-- A CTest suite covering core, jobs, physics, ECS, and simlab behavior
+See `sysarchitecture.md` for deeper design notes. Module‑specific docs live under `docs/`.
 
-Refer to `sysarchitecture.md` for the high-level design and roadmap.
+## Modules
 
-## Building (Windows / CMake + MSVC)
+| Module   | Key Types / Responsibilities |
+|----------|------------------------------|
+| core     | `Logger`, `Clock`, `FixedTimestepLoop` (stable fixed delta) |
+| jobs     | `JobSystem` (worker pool, scheduling, optional parallelization hooks) |
+| ecs      | `World`, `ComponentStorage<T>`, `ISystem` polymorphic updates |
+| physics  | Components: `TransformComponent`, `RigidBodyComponent`, `DistanceJointComponent`, `EnvironmentForces`, `AABBComponent`, `CircleColliderComponent`; Systems: `PhysicsIntegrationSystem`, `CollisionSystem`, `CollisionResolutionSystem`, `ConstraintResolutionSystem`, `PhysicsSystem` orchestrator |
+| ascii    | `TextRenderer` + `Renderer` (terminal diff rendering) |
+| simlab   | Scenario registry, hashing tools, built‑in scenarios (see below) |
 
-Prerequisites:
+## Scenarios (SimLab)
 
-- CMake 3.20+
-- Visual Studio with C++ toolset (or Build Tools)
+Scenario keys (CLI):
 
-From the project root (`atlascore`):
+```
+smoke            # Falling bodies smoke test
+hash             # Dual-run determinism hash verification
+stack            # Pyramid stacking (stability + resolution)
+pendulum         # Distance joint chain
+cloth            # Simple cloth (springs + obstacle)
+ball_showcase    # Assorted rigid body collision demos
+stress           # 2000 particle stress benchmark
+text_patterns    # Text renderer pattern animations (waves, Lissajous)
+```
 
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app stress`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
+
+## Directory Structure (Public Headers)
+
+```
+include/
+  core/      Clock.hpp, FixedTimestepLoop.hpp, Logger.hpp
+  jobs/      JobSystem.hpp
+  ecs/       World.hpp, ComponentStorage.hpp
+  physics/   Components.hpp, Systems.hpp, CollisionSystem.hpp
+  ascii/     TextRenderer.hpp, Renderer.hpp
+  simlab/    Scenario.hpp (plus registry + hashing in src/simlab)
+src/         (module implementations)
+tests/       (CTest executables driven by CMake options)
+docs/        (module docs + workflows)
+```
+
+## Building
+
+Prerequisites: CMake ≥ 3.20, a C++20 compiler (MSVC 17+, Clang, or GCC). Optional: Ninja.
+
+Windows (MSVC):
 ```powershell
 mkdir build
 cd build
-cmake -G "Ninja" ..    # or "Visual Studio 17 2022" if you prefer
-cmake --build . --config Release
+cmake -G "Visual Studio 17 2022" ..
+cmake --build . --config Debug --parallel
 ```
 
-## Running
+Linux / macOS (Clang/GCC):
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --parallel
+```
 
-From the `build` directory:
+Options:
+* `ATLASCORE_BUILD_TESTS=ON|OFF` (default ON)
+* `ATLASCORE_ENABLE_COVERAGE=ON` (GNU/Clang only; adds `--coverage -O0 -g -fprofile-update=atomic`)
 
-```powershell
-# Run the demo app (interactive scenario menu)
-./atlascore_app
+## Running & CLI
 
-# Or pick a scenario via CLI argument
-./atlascore_app smoke
-./atlascore_app stress
-
-# Headless mode (outputs to headless_output.txt)
+```bash
+./atlascore_app                 # interactive menu
+./atlascore_app cloth           # specific scenario
 ./atlascore_app stress --headless
-
-# Run self-tests (if CTest is available)
-ctest -C Release
+ATLASCORE_HEADLESS=1 ./atlascore_app smoke  # env flag alternative
 ```
 
-## Next Steps / Roadmap
+Headless output file: `headless_output.txt` (overwritten per run).
 
-Short-term goals:
+## Testing
 
-- Make the Simulation Lab a showcase of the engine:
-	- Refine the **smoke** demo (soft drifting + continuous spawn)
-	- Add a **rain** demo (fast vertical motion, optional bouncing at ground)
-	- Add a **clouds** demo (slow horizontal motion, layering, wind-style effects)
-	- Integrate the **job system** to drive large numbers of entities in these demos
-- Expand ASCII visualization patterns and utilities (e.g., debug overlays, simple HUD text)
-- Expand determinism tests (collision, multi-thread job scheduling impact)
+CTest targets (enabled when `ATLASCORE_BUILD_TESTS=ON`) include:
 
-Engine-oriented work:
+`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_ball_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
 
-- Optimize ECS storage layout (chunked / archetype approach)
-- Improve physics (collision detection, resolution, constraints)
-- Add simple profiling/metrics hooks for job throughput and ECS/physics performance
-- Introduce dedicated benchmarking scenarios for job throughput, ECS iteration, and determinism
+Run all:
+```bash
+ctest --output-on-failure
+```
+Specific target:
+```bash
+ctest -R AtlasCoreCollisionTests
+```
 
-## Code Coverage
+## Determinism
 
-Coverage is generated on Linux builds when `ATLASCORE_ENABLE_COVERAGE=ON`.
+Determinism tests hash world state (transform positions, velocities, collision counts, joint and rigid body data). The `hash` scenario performs dual runs to confirm invariants across thread counts. Use fixed timestep loop (`1/60s`) to maintain sim stability.
 
-Local run:
+## Coverage (GNU/Clang)
+
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_ENABLE_COVERAGE=ON
-cmake --build build --config Debug --parallel
-cd build && ctest -C Debug --output-on-failure
+cmake --build build --parallel
+cd build && ctest --output-on-failure
 lcov --directory . --capture --output-file coverage.info
 lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
 genhtml coverage.info --output-directory coverage-report
 ```
 
-After each push to `main`:
+GitHub Actions publishes Doxygen docs and coverage HTML (`/coverage`).
 
-- Doxygen API documentation is published at the GitHub Pages root.
-- Coverage HTML report is published under `/coverage`.
+## Roadmap (High-Level)
+
+Short term:
+* Expand scenario variety (rain, clouds, profiling‑oriented benchmarks)
+* Additional physics constraints & joint compliance behaviors
+* ECS storage optimization (move toward contiguous / archetype iteration)
+* Lightweight profiling overlays through ASCII renderer (HUD + metrics)
+
+Longer term:
+* More robust collision shapes (rotated boxes, line segments)
+* Parallel solver phases with determinism controls
+* Scenario scripting / data export formats beyond headless text
+
+## Contributing
+
+See `docs/contributing.md` and module docs (`docs/*.md`). Please keep changes small, add/extend tests, and preserve deterministic behavior when modifying physics or scheduling.
+
+## License
+
+(Project currently does not state an explicit license in this README. Add one if distribution is intended.)
+
+---
+Enjoy exploring AtlasCore – feedback & improvements welcome.

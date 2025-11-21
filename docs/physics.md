@@ -1,28 +1,55 @@
 # Physics Module
 
-The `physics` module defines physics-related components and systems.
+AtlasCore's `physics` module provides a deterministic 2D rigid body pipeline with optional constraint solving and collision resolution. All systems can operate over ECS component storage and may parallelize work via the `JobSystem` where appropriate.
 
-- `TransformComponent`: position in 2D (x, y).
-- `RigidBodyComponent`: velocity (vx, vy), mass, inverse mass, and restitution.
-- `PhysicsIntegrationSystem`: integrates velocity into position applying a gravity constant (currently -9.81 m/s² along y). Supports parallel execution via `JobSystem`.
+## Components
 
-In the current skeleton, integration operates over local vectors of components inside the simulation scenario. Future work will route this through ECS-managed component storage.
+| Component | Purpose |
+|-----------|---------|
+| `TransformComponent` | Position (x,y) + rotation for entities |
+| `RigidBodyComponent` | Linear & angular velocity, mass, restitution, friction, inertia values, and PBD backup positions |
+| `EnvironmentForces`  | Global gravity, wind, drag coefficients |
+| `DistanceJointComponent` | Soft/rigid distance constraint between two entities (with compliance) |
+| `AABBComponent` | Axis-aligned bounds used for broad-phase collision tests |
+| `CircleColliderComponent` | Simple circular collider shape + offset |
 
-## Collision
+Helper inertia configuration functions (`ConfigureCircleInertia`, `ConfigureBoxInertia`) populate inertia / inverse inertia consistently.
 
-Collision support includes:
+## Systems
 
-- `AABBComponent`: axis-aligned bounding box storing min/max coordinates.
-- `CollisionSystem`: 
-  - Uses a **Spatial Hash** broad-phase for efficient collision detection when body count > 100.
-  - Supports parallel execution via `JobSystem`.
-  - Falls back to O(N^2) for small datasets.
-- `CollisionResolutionSystem`: resolves collisions using impulse-based response and positional correction.
-- `PhysicsSystem`: orchestrates the full pipeline (Integration -> Detection -> Resolution).
+| System | Role |
+|--------|------|
+| `PhysicsIntegrationSystem` | Applies environment forces; integrates velocities & transforms; optional parallel velocity update |
+| `CollisionSystem` | Broad-phase AABB overlap detection producing `CollisionEvent` list (parallelizable) |
+| `CollisionResolutionSystem` | Impulse-based velocity + positional correction; configurable solver iterations |
+| `ConstraintResolutionSystem` | Resolves joints (`DistanceJointComponent`) over multiple iterations |
+| `PhysicsSystem` | Orchestrator: integration → collision detect → constraint solve → collision resolve (position/velocity phases) |
 
-Determinism hashing now includes AABB data and collision event counts in dedicated tests. Future iterations will:
+`PhysicsSettings` allow tuning substeps and iteration counts. Separation of position vs. velocity iterations aids stability while maintaining deterministic ordering.
 
-- Integrate AABBs into ECS component storage (Done).
+## Determinism
+
+Physics determinism is ensured through:
+* Fixed timestep (`FixedTimestepLoop`) feeding consistent `dt`.
+* Stable iteration order over component storage.
+* Atomic-free collision event accumulation (single-thread append or controlled parallel aggregation) to keep ordering reproducible.
+* World state hashing that includes transforms, rigid body properties, AABB bounds, and collision counts.
+
+## Parallelization
+
+When a `JobSystem` is attached, integration and resolution phases may process batches of components concurrently. Work partitioning preserves deterministic final results by aggregating impulses in a controlled sequence.
+
+## Future Work
+
+Planned enhancements:
+* Additional collider shapes (oriented boxes, segments).
+* Narrow-phase refinement & contact caching.
+* More joint types (angle limits, springs) + constraint warm starting.
+* Profiling metrics surfaced via ASCII HUD.
+
+## Summary
+
+The current implementation balances clarity with determinism, offering a foundation for extending collision sophistication and constraint variety while retaining reproducible simulation outcomes.
 
 
 
