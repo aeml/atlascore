@@ -127,6 +127,11 @@ namespace physics
         CollisionResolutionSystem m_resolution;
         ConstraintResolutionSystem m_constraints;
         std::vector<CollisionEvent> m_events;
+        
+        // Broadphase buffers
+        std::vector<AABBComponent> m_broadphaseAABBs;
+        std::vector<std::uint32_t> m_broadphaseIds;
+
         jobs::JobSystem*          m_jobSystem{nullptr};
         PhysicsSettings           m_settings{};
     };

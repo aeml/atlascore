@@ -29,13 +29,14 @@ int main() {
     boxes[2] = {5.f, 5.f, 6.f, 6.f};
 
     std::vector<physics::CollisionEvent> events;
-    system.Detect(boxes, events);
+    std::vector<std::uint32_t> ids = {0, 1, 2};
+    system.Detect(boxes, ids, events);
     assert(events.size() == 1);
-    assert(events[0].indexA == 0 && events[0].indexB == 1);
+    assert(events[0].entityA == 0 && events[0].entityB == 1);
 
     // Move box 2 to overlap with box 1 only.
     boxes[2] = {2.2f, 2.2f, 4.f, 4.f};
-    system.Detect(boxes, events);
+    system.Detect(boxes, ids, events);
     // Expect collisions: (0,1) and (1,2). (0,2) not overlapping (2.2 min inside >2 max?). Actually 0 maxX=2 < 2.2 minX => no.
     assert(events.size() == 2);
 
@@ -43,7 +44,7 @@ int main() {
     boxes[0] = {0.f,0.f,1.f,1.f};
     boxes[1] = {3.f,3.f,4.f,4.f};
     boxes[2] = {6.f,6.f,7.f,7.f};
-    system.Detect(boxes, events);
+    system.Detect(boxes, ids, events);
     assert(events.empty());
 
     std::cout << "Collision tests passed.\n";

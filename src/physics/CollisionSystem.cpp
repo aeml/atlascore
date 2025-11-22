@@ -35,6 +35,16 @@ namespace {
         return (static_cast<uint64_t>(x) << 32) | (static_cast<uint32_t>(y));
     }
 
+    struct CellEntry {
+        uint64_t key;
+        uint32_t index;
+        // Sort by key, then index for determinism
+        bool operator<(const CellEntry& rhs) const {
+            if (key != rhs.key) return key < rhs.key;
+            return index < rhs.index;
+        }
+    };
+
     bool GetManifold(const AABBComponent& a, const AABBComponent& b, CollisionEvent& event) {
         // Check for overlap
         if (a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY)
@@ -57,16 +67,20 @@ namespace {
     }
 }
 
-void CollisionSystem::Detect(const std::vector<AABBComponent>& aabbs, std::vector<CollisionEvent>& outEvents, jobs::JobSystem* jobSystem) const {
+void CollisionSystem::Detect(const std::vector<AABBComponent>& aabbs, 
+                             const std::vector<std::uint32_t>& entityIds,
+                             std::vector<CollisionEvent>& outEvents, 
+                             jobs::JobSystem* jobSystem) const {
     outEvents.clear();
     const std::size_t n = aabbs.size();
-    if (n < 2) return;
+    if (n < 2 || n != entityIds.size()) return;
 
     // Use Spatial Hash for large N
     if (jobSystem && n > 100) {
-        // 1. Build Grid (Serial for now, but fast)
-        std::unordered_map<uint64_t, std::vector<uint32_t>> grid;
-        
+        // 1. Build Grid Entries (Deterministic & Contiguous)
+        std::vector<CellEntry> entries;
+        entries.reserve(n * 4); // Heuristic
+
         for (std::size_t i = 0; i < n; ++i) {
             const auto& box = aabbs[i];
             auto [minX, minY] = GetCellCoords(box.minX, box.minY);
@@ -74,76 +88,94 @@ void CollisionSystem::Detect(const std::vector<AABBComponent>& aabbs, std::vecto
 
             for (int x = minX; x <= maxX; ++x) {
                 for (int y = minY; y <= maxY; ++y) {
-                    grid[PackKey(x, y)].push_back(static_cast<uint32_t>(i));
+                    entries.push_back({PackKey(x, y), static_cast<uint32_t>(i)});
                 }
             }
         }
 
-        // 2. Flatten tasks
-        std::vector<std::pair<uint64_t, std::vector<uint32_t>*>> tasks;
-        tasks.reserve(grid.size());
-        for (auto& kv : grid) {
-            if (kv.second.size() > 1) {
-                tasks.push_back({kv.first, &kv.second});
+        // 2. Sort entries (Deterministic)
+        std::sort(entries.begin(), entries.end());
+
+        // 3. Identify Tasks (Cells)
+        struct GridTask {
+            uint64_t key;
+            std::size_t start;
+            std::size_t count;
+        };
+        std::vector<GridTask> tasks;
+        tasks.reserve(entries.size() / 2); // Rough estimate
+
+        if (!entries.empty()) {
+            std::size_t currentStart = 0;
+            uint64_t currentKey = entries[0].key;
+            
+            for (std::size_t i = 1; i < entries.size(); ++i) {
+                if (entries[i].key != currentKey) {
+                    if (i - currentStart > 1) { // Only cells with > 1 entity
+                        tasks.push_back({currentKey, currentStart, i - currentStart});
+                    }
+                    currentKey = entries[i].key;
+                    currentStart = i;
+                }
+            }
+            // Last one
+            if (entries.size() - currentStart > 1) {
+                tasks.push_back({currentKey, currentStart, entries.size() - currentStart});
             }
         }
 
         if (tasks.empty()) return;
 
-        // 3. Dispatch
-        std::mutex outputMutex;
+        // 4. Dispatch
+        // Per-task results to avoid mutex and ensure deterministic merge
+        std::vector<std::vector<CollisionEvent>> taskResults(tasks.size());
+        
         const std::size_t batchSize = std::max(std::size_t(16), tasks.size() / (jobSystem->WorkerCount() * 4));
 
         auto handles = jobSystem->Dispatch(tasks.size(), batchSize, [&](std::size_t start, std::size_t end) {
-            std::vector<CollisionEvent> localEvents;
             CollisionEvent event;
-
             for (std::size_t t = start; t < end; ++t) {
-                uint64_t cellKey = tasks[t].first;
-                const auto& indices = *tasks[t].second;
+                const auto& task = tasks[t];
+                auto& results = taskResults[t];
                 
                 // Check all pairs in this cell
-                for (std::size_t i = 0; i < indices.size(); ++i) {
-                    for (std::size_t j = i + 1; j < indices.size(); ++j) {
-                        uint32_t idxA = indices[i];
-                        uint32_t idxB = indices[j];
-                        
-                        // Avoid checking same pair multiple times across cells.
-                        // Rule: Only report if the "primary cell" of the intersection is THIS cell.
-                        // Primary cell = cell containing the top-left (minX, minY) of the intersection rectangle.
+                // entries[task.start ... task.start + task.count] contains indices
+                for (std::size_t i = 0; i < task.count; ++i) {
+                    for (std::size_t j = i + 1; j < task.count; ++j) {
+                        uint32_t idxA = entries[task.start + i].index;
+                        uint32_t idxB = entries[task.start + j].index;
                         
                         const auto& boxA = aabbs[idxA];
                         const auto& boxB = aabbs[idxB];
 
-                        // Fast overlap check first
+                        // Fast overlap check
                         if (boxA.maxX < boxB.minX || boxA.minX > boxB.maxX || 
                             boxA.maxY < boxB.minY || boxA.minY > boxB.maxY)
                             continue;
 
-                        // Compute intersection min point
+                        // Primary cell check
                         float interMinX = std::max(boxA.minX, boxB.minX);
                         float interMinY = std::max(boxA.minY, boxB.minY);
                         
                         auto [cx, cy] = GetCellCoords(interMinX, interMinY);
-                        if (PackKey(cx, cy) == cellKey) {
-                            // This is the primary cell. Calculate manifold and report.
+                        if (PackKey(cx, cy) == task.key) {
                             if (GetManifold(boxA, boxB, event)) {
-                                event.indexA = idxA;
-                                event.indexB = idxB;
-                                localEvents.push_back(event);
+                                event.entityA = entityIds[idxA];
+                                event.entityB = entityIds[idxB];
+                                results.push_back(event);
                             }
                         }
                     }
                 }
             }
-
-            if (!localEvents.empty()) {
-                std::lock_guard<std::mutex> lock(outputMutex);
-                outEvents.insert(outEvents.end(), localEvents.begin(), localEvents.end());
-            }
         });
 
         jobSystem->Wait(handles);
+
+        // 5. Merge Results (Deterministic Order)
+        for (const auto& res : taskResults) {
+            outEvents.insert(outEvents.end(), res.begin(), res.end());
+        }
 
     } else {
         // Serial O(N^2) execution
@@ -151,8 +183,8 @@ void CollisionSystem::Detect(const std::vector<AABBComponent>& aabbs, std::vecto
         for (std::size_t i = 0; i < n; ++i) {
             for (std::size_t j = i + 1; j < n; ++j) {
                 if (GetManifold(aabbs[i], aabbs[j], event)) {
-                    event.indexA = static_cast<std::uint32_t>(i);
-                    event.indexB = static_cast<std::uint32_t>(j);
+                    event.entityA = entityIds[i];
+                    event.entityB = entityIds[j];
                     outEvents.push_back(event);
                 }
             }

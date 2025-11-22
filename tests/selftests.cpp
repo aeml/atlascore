@@ -133,11 +133,13 @@ int main()
         std::vector<physics::CollisionEvent> events;
 
         // Place all AABBs at the same location so they all collide
+        std::vector<std::uint32_t> ids(count);
         for(size_t i=0; i<count; ++i) {
             aabbs[i] = {0.0f, 0.0f, 1.0f, 1.0f};
+            ids[i] = static_cast<std::uint32_t>(i);
         }
 
-        collisionSystem.Detect(aabbs, events, &jobSystem);
+        collisionSystem.Detect(aabbs, ids, events, &jobSystem);
 
         // Expected collisions: N * (N-1) / 2
         const size_t expected = count * (count - 1) / 2;
@@ -167,8 +169,11 @@ int main()
         resBodies[1] = {-1.0f, 0.0f, 1.0f, 1.0f, 1.0f}; // vx=-1, mass=1, rest=1
         aabbs[1] = {0.5f, 0.0f, 1.5f, 1.0f};
 
+        // Create dummy entity IDs that match indices
+        std::vector<std::uint32_t> entityIds = {0, 1};
+
         // Detect
-        collisionSystem.Detect(aabbs, events);
+        collisionSystem.Detect(aabbs, entityIds, events);
         
         if (events.empty()) {
             std::cerr << "Collision Resolution test failed: No collision detected" << std::endl;
@@ -211,14 +216,17 @@ int main()
             aabbs[i] = {x, y, x + w, y + h};
         }
 
+        std::vector<std::uint32_t> entityIds(count);
+        for(size_t i=0; i<count; ++i) entityIds[i] = static_cast<std::uint32_t>(i);
+
         std::vector<physics::CollisionEvent> eventsParallel;
         std::vector<physics::CollisionEvent> eventsSerial;
 
         // Run Parallel (Spatial Hash)
-        collisionSystem.Detect(aabbs, eventsParallel, &jobSystem);
+        collisionSystem.Detect(aabbs, entityIds, eventsParallel, &jobSystem);
 
         // Run Serial (Brute Force) - pass nullptr for jobSystem
-        collisionSystem.Detect(aabbs, eventsSerial, nullptr);
+        collisionSystem.Detect(aabbs, entityIds, eventsSerial, nullptr);
 
         if (eventsParallel.size() != eventsSerial.size()) {
              std::cerr << "Broadphase verification failed: Size mismatch. Parallel=" 
@@ -228,15 +236,15 @@ int main()
 
         // Sort and compare
         auto sortFn = [](const physics::CollisionEvent& a, const physics::CollisionEvent& b) {
-            if (a.indexA != b.indexA) return a.indexA < b.indexA;
-            return a.indexB < b.indexB;
+            if (a.entityA != b.entityA) return a.entityA < b.entityA;
+            return a.entityB < b.entityB;
         };
         std::sort(eventsParallel.begin(), eventsParallel.end(), sortFn);
         std::sort(eventsSerial.begin(), eventsSerial.end(), sortFn);
 
         for(size_t i=0; i<eventsParallel.size(); ++i) {
-            if (eventsParallel[i].indexA != eventsSerial[i].indexA || 
-                eventsParallel[i].indexB != eventsSerial[i].indexB) {
+            if (eventsParallel[i].entityA != eventsSerial[i].entityA || 
+                eventsParallel[i].entityB != eventsSerial[i].entityB) {
                 std::cerr << "Broadphase verification failed: Event mismatch at index " << i << std::endl;
                 return 1;
             }

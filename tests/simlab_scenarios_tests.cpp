@@ -154,10 +154,9 @@ namespace
 int main()
 {
     simlab::SetHeadlessRendering(true);
-    RunScenario("stacking", simlab::CreateStackingScenario);
-    RunScenario("pendulum", simlab::CreatePendulumScenario);
-    RunScenario("cloth", simlab::CreateClothScenario);
-    RunScenario("ball_showcase", simlab::CreateBallShowcaseScenario);
+    RunScenario("gravity", simlab::CreatePlanetaryGravityScenario);
+    RunScenario("wrecking", simlab::CreateWreckingBallScenario);
+    RunScenario("fluid", simlab::CreateParticleFluidScenario);
 
     std::cout << "Simlab scenario tests passed\n";
     return 0;

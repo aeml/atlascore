@@ -34,14 +34,9 @@ namespace simlab
         virtual void Render(ecs::World& world, std::ostream& out) = 0;
     };
 
-    std::unique_ptr<IScenario> CreateDeterminismSmokeTest();
-    std::unique_ptr<IScenario> CreateDeterminismHashScenario();
-    std::unique_ptr<IScenario> CreateTextRendererPatternsScenario();
-    std::unique_ptr<IScenario> CreateStackingScenario();
-    std::unique_ptr<IScenario> CreatePendulumScenario();
-    std::unique_ptr<IScenario> CreateClothScenario();
-    std::unique_ptr<IScenario> CreateBallShowcaseScenario();
-    std::unique_ptr<IScenario> CreateStressTestScenario();
+    std::unique_ptr<IScenario> CreatePlanetaryGravityScenario();
+    std::unique_ptr<IScenario> CreateWreckingBallScenario();
+    std::unique_ptr<IScenario> CreateParticleFluidScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 

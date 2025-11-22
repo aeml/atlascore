@@ -43,19 +43,10 @@ namespace simlab
 
         void RegisterBuiltIns()
         {
-            // Ensure the two default scenarios are present without relying on TU static init
-            ScenarioRegistry::Register("smoke", "ECS falling bodies smoke test", &CreateDeterminismSmokeTest);
-            ScenarioRegistry::Register("hash",  "Determinism hash dual-run scenario", &CreateDeterminismHashScenario);
-            ScenarioRegistry::Register("stack", "Pyramid stacking test", &CreateStackingScenario);
-            ScenarioRegistry::Register("pendulum", "Pendulum chain test", &CreatePendulumScenario);
-            ScenarioRegistry::Register("cloth", "Cloth simulation test", &CreateClothScenario);
-            ScenarioRegistry::Register("ball_showcase", "Ball collision showcase", &CreateBallShowcaseScenario,
-                                       "Physics Demos", "Rigid Bodies");
-            ScenarioRegistry::Register("stress", "Stress Test (2000 particles)", &CreateStressTestScenario,
-                                       "Benchmarks", "Physics");
-            // Text renderer patterns (grouped under Text Tests / Text Renderer Tests)
-            ScenarioRegistry::Register("text_patterns", "Text renderer patterns", &CreateTextRendererPatternsScenario,
-                                       "Text Tests", "Text Renderer Tests");
+            // Register new showcase scenarios
+            ScenarioRegistry::Register("gravity", "Planetary Gravity (N-Body)", &CreatePlanetaryGravityScenario);
+            ScenarioRegistry::Register("wrecking", "Wrecking Ball (Joints & Collisions)", &CreateWreckingBallScenario);
+            ScenarioRegistry::Register("fluid", "Particle Fluid (High Entity Count)", &CreateParticleFluidScenario);
         }
     }
 

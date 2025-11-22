@@ -28,8 +28,8 @@ namespace jobs { class JobSystem; }
 namespace physics {
 
 struct CollisionEvent {
-    std::uint32_t indexA; // index into component arrays
-    std::uint32_t indexB;
+    std::uint32_t entityA; // EntityId
+    std::uint32_t entityB; // EntityId
     float normalX{0.0f};
     float normalY{0.0f};
     float penetration{0.0f};
@@ -38,8 +38,11 @@ struct CollisionEvent {
 class CollisionSystem {
 public:
     // Detect collisions between AABBs; returns events (clears previous contents).
-    // If jobSystem is provided, execution may be parallelized.
-    void Detect(const std::vector<AABBComponent>& aabbs, std::vector<CollisionEvent>& outEvents, jobs::JobSystem* jobSystem = nullptr) const;
+    // Requires a parallel vector of EntityIds to populate the events correctly.
+    void Detect(const std::vector<AABBComponent>& aabbs, 
+                const std::vector<std::uint32_t>& entityIds,
+                std::vector<CollisionEvent>& outEvents, 
+                jobs::JobSystem* jobSystem = nullptr) const;
 
 private:
     static bool Overlaps(const AABBComponent& a, const AABBComponent& b) {

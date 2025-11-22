@@ -32,8 +32,9 @@ int main() {
     boxesA[1] = boxesB[1] = {1.f,1.f,3.f,3.f};
 
     std::vector<physics::CollisionEvent> eventsA, eventsB;
-    collision.Detect(boxesA, eventsA);
-    collision.Detect(boxesB, eventsB);
+    std::vector<std::uint32_t> ids = {0, 1};
+    collision.Detect(boxesA, ids, eventsA);
+    collision.Detect(boxesB, ids, eventsB);
 
     // Hash AABBs + event count to verify determinism across duplicate sets.
     auto hA = hasher.HashAABBs(boxesA);

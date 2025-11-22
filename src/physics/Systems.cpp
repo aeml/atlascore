@@ -16,12 +16,10 @@
  */
 
 #include "physics/Systems.hpp"
+#include "physics/CollisionSystem.hpp"
 #include "jobs/JobSystem.hpp"
-
 #include <algorithm>
 #include <cmath>
-#include <unordered_map>
-#include <vector>
 
 namespace physics
 {
@@ -104,6 +102,15 @@ namespace physics
 
                     b.vx += ax * dt;
                     b.vy += ay * dt;
+
+                    // Clamp velocity to prevent instability
+                    const float maxVel = 50.0f;
+                    float vSq = b.vx * b.vx + b.vy * b.vy;
+                    if (vSq > maxVel * maxVel) {
+                        float v = std::sqrt(vSq);
+                        b.vx = (b.vx / v) * maxVel;
+                        b.vy = (b.vy / v) * maxVel;
+                    }
 
                     tf->x += b.vx * dt;
                     tf->y += b.vy * dt;
@@ -356,24 +363,21 @@ namespace physics
             auto* circleStorage = world.GetStorage<CircleColliderComponent>();
 
             std::vector<Contact> contacts;
-            if (!tfStorage || !rbStorage || !aabbStorage) return contacts;
+            if (!tfStorage || !rbStorage) return contacts;
 
-            const auto& entities = aabbStorage->GetEntities();
             contacts.reserve(events.size());
 
             for (const auto& event : events)
             {
-                if (event.indexA >= entities.size() || event.indexB >= entities.size()) continue;
-
-                ecs::EntityId idA = entities[event.indexA];
-                ecs::EntityId idB = entities[event.indexB];
+                ecs::EntityId idA = event.entityA;
+                ecs::EntityId idB = event.entityB;
 
                 auto* bA = rbStorage->Get(idA);
                 auto* bB = rbStorage->Get(idB);
                 auto* tA = tfStorage->Get(idA);
                 auto* tB = tfStorage->Get(idB);
-                auto* aabbA = aabbStorage->Get(idA);
-                auto* aabbB = aabbStorage->Get(idB);
+                auto* aabbA = aabbStorage ? aabbStorage->Get(idA) : nullptr;
+                auto* aabbB = aabbStorage ? aabbStorage->Get(idB) : nullptr;
 
                 if (!bA || !bB || !tA || !tB) continue;
 
@@ -692,12 +696,16 @@ namespace physics
     {
         for (const auto& event : events)
         {
-            if (event.indexA >= transforms.size() || event.indexB >= transforms.size()) continue;
+            // Legacy/Test support: assume entityId corresponds to index in the provided vectors
+            size_t idxA = static_cast<size_t>(event.entityA);
+            size_t idxB = static_cast<size_t>(event.entityB);
 
-            auto& tA = transforms[event.indexA];
-            auto& bA = bodies[event.indexA];
-            auto& tB = transforms[event.indexB];
-            auto& bB = bodies[event.indexB];
+            if (idxA >= transforms.size() || idxB >= transforms.size()) continue;
+
+            auto& tA = transforms[idxA];
+            auto& bA = bodies[idxA];
+            auto& tB = transforms[idxB];
+            auto& bB = bodies[idxB];
 
             // Relative velocity
             float rvx = bB.vx - bA.vx;
@@ -826,8 +834,23 @@ namespace physics
             // 2. Detection
             auto* aabbStorage = world.GetStorage<AABBComponent>();
             if (aabbStorage) {
+                // Copy AABBs and EntityIds to contiguous buffers for the collision system
+                // This ensures the indices match up perfectly for the sort-and-sweep
+                m_broadphaseAABBs.clear();
+                m_broadphaseIds.clear();
+                
                 const auto& aabbs = aabbStorage->GetData();
-                m_collision.Detect(aabbs, m_events, m_jobSystem);
+                const auto& entities = aabbStorage->GetEntities();
+                
+                // Reserve to avoid reallocations
+                size_t count = aabbs.size();
+                m_broadphaseAABBs.reserve(count);
+                m_broadphaseIds.reserve(count);
+
+                m_broadphaseAABBs.insert(m_broadphaseAABBs.end(), aabbs.begin(), aabbs.end());
+                m_broadphaseIds.insert(m_broadphaseIds.end(), entities.begin(), entities.end());
+
+                m_collision.Detect(m_broadphaseAABBs, m_broadphaseIds, m_events, m_jobSystem);
             }
 
             // 3. Resolution
@@ -868,6 +891,15 @@ namespace physics
                 b.vx = (tf->x - b.lastX) / dt;
                 b.vy = (tf->y - b.lastY) / dt;
                 b.angularVelocity = (tf->rotation - b.lastAngle) / dt;
+
+                // Clamp velocity to prevent instability from position correction
+                const float maxVel = 50.0f;
+                float vSq = b.vx * b.vx + b.vy * b.vy;
+                if (vSq > maxVel * maxVel) {
+                    float v = std::sqrt(vSq);
+                    b.vx = (b.vx / v) * maxVel;
+                    b.vy = (b.vy / v) * maxVel;
+                }
             }
         }
     }

@@ -94,38 +94,37 @@ int main()
     {
         ecs::World world;
 
-        // 1. Smoke Test
-        auto smoke = simlab::CreateDeterminismSmokeTest();
-        if (smoke)
+        // 1. Gravity
+        auto gravity = simlab::CreatePlanetaryGravityScenario();
+        if (gravity)
         {
-            smoke->Setup(world);
-            // Run a few steps to cover update logic, spawning, and rendering
+            gravity->Setup(world);
             std::stringstream ss;
             for (int i = 0; i < 5; ++i)
             {
-                smoke->Update(world, 1.0f / 60.0f);
-                smoke->Render(world, ss);
+                gravity->Update(world, 1.0f / 60.0f);
+                gravity->Render(world, ss);
             }
         }
 
-        // 2. Hash Scenario
-        auto hash = simlab::CreateDeterminismHashScenario();
-        if (hash)
+        // 2. Wrecking Ball
+        auto wrecking = simlab::CreateWreckingBallScenario();
+        if (wrecking)
         {
-            hash->Setup(world);
-            hash->Update(world, 1.0f / 60.0f);
+            wrecking->Setup(world);
+            wrecking->Update(world, 1.0f / 60.0f);
             std::stringstream ss;
-            hash->Render(world, ss);
+            wrecking->Render(world, ss);
         }
 
-        // 3. Text Patterns
-        auto patterns = simlab::CreateTextRendererPatternsScenario();
-        if (patterns)
+        // 3. Fluid
+        auto fluid = simlab::CreateParticleFluidScenario();
+        if (fluid)
         {
-            patterns->Setup(world);
-            patterns->Update(world, 0.1f);
+            fluid->Setup(world);
+            fluid->Update(world, 0.1f);
             std::stringstream ss;
-            patterns->Render(world, ss);
+            fluid->Render(world, ss);
         }
 
         std::cout << "[PASS] SimLab Scenarios execution coverage\n";
@@ -163,11 +162,11 @@ int main()
         }
         
         // Test FindFactory and Create
-        auto factory = simlab::ScenarioRegistry::FindFactory("smoke");
+        auto factory = simlab::ScenarioRegistry::FindFactory("gravity");
         assert(factory != nullptr);
         (void)factory;
         
-        auto instance = simlab::ScenarioRegistry::Create("smoke");
+        auto instance = simlab::ScenarioRegistry::Create("gravity");
         assert(instance != nullptr);
 
         auto missing = simlab::ScenarioRegistry::Create("non_existent");

@@ -19,16 +19,11 @@ add_library(atlascore
     
     src/ascii/Renderer.cpp
     src/ascii/TextRenderer.cpp
-    src/simlab/DeterminismSmokeTest.cpp
     src/simlab/WorldHasher.cpp
-    src/simlab/DeterminismHashScenario.cpp
     src/simlab/ScenarioRegistry.cpp
-    src/simlab/TextRendererPatternsScenario.cpp
-    src/simlab/StackingScenario.cpp
-    src/simlab/PendulumScenario.cpp
-    src/simlab/ClothScenario.cpp
-    src/simlab/BallShowcaseScenario.cpp
-    src/simlab/StressTestScenario.cpp
+    src/simlab/PlanetaryGravityScenario.cpp
+    src/simlab/WreckingBallScenario.cpp
+    src/simlab/ParticleFluidScenario.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -104,9 +99,9 @@ if (ATLASCORE_BUILD_TESTS)
     target_link_libraries(atlascore_ecs_physics_tests PRIVATE atlascore)
     add_test(NAME AtlasCoreEcsPhysicsTests COMMAND atlascore_ecs_physics_tests)
 
-    add_executable(atlascore_physics_ball_tests tests/physics_ball_tests.cpp)
-    target_link_libraries(atlascore_physics_ball_tests PRIVATE atlascore)
-    add_test(NAME AtlasCorePhysicsBallTests COMMAND atlascore_physics_ball_tests)
+    add_executable(atlascore_physics_stability_tests tests/physics_stability_tests.cpp)
+    target_link_libraries(atlascore_physics_stability_tests PRIVATE atlascore)
+    add_test(NAME AtlasCorePhysicsStabilityTests COMMAND atlascore_physics_stability_tests)
 
     add_executable(atlascore_simlab_scenarios_tests tests/simlab_scenarios_tests.cpp)
     target_link_libraries(atlascore_simlab_scenarios_tests PRIVATE atlascore)

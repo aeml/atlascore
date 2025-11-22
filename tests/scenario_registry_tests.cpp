@@ -25,19 +25,19 @@ int main()
     const auto& all = simlab::ScenarioRegistry::All();
     assert(!all.empty());
 
-    // Expect at least the two built-in scenarios
-    bool hasSmoke = false, hasHash = false;
+    // Expect at least the new built-in scenarios
+    bool hasGravity = false, hasFluid = false;
     for (const auto& d : all)
     {
-        if (std::string(d.key) == "smoke") hasSmoke = true;
-        if (std::string(d.key) == "hash") hasHash = true;
+        if (std::string(d.key) == "gravity") hasGravity = true;
+        if (std::string(d.key) == "fluid") hasFluid = true;
     }
-    assert(hasSmoke);
-    assert(hasHash);
+    assert(hasGravity);
+    assert(hasFluid);
 
     // Create by key
-    auto s1 = simlab::ScenarioRegistry::Create("smoke");
-    auto s2 = simlab::ScenarioRegistry::Create("hash");
+    auto s1 = simlab::ScenarioRegistry::Create("gravity");
+    auto s2 = simlab::ScenarioRegistry::Create("fluid");
     assert(s1 != nullptr);
     assert(s2 != nullptr);
 
