@@ -19,8 +19,8 @@ Helper inertia configuration functions (`ConfigureCircleInertia`, `ConfigureBoxI
 
 | System | Role |
 |--------|------|
-| `PhysicsIntegrationSystem` | Applies environment forces; integrates velocities & transforms; optional parallel velocity update |
-| `CollisionSystem` | Broad-phase AABB overlap detection producing `CollisionEvent` list (parallelizable) |
+| `PhysicsIntegrationSystem` | Applies environment forces; integrates velocities & transforms; clamps velocities to prevent instability; optional parallel velocity update |
+| `CollisionSystem` | Broad-phase AABB overlap detection using **Spatial Hashing** for O(N) performance in dense scenes; produces `CollisionEvent` list |
 | `CollisionResolutionSystem` | Impulse-based velocity + positional correction; configurable solver iterations |
 | `ConstraintResolutionSystem` | Resolves joints (`DistanceJointComponent`) over multiple iterations |
 | `PhysicsSystem` | Orchestrator: integration → collision detect → constraint solve → collision resolve (position/velocity phases) |
@@ -32,6 +32,7 @@ Helper inertia configuration functions (`ConfigureCircleInertia`, `ConfigureBoxI
 Physics determinism is ensured through:
 * Fixed timestep (`FixedTimestepLoop`) feeding consistent `dt`.
 * Stable iteration order over component storage.
+* **Spatial Hashing** with deterministic sorting of cell entries and tasks.
 * Atomic-free collision event accumulation (single-thread append or controlled parallel aggregation) to keep ordering reproducible.
 * World state hashing that includes transforms, rigid body properties, AABB bounds, and collision counts.
 

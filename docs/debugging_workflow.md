@@ -30,7 +30,7 @@ To verify that the physics engine, ECS, and job system are working correctly *wi
     Use this to check for crashes, memory leaks (with Valgrind/ASan), or performance issues in the simulation loop.
 
 3.  **Simlab Scenario Tests**:
-    The test suite `atlascore_simlab_scenarios_tests` runs scenarios in headless mode and asserts that:
+    The test suite `atlascore_simlab_scenarios_tests` runs registered scenarios (like `gravity`, `wrecking`, `fluid`) in headless mode and asserts that:
     -   Dynamic bodies move (motion detection).
     -   Kinetic energy is conserved or behaves expectedly.
     -   State remains finite (no NaNs).

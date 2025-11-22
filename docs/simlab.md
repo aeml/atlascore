@@ -17,14 +17,9 @@ The following scenarios are registered by default:
 
 | Key | Description |
 | :--- | :--- |
-| `smoke` | **ECS falling bodies smoke test**: A simple test with falling bodies to verify basic physics and ECS functionality. |
-| `hash` | **Determinism hash dual-run scenario**: Runs two identical simulations side-by-side and compares their state hashes at every step to ensure determinism. |
-| `stack` | **Pyramid stacking test**: Tests the stability of the physics solver with a stack of boxes. |
-| `pendulum` | **Pendulum chain test**: Demonstrates distance joints and constraints. |
-| `cloth` | **Cloth simulation test**: Simulates a piece of cloth using a grid of particles connected by distance joints. |
-| `ball_showcase` | **Ball collision showcase**: A visual demo of various ball collisions. |
-| `stress` | **Stress Test (2000 particles)**: A performance benchmark with a large number of particles. |
-| `text_patterns` | **Text renderer patterns**: Demonstrates the capabilities of the ASCII renderer with various patterns. |
+| `gravity` | **Planetary Gravity (N-Body)**: Simulates gravitational attraction between multiple bodies. |
+| `wrecking` | **Wrecking Ball (Joints & Collisions)**: Demonstrates a wrecking ball attached via a distance joint smashing into a stack of boxes. |
+| `fluid` | **Particle Fluid (High Entity Count)**: Simulates a fluid-like behavior using many small particles in an enclosed container. |
 
 ## Running Scenarios
 

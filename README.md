@@ -27,17 +27,12 @@ See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module‑s
 Scenario keys (CLI):
 
 ```
-smoke            # Falling bodies smoke test
-hash             # Dual-run determinism hash verification
-stack            # Pyramid stacking (stability + resolution)
-pendulum         # Distance joint chain
-cloth            # Simple cloth (springs + obstacle)
-ball_showcase    # Assorted rigid body collision demos
-stress           # 2000 particle stress benchmark
-text_patterns    # Text renderer pattern animations (waves, Lissajous)
+gravity          # Planetary Gravity (N-Body)
+wrecking         # Wrecking Ball (Joints & Collisions)
+fluid            # Particle Fluid (High Entity Count)
 ```
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app stress`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app fluid`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
 
 ## Directory Structure (Public Headers)
 
@@ -91,7 +86,7 @@ Headless output file: `headless_output.txt` (overwritten per run).
 
 CTest targets (enabled when `ATLASCORE_BUILD_TESTS=ON`) include:
 
-`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_ball_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
+`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
 
 Run all:
 ```bash

@@ -224,21 +224,14 @@ Provides interactive or automated scenarios demonstrating AtlasCore’s function
 
 ### Scenario Types
 
-#### **Benchmark Scenarios**
-- Large entity counts
-- Measures job throughput, step time, systems performance
+#### **Showcase Scenarios**
+- **Planetary Gravity**: N-Body simulation demonstrating gravity.
+- **Wrecking Ball**: Demonstrates distance joints and collision resolution.
+- **Particle Fluid**: High entity count simulation with enclosed container.
 
-#### **Determinism Tests**
-- Runs identical simulations twice
-- Hashes world state after each step
-- Confirms deterministic behavior across thread counts
-
-#### **Concurrency Stress Tests**
-- Schedules millions of micro-jobs
-- Reports:
-  - Jobs/sec
-  - Average job duration
-  - CPU utilization
+#### **Determinism Verification**
+- Scenarios use `WorldHasher` to verify state consistency.
+- `atlascore_simlab_scenarios_tests` runs scenarios in headless mode to ensure deterministic behavior.
 
 #### **ASCII Visualization**
 - Textual “rendering”
