@@ -135,5 +135,9 @@ See [docs/contributing.md](docs/contributing.md) and module docs (`docs/*.md`). 
 
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
 
+## Author
+
+Created by [Robert Mendola](https://mendola.tech)
+
 ---
 Enjoy exploring AtlasCore – feedback & improvements welcome.
