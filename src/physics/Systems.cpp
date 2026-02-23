@@ -55,6 +55,39 @@ namespace physics
                 body.invInertia = 1.0f / body.inertia;
             }
         }
+
+        void SyncDynamicAabbsToTransforms(ecs::World& world)
+        {
+            auto* aabbStorage = world.GetStorage<AABBComponent>();
+            auto* tfStorage = world.GetStorage<TransformComponent>();
+            auto* rbStorage = world.GetStorage<RigidBodyComponent>();
+            if (!aabbStorage || !tfStorage || !rbStorage)
+            {
+                return;
+            }
+
+            auto& aabbs = aabbStorage->GetData();
+            const auto& entities = aabbStorage->GetEntities();
+            const size_t count = aabbs.size();
+            for (size_t i = 0; i < count; ++i)
+            {
+                const ecs::EntityId id = entities[i];
+                auto* rb = rbStorage->Get(id);
+                auto* tf = tfStorage->Get(id);
+                if (!rb || rb->invMass == 0.0f || !tf)
+                {
+                    continue;
+                }
+
+                auto& aabb = aabbs[i];
+                const float halfW = std::max(0.0f, (aabb.maxX - aabb.minX) * 0.5f);
+                const float halfH = std::max(0.0f, (aabb.maxY - aabb.minY) * 0.5f);
+                aabb.minX = tf->x - halfW;
+                aabb.maxX = tf->x + halfW;
+                aabb.minY = tf->y - halfH;
+                aabb.maxY = tf->y + halfH;
+            }
+        }
     }
 
     void PhysicsIntegrationSystem::Update(ecs::World& world, float dt)
@@ -65,8 +98,6 @@ namespace physics
         
         auto* rbStorage = world.GetStorage<RigidBodyComponent>();
         auto* tfStorage = world.GetStorage<TransformComponent>();
-        auto* aabbStorage = world.GetStorage<AABBComponent>();
-
         if (!rbStorage || !tfStorage) return;
 
         auto& bodies = rbStorage->GetData();
@@ -133,17 +164,6 @@ namespace physics
                     }
                     b.torque = 0.0f;
 
-                    // Update AABB if present
-                    if (aabbStorage) {
-                        if (auto* aabb = aabbStorage->Get(id)) {
-                            float dx = tf->x - b.lastX;
-                            float dy = tf->y - b.lastY;
-                            aabb->minX += dx;
-                            aabb->maxX += dx;
-                            aabb->minY += dy;
-                            aabb->maxY += dy;
-                        }
-                    }
                 }
             }
         };
@@ -835,6 +855,9 @@ namespace physics
         {
             // 1. Integration
             m_integration.Update(world, subDt);
+
+            // Keep dynamic AABBs aligned to corrected transform positions.
+            SyncDynamicAabbsToTransforms(world);
 
             // 2. Detection
             m_events.clear();
