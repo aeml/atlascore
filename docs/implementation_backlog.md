@@ -74,7 +74,7 @@ An item is only `DONE` when all are true:
 ## Phase 2 - Collision Correctness and Physics Integrity
 
 ### AC-004 - Collider Broadphase Unification
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Priority:** P0
 - **Problem:** Broadphase currently processes only AABBs; circle-only entities may miss collisions.
 - **Scope:**
@@ -90,7 +90,7 @@ An item is only `DONE` when all are true:
   - Deterministic results across repeated runs.
 
 ### AC-005 - World-Space AABB Source of Truth
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Some scenarios initialize AABBs in local space while systems treat them as world-space.
 - **Scope:**
@@ -104,7 +104,7 @@ An item is only `DONE` when all are true:
   - Validate wrecking/particle scenarios maintain expected collisions.
 
 ### AC-006 - Scenario Physics Data Cleanup
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Scenario setup currently mixes collider assumptions and broadphase requirements.
 - **Scope:**
