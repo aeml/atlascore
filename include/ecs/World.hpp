@@ -21,7 +21,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <typeinfo>
+#include <typeindex>
 #include <utility>
 #include <tuple>
 #include <optional>
@@ -47,7 +47,7 @@ namespace ecs
         template <typename TComponent, typename... Args>
         TComponent& AddComponent(EntityId id, Args&&... args)
         {
-            const std::size_t key = typeid(TComponent).hash_code();
+            const std::type_index key{typeid(TComponent)};
             auto it = m_componentStores.find(key);
             if (it == m_componentStores.end())
             {
@@ -62,7 +62,7 @@ namespace ecs
         template <typename TComponent>
         TComponent* GetComponent(EntityId id)
         {
-            const std::size_t key = typeid(TComponent).hash_code();
+            const std::type_index key{typeid(TComponent)};
             auto it = m_componentStores.find(key);
             if (it == m_componentStores.end())
             {
@@ -75,7 +75,7 @@ namespace ecs
         template <typename TComponent>
         ComponentStorage<TComponent>* GetStorage()
         {
-            const std::size_t key = typeid(TComponent).hash_code();
+            const std::type_index key{typeid(TComponent)};
             auto it = m_componentStores.find(key);
             if (it == m_componentStores.end())
             {
@@ -91,7 +91,7 @@ namespace ecs
         template <typename TComponent, typename Fn>
         void ForEach(Fn&& fn)
         {
-            const std::size_t key = typeid(TComponent).hash_code();
+            const std::type_index key{typeid(TComponent)};
             auto it = m_componentStores.find(key);
             if (it == m_componentStores.end())
             {
@@ -191,7 +191,7 @@ namespace ecs
                 storage.Remove(id);
             }
         };
-        std::unordered_map<std::size_t, std::unique_ptr<IStorage>> m_componentStores;
+        std::unordered_map<std::type_index, std::unique_ptr<IStorage>> m_componentStores;
     };
 
     class ISystem
