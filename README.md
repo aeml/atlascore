@@ -86,7 +86,7 @@ Headless output file: `headless_output.txt` (overwritten per run).
 
 CTest targets (enabled when `ATLASCORE_BUILD_TESTS=ON`) include:
 
-`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_scenario_update_contract_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
+`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_physics_circle_broadphase_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_scenario_update_contract_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
 
 Run all:
 ```bash
@@ -113,6 +113,7 @@ genhtml coverage.info --output-directory coverage-report
 ```
 
 GitHub Actions publishes Doxygen docs and coverage HTML (`/coverage`).
+The CI workflow also runs a dedicated Linux sanitizer job (ASan + UBSan).
 
 ## Roadmap (High-Level)
 

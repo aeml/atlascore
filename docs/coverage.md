@@ -27,6 +27,8 @@ On pushes to `main`, GitHub Actions generates coverage on Linux and publishes:
 - Doxygen API documentation at the GitHub Pages root.
 - The HTML coverage report under `/coverage`.
 
+The CI workflow also runs a separate Linux sanitizer lane (ASan + UBSan) for runtime safety checks.
+
 ## Future Improvements
 
 - Add branch coverage flags (e.g. `-fprofile-arcs -ftest-coverage`) explicitly if needed.
