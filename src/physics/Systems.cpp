@@ -837,24 +837,61 @@ namespace physics
             m_integration.Update(world, subDt);
 
             // 2. Detection
+            m_events.clear();
+            m_broadphaseAABBs.clear();
+            m_broadphaseIds.clear();
+
             auto* aabbStorage = world.GetStorage<AABBComponent>();
-            if (aabbStorage) {
-                // Copy AABBs and EntityIds to contiguous buffers for the collision system
-                // This ensures the indices match up perfectly for the sort-and-sweep
-                m_broadphaseAABBs.clear();
-                m_broadphaseIds.clear();
-                
+            if (aabbStorage)
+            {
+                // Copy AABBs and EntityIds to contiguous buffers for the collision system.
                 const auto& aabbs = aabbStorage->GetData();
                 const auto& entities = aabbStorage->GetEntities();
-                
-                // Reserve to avoid reallocations
+
                 size_t count = aabbs.size();
                 m_broadphaseAABBs.reserve(count);
                 m_broadphaseIds.reserve(count);
 
                 m_broadphaseAABBs.insert(m_broadphaseAABBs.end(), aabbs.begin(), aabbs.end());
                 m_broadphaseIds.insert(m_broadphaseIds.end(), entities.begin(), entities.end());
+            }
 
+            auto* circleStorage = world.GetStorage<CircleColliderComponent>();
+            auto* tfStorage = world.GetStorage<TransformComponent>();
+            if (circleStorage && tfStorage)
+            {
+                const auto& circles = circleStorage->GetData();
+                const auto& entities = circleStorage->GetEntities();
+                const size_t count = circles.size();
+
+                m_broadphaseAABBs.reserve(m_broadphaseAABBs.size() + count);
+                m_broadphaseIds.reserve(m_broadphaseIds.size() + count);
+
+                for (size_t j = 0; j < count; ++j)
+                {
+                    const ecs::EntityId id = entities[j];
+                    if (aabbStorage && aabbStorage->Get(id))
+                    {
+                        continue;
+                    }
+
+                    auto* tf = tfStorage->Get(id);
+                    if (!tf)
+                    {
+                        continue;
+                    }
+
+                    const auto& circle = circles[j];
+                    const float radius = std::max(0.0f, circle.radius);
+                    const float cx = tf->x + circle.offsetX;
+                    const float cy = tf->y + circle.offsetY;
+                    m_broadphaseAABBs.push_back({cx - radius, cy - radius, cx + radius, cy + radius});
+                    m_broadphaseIds.push_back(id);
+                }
+            }
+
+            if (!m_broadphaseAABBs.empty())
+            {
                 m_collision.Detect(m_broadphaseAABBs, m_broadphaseIds, m_events, m_jobSystem);
             }
 

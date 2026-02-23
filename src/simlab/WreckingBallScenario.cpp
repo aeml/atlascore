@@ -52,7 +52,7 @@ namespace simlab
             world.AddComponent<physics::TransformComponent>(floor, 0.0f, -10.0f, 0.0f);
             auto& fb = world.AddComponent<physics::RigidBodyComponent>(floor);
             fb.mass = 0.0f; fb.invMass = 0.0f;
-            world.AddComponent<physics::AABBComponent>(floor, -40.0f, -1.0f, 40.0f, 1.0f);
+            world.AddComponent<physics::AABBComponent>(floor, -40.0f, -11.0f, 40.0f, -9.0f);
 
             // Wall of boxes
             float boxSize = 1.5f;
@@ -61,10 +61,17 @@ namespace simlab
                 for (int x = 0; x < 6; ++x)
                 {
                     auto box = world.CreateEntity();
-                    world.AddComponent<physics::TransformComponent>(box, 5.0f + x * boxSize, -9.0f + y * boxSize + boxSize/2, 0.0f);
+                    const float xPos = 5.0f + x * boxSize;
+                    const float yPos = -9.0f + y * boxSize + boxSize / 2;
+                    world.AddComponent<physics::TransformComponent>(box, xPos, yPos, 0.0f);
                     auto& b = world.AddComponent<physics::RigidBodyComponent>(box);
                     b.mass = 1.0f; b.invMass = 1.0f; b.friction = 0.6f;
-                    world.AddComponent<physics::AABBComponent>(box, -boxSize/2, -boxSize/2, boxSize/2, boxSize/2);
+                    world.AddComponent<physics::AABBComponent>(
+                        box,
+                        xPos - boxSize / 2,
+                        yPos - boxSize / 2,
+                        xPos + boxSize / 2,
+                        yPos + boxSize / 2);
                     physics::ConfigureBoxInertia(b, boxSize, boxSize);
                 }
             }
