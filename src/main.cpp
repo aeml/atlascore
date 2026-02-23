@@ -171,14 +171,18 @@ int main(int argc, char** argv)
 
     core::FixedTimestepLoop loop{1.0f / 60.0f};
 
-    // Spawn a simple input thread that stops the simulation when Enter is pressed.
-    std::thread quitThread([&running, &logger]() {
-        logger.Info("Press Enter to quit...");
-        std::string line;
-        std::getline(std::cin, line);
-        running.store(false);
-    });
-    quitThread.detach();
+    std::thread quitThread;
+    const bool useInputQuitThread = !headless && maxFrames <= 0;
+    if (useInputQuitThread)
+    {
+        // Stop interactive simulations when Enter is pressed.
+        quitThread = std::thread([&running, &logger]() {
+            logger.Info("Press Enter to quit...");
+            std::string line;
+            std::getline(std::cin, line);
+            running.store(false);
+        });
+    }
 
     std::ofstream headlessOut;
     if (headless)
@@ -228,6 +232,11 @@ int main(int argc, char** argv)
             // Otherwise runs until Enter is pressed.
         },
         running);
+
+    if (quitThread.joinable())
+    {
+        quitThread.join();
+    }
 
     logger.Info("AtlasCore shutting down.");
     return 0;

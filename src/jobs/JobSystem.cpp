@@ -170,11 +170,15 @@ namespace jobs
                 if (impl)
                 {
                     std::lock_guard<std::mutex> lock{impl->mutex};
-                    if (failure)
+                    auto stateIt = impl->states.find(id);
+                    if (stateIt != impl->states.end())
                     {
-                        impl->completedFailures[id] = failure;
+                        if (failure)
+                        {
+                            impl->completedFailures[id] = failure;
+                        }
+                        impl->states.erase(stateIt);
                     }
-                    impl->states.erase(id);
                 }
             }
         };
@@ -235,19 +239,25 @@ namespace jobs
             return;
         }
 
-        if (state->completed.load(std::memory_order_acquire))
-        {
-            return;
-        }
-
-        std::unique_lock<std::mutex> lk{state->m};
-        state->cv.wait(lk, [&]{ return state->completed.load(std::memory_order_acquire); });
-
-        if (state->failure)
+        auto finishWait = [&]()
         {
             std::lock_guard<std::mutex> lock{m_impl->mutex};
+            m_impl->states.erase(handle.id);
             m_impl->completedFailures.erase(handle.id);
-            std::rethrow_exception(state->failure);
+        };
+
+        if (!state->completed.load(std::memory_order_acquire))
+        {
+            std::unique_lock<std::mutex> lk{state->m};
+            state->cv.wait(lk, [&]{ return state->completed.load(std::memory_order_acquire); });
+        }
+
+        auto failure = state->failure;
+        finishWait();
+
+        if (failure)
+        {
+            std::rethrow_exception(failure);
         }
     }
 
