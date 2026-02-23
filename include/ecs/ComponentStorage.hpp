@@ -19,6 +19,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <utility>
 
 // Forward declaration of EntityId to avoid circular include with World.hpp.
 #include <cstdint>
@@ -51,6 +52,31 @@ namespace ecs
         {
             auto it = m_entityToDense.find(id);
             return it != m_entityToDense.end() ? &m_data[it->second] : nullptr;
+        }
+
+        bool Remove(EntityId id)
+        {
+            auto it = m_entityToDense.find(id);
+            if (it == m_entityToDense.end())
+            {
+                return false;
+            }
+
+            const size_t index = it->second;
+            const size_t lastIndex = m_data.size() - 1;
+
+            if (index != lastIndex)
+            {
+                m_data[index] = std::move(m_data[lastIndex]);
+                const EntityId movedId = m_denseToEntity[lastIndex];
+                m_denseToEntity[index] = movedId;
+                m_entityToDense[movedId] = index;
+            }
+
+            m_data.pop_back();
+            m_denseToEntity.pop_back();
+            m_entityToDense.erase(it);
+            return true;
         }
 
         template <typename Fn>

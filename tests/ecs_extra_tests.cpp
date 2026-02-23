@@ -37,6 +37,20 @@ int main() {
     auto* rbMissing = world.GetComponent<physics::RigidBodyComponent>(e1);
     assert(rbMissing == nullptr);
     (void)rbMissing;
+
+    // Destroy should remove all components owned by that entity.
+    world.AddComponent<physics::RigidBodyComponent>(e1, physics::RigidBodyComponent{});
+    assert(world.GetComponent<physics::RigidBodyComponent>(e1) != nullptr);
+    world.DestroyEntity(e1);
+
+    assert(world.GetComponent<physics::TransformComponent>(e1) == nullptr);
+    assert(world.GetComponent<physics::RigidBodyComponent>(e1) == nullptr);
+
+    auto* tfStorage = world.GetStorage<physics::TransformComponent>();
+    assert(tfStorage != nullptr);
+    assert(tfStorage->Size() == 1);
+    assert(tfStorage->GetEntities()[0] == e2);
+
     std::cout << "ECS extra tests passed.\n";
     return 0;
 }

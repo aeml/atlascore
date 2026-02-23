@@ -179,11 +179,17 @@ namespace ecs
         struct IStorage
         {
             virtual ~IStorage() = default;
+            virtual void RemoveEntity(EntityId id) = 0;
         };
         template <typename T>
         struct StorageWrapper : IStorage
         {
             ComponentStorage<T> storage;
+
+            void RemoveEntity(EntityId id) override
+            {
+                storage.Remove(id);
+            }
         };
         std::unordered_map<std::size_t, std::unique_ptr<IStorage>> m_componentStores;
     };

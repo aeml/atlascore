@@ -32,6 +32,15 @@ namespace ecs
         m_entities.erase(
             std::remove(m_entities.begin(), m_entities.end(), id),
             m_entities.end());
+
+        for (auto& [typeKey, storage] : m_componentStores)
+        {
+            (void)typeKey;
+            if (storage)
+            {
+                storage->RemoveEntity(id);
+            }
+        }
     }
 
     void World::AddSystem(std::unique_ptr<ISystem> system)
