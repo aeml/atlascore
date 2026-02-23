@@ -15,6 +15,8 @@ add_library(atlascore
     src/jobs/JobSystem.cpp
     src/ecs/World.cpp
     src/physics/Systems.cpp
+    src/physics/PhysicsIntegrationSystem.cpp
+    src/physics/PhysicsPipelineSystem.cpp
     src/physics/CollisionSystem.cpp
     
     src/ascii/Renderer.cpp
