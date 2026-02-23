@@ -16,7 +16,6 @@
  */
 
 #include "physics/Systems.hpp"
-#include "physics/CollisionSystem.hpp"
 #include "jobs/JobSystem.hpp"
 #include <algorithm>
 #include <cmath>
