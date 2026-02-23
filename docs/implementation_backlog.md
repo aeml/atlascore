@@ -187,7 +187,7 @@ An item is only `DONE` when all are true:
 ## Phase 5 - Maintainability, CI, and Docs
 
 ### AC-011 - Split Physics Monolith (`Systems.cpp`)
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P2
 - **Problem:** Single large file is difficult to reason about and review.
 - **Scope:**
