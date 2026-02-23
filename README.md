@@ -27,12 +27,13 @@ See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module‑s
 Scenario keys (CLI):
 
 ```
+demo             # Full Demo (All Systems Active)
 gravity          # Planetary Gravity (N-Body)
 wrecking         # Wrecking Ball (Joints & Collisions)
 fluid            # Particle Fluid (High Entity Count)
 ```
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app fluid`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
 
 ## Directory Structure (Public Headers)
 
@@ -75,8 +76,10 @@ Options:
 
 ```bash
 ./atlascore_app                 # interactive menu
+./atlascore_app demo            # full demo (pendulum, tower, particles)
 ./atlascore_app gravity         # specific scenario
 ./atlascore_app fluid --headless
+./atlascore_app demo --headless --frames=300  # auto-quit after 300 frames
 ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
 ```
 
