@@ -38,6 +38,7 @@ namespace simlab
     std::unique_ptr<IScenario> CreatePlanetaryGravityScenario();
     std::unique_ptr<IScenario> CreateWreckingBallScenario();
     std::unique_ptr<IScenario> CreateParticleFluidScenario();
+    std::unique_ptr<IScenario> CreateFullDemoScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();
 

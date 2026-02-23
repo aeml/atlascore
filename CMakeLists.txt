@@ -26,6 +26,7 @@ add_library(atlascore
     src/simlab/PlanetaryGravityScenario.cpp
     src/simlab/WreckingBallScenario.cpp
     src/simlab/ParticleFluidScenario.cpp
+    src/simlab/FullDemoScenario.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

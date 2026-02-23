@@ -20,10 +20,12 @@
 #include "simlab/Scenario.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <thread>
 
 namespace
 {
@@ -118,7 +120,7 @@ namespace
     void RunScenario(const char* name,
                      std::unique_ptr<simlab::IScenario> (*factory)())
     {
-        CoutRedirect silence;
+        std::cout << "\n=== " << name << " ===\n" << std::flush;
 
         ecs::World world;
         auto scenario = factory();
@@ -130,15 +132,17 @@ namespace
         const float initialEnergy = TotalKineticEnergy(world);
 
         bool motionDetected = false;
-        const float dt = 1.0f / 120.0f;
-        const int steps = 30; // 0.25 seconds of simulation
+        const float dt = 1.0f / 60.0f;
+        const int steps = 180; // 3 seconds of simulation at 60 fps
 
         for (int i = 0; i < steps; ++i)
         {
             scenario->Update(world, dt);
             world.Update(dt);
+            scenario->Render(world, std::cout);
             AssertFiniteState(world);
             motionDetected = motionDetected || HasDynamicMotion(world, 0.05f);
+            std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 fps
         }
 
         const float finalEnergy = TotalKineticEnergy(world);
@@ -146,17 +150,16 @@ namespace
         assert(motionDetected && "Scenario should exhibit measurable motion");
         assert(finalEnergy >= 0.0f);
         assert(finalEnergy >= initialEnergy || finalEnergy > 0.01f);
-
-        (void)name;
     }
 }
 
 int main()
 {
-    simlab::SetHeadlessRendering(true);
+    simlab::SetHeadlessRendering(false);
     RunScenario("gravity", simlab::CreatePlanetaryGravityScenario);
     RunScenario("wrecking", simlab::CreateWreckingBallScenario);
     RunScenario("fluid", simlab::CreateParticleFluidScenario);
+    RunScenario("demo", simlab::CreateFullDemoScenario);
 
     std::cout << "Simlab scenario tests passed\n";
     return 0;

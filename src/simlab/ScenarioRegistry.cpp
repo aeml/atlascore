@@ -47,6 +47,7 @@ namespace simlab
             ScenarioRegistry::Register("gravity", "Planetary Gravity (N-Body)", &CreatePlanetaryGravityScenario);
             ScenarioRegistry::Register("wrecking", "Wrecking Ball (Joints & Collisions)", &CreateWreckingBallScenario);
             ScenarioRegistry::Register("fluid", "Particle Fluid (High Entity Count)", &CreateParticleFluidScenario);
+            ScenarioRegistry::Register("demo", "Full Demo (All Systems Active)", &CreateFullDemoScenario);
         }
     }
 
