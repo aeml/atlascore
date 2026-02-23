@@ -18,6 +18,11 @@
 #include "core/FixedTimestepLoop.hpp"
 #include "core/Clock.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <thread>
+
 namespace core
 {
     FixedTimestepLoop::FixedTimestepLoop(float timestepSeconds) noexcept
@@ -28,21 +33,40 @@ namespace core
     void FixedTimestepLoop::Run(const std::function<void(float)>& update,
                                 std::atomic<bool>&                 runningFlag) const
     {
-        const double timestep = static_cast<double>(m_timestepSeconds);
+        const double timestep = std::max(1e-6, static_cast<double>(m_timestepSeconds));
+        const double maxFrameTime = 0.25;
+        const int maxUpdatesPerTick = 8;
         double        previous = Clock::NowSeconds();
         double        accumulator = 0.0;
 
         while (runningFlag.load())
         {
             const double current = Clock::NowSeconds();
-            const double frameTime = current - previous;
+            const double frameTime = std::clamp(current - previous, 0.0, maxFrameTime);
             previous = current;
             accumulator += frameTime;
 
-            while (accumulator >= timestep)
+            int updatesThisTick = 0;
+            while (accumulator >= timestep && updatesThisTick < maxUpdatesPerTick)
             {
+                if (!runningFlag.load())
+                {
+                    break;
+                }
+
                 update(m_timestepSeconds);
                 accumulator -= timestep;
+                ++updatesThisTick;
+            }
+
+            if (updatesThisTick == maxUpdatesPerTick && accumulator >= timestep)
+            {
+                accumulator = std::fmod(accumulator, timestep);
+            }
+
+            if (accumulator < timestep)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         }
     }
