@@ -22,7 +22,7 @@ An item is only `DONE` when all are true:
 ## Phase 1 - Correctness First (Highest Priority)
 
 ### AC-001 - Single-Step Simulation Contract
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P0
 - **Problem:** Simulation currently steps world twice per frame (scenario + main loop).
 - **Scope:**
@@ -39,7 +39,7 @@ An item is only `DONE` when all are true:
   - Run full `ctest --output-on-failure`.
 
 ### AC-002 - Zero/Invalid `dt` Safety in Physics
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P0
 - **Problem:** Velocity reconstruction can divide by zero when `dt <= 0`.
 - **Scope:**
@@ -53,7 +53,7 @@ An item is only `DONE` when all are true:
   - Assert finite transform/velocity outputs.
 
 ### AC-003 - JobSystem Exception Safety
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P0
 - **Problem:** Throwing jobs can skip completion signaling and deadlock waiters.
 - **Scope:**
@@ -74,7 +74,7 @@ An item is only `DONE` when all are true:
 ## Phase 2 - Collision Correctness and Physics Integrity
 
 ### AC-004 - Collider Broadphase Unification
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Priority:** P0
 - **Problem:** Broadphase currently processes only AABBs; circle-only entities may miss collisions.
 - **Scope:**
@@ -90,7 +90,7 @@ An item is only `DONE` when all are true:
   - Deterministic results across repeated runs.
 
 ### AC-005 - World-Space AABB Source of Truth
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Priority:** P1
 - **Problem:** Some scenarios initialize AABBs in local space while systems treat them as world-space.
 - **Scope:**
@@ -104,7 +104,7 @@ An item is only `DONE` when all are true:
   - Validate wrecking/particle scenarios maintain expected collisions.
 
 ### AC-006 - Scenario Physics Data Cleanup
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Priority:** P1
 - **Problem:** Scenario setup currently mixes collider assumptions and broadphase requirements.
 - **Scope:**
@@ -122,7 +122,7 @@ An item is only `DONE` when all are true:
 ## Phase 3 - ECS Lifecycle Correctness
 
 ### AC-007 - Component Removal on Entity Destroy
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Destroyed entities can leave orphaned components in storages.
 - **Scope:**
@@ -139,7 +139,7 @@ An item is only `DONE` when all are true:
   - Full suite passes unchanged behavior elsewhere.
 
 ### AC-008 - ECS Type-Key Hardening
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P2
 - **Problem:** `typeid(T).hash_code()` keying is less robust than `std::type_index`.
 - **Scope:**
@@ -155,7 +155,7 @@ An item is only `DONE` when all are true:
 ## Phase 4 - Runtime and Loop Stability
 
 ### AC-009 - Main Loop Thread Lifecycle Hardening
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Detached quit thread can outlive context and introduces shutdown nondeterminism.
 - **Scope:**
@@ -169,7 +169,7 @@ An item is only `DONE` when all are true:
   - Run with sanitizers (once added) to confirm no lifetime issues.
 
 ### AC-010 - FixedTimestepLoop Pacing and Catch-Up Limits
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P2
 - **Problem:** Busy-spin and unlimited catch-up can cause CPU burn/spiral behavior.
 - **Scope:**
@@ -199,7 +199,7 @@ An item is only `DONE` when all are true:
   - Full test suite pass; determinism/collision tests unchanged or improved.
 
 ### AC-012 - CMake Test/Coverage DRY Refactor
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P2
 - **Problem:** Repetitive target definitions and repeated coverage flags.
 - **Scope:**
@@ -211,7 +211,7 @@ An item is only `DONE` when all are true:
   - Configure/build/test works on Linux/macOS/Windows CI matrix.
 
 ### AC-013 - Add Sanitizer CI Lane
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Current CI lacks ASan/UBSan signal for runtime defects.
 - **Scope:**
@@ -223,7 +223,7 @@ An item is only `DONE` when all are true:
   - CI green with sanitizer lane enabled.
 
 ### AC-014 - Documentation Drift Cleanup
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P1
 - **Problem:** Several docs and README claims do not match current behavior.
 - **Scope:**
@@ -234,7 +234,7 @@ An item is only `DONE` when all are true:
   - Manual doc consistency pass and reviewer sign-off.
 
 ### AC-015 - Repository Hygiene (`.gitignore`)
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** P2
 - **Problem:** Unexpected ignore entries (e.g., `README.md`) can hide important changes.
 - **Scope:**
