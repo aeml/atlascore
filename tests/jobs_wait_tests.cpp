@@ -20,7 +20,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
-#include <random>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -40,7 +40,23 @@ int main()
     // Test 2: Waiting after completion returns quickly
     js.Wait(h1); // should be a no-op
 
-    // Test 3: Many jobs complete deterministically by the time we wait
+    // Test 3: Wait rethrows job exceptions but does not hang.
+    auto hThrow = js.ScheduleFunction([]() {
+        throw std::runtime_error("job failure");
+    });
+
+    bool threw = false;
+    try
+    {
+        js.Wait(hThrow);
+    }
+    catch (const std::runtime_error&)
+    {
+        threw = true;
+    }
+    assert(threw);
+
+    // Test 4: Many jobs complete deterministically by the time we wait
     constexpr int N = 64;
     std::atomic<int> counter{0};
     std::vector<jobs::JobHandle> handles;
@@ -59,6 +75,28 @@ int main()
     }
 
     assert(counter.load() == N);
+
+    // Test 5: A throwing job does not prevent waiting for others.
+    std::atomic<int> successCounter{0};
+    auto hOkA = js.ScheduleFunction([&]() { successCounter.fetch_add(1); });
+    auto hErr = js.ScheduleFunction([]() { throw std::runtime_error("boom"); });
+    auto hOkB = js.ScheduleFunction([&]() { successCounter.fetch_add(1); });
+
+    js.Wait(hOkA);
+
+    bool threwMixed = false;
+    try
+    {
+        js.Wait(hErr);
+    }
+    catch (const std::runtime_error&)
+    {
+        threwMixed = true;
+    }
+    assert(threwMixed);
+
+    js.Wait(hOkB);
+    assert(successCounter.load() == 2);
 
     return 0;
 }

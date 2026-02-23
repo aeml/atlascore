@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <exception>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -61,11 +62,13 @@ namespace jobs
         struct JobState
         {
             std::atomic<bool> completed{false};
+            std::exception_ptr failure;
             std::mutex m;
             std::condition_variable cv;
         };
 
         std::unordered_map<std::size_t, std::shared_ptr<JobState>> states;
+        std::unordered_map<std::size_t, std::exception_ptr> completedFailures;
     };
 
     JobSystem::JobSystem()
@@ -144,10 +147,20 @@ namespace jobs
             std::size_t id;
             void Execute() override
             {
-                if (inner)
+                std::exception_ptr failure;
+                try
                 {
-                    inner->Execute();
+                    if (inner)
+                    {
+                        inner->Execute();
+                    }
                 }
+                catch (...)
+                {
+                    failure = std::current_exception();
+                }
+
+                state->failure = failure;
                 state->completed.store(true, std::memory_order_release);
                 {
                     std::lock_guard<std::mutex> l{state->m};
@@ -157,6 +170,10 @@ namespace jobs
                 if (impl)
                 {
                     std::lock_guard<std::mutex> lock{impl->mutex};
+                    if (failure)
+                    {
+                        impl->completedFailures[id] = failure;
+                    }
                     impl->states.erase(id);
                 }
             }
@@ -199,7 +216,15 @@ namespace jobs
             auto it = m_impl->states.find(handle.id);
             if (it == m_impl->states.end())
             {
-                // Already completed and cleaned up
+                auto failed = m_impl->completedFailures.find(handle.id);
+                if (failed != m_impl->completedFailures.end())
+                {
+                    auto ex = failed->second;
+                    m_impl->completedFailures.erase(failed);
+                    std::rethrow_exception(ex);
+                }
+
+                // Already completed and cleaned up.
                 return;
             }
             state = it->second;
@@ -217,6 +242,13 @@ namespace jobs
 
         std::unique_lock<std::mutex> lk{state->m};
         state->cv.wait(lk, [&]{ return state->completed.load(std::memory_order_acquire); });
+
+        if (state->failure)
+        {
+            std::lock_guard<std::mutex> lock{m_impl->mutex};
+            m_impl->completedFailures.erase(handle.id);
+            std::rethrow_exception(state->failure);
+        }
     }
 
     std::vector<JobHandle> JobSystem::Dispatch(std::size_t jobCount, std::size_t batchSize, const std::function<void(std::size_t, std::size_t)>& job)
