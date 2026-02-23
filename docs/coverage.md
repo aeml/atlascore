@@ -31,4 +31,4 @@ On pushes to `main`, GitHub Actions generates coverage on Linux and publishes:
 
 - Add branch coverage flags (e.g. `-fprofile-arcs -ftest-coverage`) explicitly if needed.
 - Integrate LLVM's `llvm-cov` for Clang-specific richer reports.
-- Add threshold enforcement (fail CI if coverage < target).
+- Tune the CI threshold as coverage evolves (currently enforced in CI at 65% lines).

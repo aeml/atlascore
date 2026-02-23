@@ -6,8 +6,9 @@ This document outlines the strategy for debugging and verifying the AtlasCore en
 
 The `IScenario` interface has been refactored to separate simulation logic from rendering logic:
 
--   `Update(ecs::World& world, float dt)`: Contains all simulation logic (physics integration, game logic, spawning). This must be deterministic and independent of the renderer.
--   `Render(ecs::World& world)`: Contains all visualization logic (drawing to `TextRenderer`). This is only called when not in headless mode.
+-   `Update(ecs::World& world, float dt)`: Contains scenario-specific logic independent of renderer output.
+-   `world.Update(dt)` is called by the engine loop exactly once per frame.
+-   `Render(ecs::World& world, std::ostream&)`: Contains visualization logic; in headless mode it writes to `headless_output.txt`.
 
 ## Verification Strategy
 
@@ -23,7 +24,7 @@ To verify that the physics engine, ECS, and job system are working correctly *wi
     These tests cover individual components and integration scenarios.
 
 2.  **Run Headless Scenarios**:
-    You can run the main application in headless mode. This runs the `Update` loop but skips `Render`.
+    You can run the main application in headless mode. This runs the full update + render path, but render output goes to `headless_output.txt` instead of the terminal.
     ```bash
     ./atlascore_app --headless [scenario_name]
     ```

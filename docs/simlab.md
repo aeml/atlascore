@@ -5,9 +5,9 @@ The `simlab` module contains the scenario framework and a collection of scenario
 ## Core Components
 
 -   **`IScenario`**: The interface for all scenarios.
-    -   `Setup(World&)`: Initializes the world with entities and systems.
-    -   `Step(World&, float)`: Advances the simulation by a fixed timestep.
-    -   `Render(World&)`: Renders the current state (optional).
+-   `Setup(World&)`: Initializes the world with entities and systems.
+-   `Update(World&, float)`: Scenario-specific update hook (engine steps `world.Update(dt)`).
+-   `Render(World&, std::ostream&)`: Renders the current state to an output stream.
 -   **`ScenarioRegistry`**: A singleton registry that manages available scenarios. It allows looking up scenarios by key and creating instances.
 -   **`WorldHasher`**: A utility for generating a deterministic hash of the world state (transforms, rigid bodies, etc.). Used for verifying determinism across runs.
 
@@ -34,7 +34,7 @@ Or interactively by running the app without arguments.
 ## Adding a New Scenario
 
 1.  Create a new class inheriting from `IScenario`.
-2.  Implement `Setup`, `Step`, and optionally `Render`.
+2.  Implement `Setup`, `Update`, and `Render`.
 3.  Register the scenario in `src/simlab/ScenarioRegistry.cpp` (or via a static registration helper).
 
 ```cpp
