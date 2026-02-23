@@ -70,8 +70,6 @@ namespace simlab
                 b.lastX = x;
                 b.lastY = y;
                 world.AddComponent<physics::CircleColliderComponent>(p, 0.3f);
-                // Add AABB for collision detection
-                world.AddComponent<physics::AABBComponent>(p, x - 0.3f, y - 0.3f, x + 0.3f, y + 0.3f);
             }
         }
 

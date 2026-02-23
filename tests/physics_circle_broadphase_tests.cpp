@@ -24,39 +24,103 @@
 #include <iostream>
 #include <memory>
 
+namespace
+{
+    std::unique_ptr<physics::PhysicsSystem> CreatePhysicsSystem()
+    {
+        auto system = std::make_unique<physics::PhysicsSystem>();
+        physics::PhysicsSettings settings;
+        settings.substeps = 1;
+        system->SetSettings(settings);
+        return system;
+    }
+
+    void VerifyCircleCircle()
+    {
+        ecs::World world;
+        auto physicsSystem = CreatePhysicsSystem();
+        auto* physicsPtr = physicsSystem.get();
+        world.AddSystem(std::move(physicsSystem));
+
+        auto a = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(a, physics::TransformComponent{0.0f, 0.0f, 0.0f});
+        auto& rbA = world.AddComponent<physics::RigidBodyComponent>(a);
+        rbA.mass = 1.0f;
+        rbA.invMass = 1.0f;
+        world.AddComponent<physics::CircleColliderComponent>(a, 1.0f);
+
+        auto b = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(b, physics::TransformComponent{1.5f, 0.0f, 0.0f});
+        auto& rbB = world.AddComponent<physics::RigidBodyComponent>(b);
+        rbB.mass = 1.0f;
+        rbB.invMass = 1.0f;
+        world.AddComponent<physics::CircleColliderComponent>(b, 1.0f);
+
+        world.Update(1.0f / 60.0f);
+
+        const auto& events = physicsPtr->GetCollisionEvents();
+        bool foundPair = false;
+        for (const auto& event : events)
+        {
+            if ((event.entityA == a && event.entityB == b) ||
+                (event.entityA == b && event.entityB == a))
+            {
+                foundPair = true;
+                break;
+            }
+        }
+        assert(foundPair && "Circle-only entities should enter broadphase detection");
+
+        auto* tfA = world.GetComponent<physics::TransformComponent>(a);
+        auto* tfB = world.GetComponent<physics::TransformComponent>(b);
+        assert(tfA && tfB);
+        const float separation = std::abs(tfB->x - tfA->x);
+        assert(separation >= 1.95f && "Circle-only entities should collide and separate");
+    }
+
+    void VerifyCircleWall()
+    {
+        ecs::World world;
+        auto physicsSystem = CreatePhysicsSystem();
+        auto* physicsPtr = physicsSystem.get();
+        world.AddSystem(std::move(physicsSystem));
+
+        auto wall = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(wall, physics::TransformComponent{0.0f, 0.0f, 0.0f});
+        auto& wallRb = world.AddComponent<physics::RigidBodyComponent>(wall);
+        wallRb.mass = 0.0f;
+        wallRb.invMass = 0.0f;
+        world.AddComponent<physics::AABBComponent>(wall, -1.0f, -1.0f, 1.0f, 1.0f);
+
+        auto ball = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(ball, physics::TransformComponent{1.6f, 0.0f, 0.0f});
+        auto& ballRb = world.AddComponent<physics::RigidBodyComponent>(ball);
+        ballRb.mass = 1.0f;
+        ballRb.invMass = 1.0f;
+        ballRb.vx = -2.0f;
+        world.AddComponent<physics::CircleColliderComponent>(ball, 0.75f);
+
+        world.Update(1.0f / 60.0f);
+
+        const auto& events = physicsPtr->GetCollisionEvents();
+        bool foundPair = false;
+        for (const auto& event : events)
+        {
+            if ((event.entityA == wall && event.entityB == ball) ||
+                (event.entityA == ball && event.entityB == wall))
+            {
+                foundPair = true;
+                break;
+            }
+        }
+        assert(foundPair && "Circle-vs-wall should be detected without particle AABBs");
+    }
+}
+
 int main()
 {
-    ecs::World world;
-    auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
-    auto* physicsPtr = physicsSystem.get();
-    world.AddSystem(std::move(physicsSystem));
-
-    auto a = world.CreateEntity();
-    world.AddComponent<physics::TransformComponent>(a, physics::TransformComponent{0.0f, 0.0f, 0.0f});
-    auto& rbA = world.AddComponent<physics::RigidBodyComponent>(a);
-    rbA.mass = 1.0f;
-    rbA.invMass = 1.0f;
-    world.AddComponent<physics::CircleColliderComponent>(a, 1.0f);
-
-    auto b = world.CreateEntity();
-    world.AddComponent<physics::TransformComponent>(b, physics::TransformComponent{1.5f, 0.0f, 0.0f});
-    auto& rbB = world.AddComponent<physics::RigidBodyComponent>(b);
-    rbB.mass = 1.0f;
-    rbB.invMass = 1.0f;
-    world.AddComponent<physics::CircleColliderComponent>(b, 1.0f);
-
-    world.Update(1.0f / 60.0f);
-
-    auto* tfA = world.GetComponent<physics::TransformComponent>(a);
-    auto* tfB = world.GetComponent<physics::TransformComponent>(b);
-    assert(tfA && tfB);
-
-    const float separation = std::abs(tfB->x - tfA->x);
-    assert(separation >= 1.95f && "Circle-only entities should collide and separate");
-
-    const auto& events = physicsPtr->GetCollisionEvents();
-    (void)events;
-
+    VerifyCircleCircle();
+    VerifyCircleWall();
     std::cout << "Physics circle broadphase tests passed\n";
     return 0;
 }
