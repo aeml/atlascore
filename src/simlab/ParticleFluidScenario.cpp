@@ -87,7 +87,8 @@ namespace simlab
 
         void Update(ecs::World& world, float dt) override
         {
-            world.Update(dt);
+            (void)world;
+            (void)dt;
         }
 
         void Render(ecs::World& world, std::ostream& out) override

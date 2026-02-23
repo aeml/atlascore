@@ -30,6 +30,7 @@ namespace simlab
     public:
         virtual ~IScenario() = default;
         virtual void Setup(ecs::World& world) = 0;
+        // Scenario-specific logic hook. The engine owns world stepping.
         virtual void Update(ecs::World& world, float dt) = 0;
         virtual void Render(ecs::World& world, std::ostream& out) = 0;
     };
