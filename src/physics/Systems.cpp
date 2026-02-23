@@ -823,6 +823,11 @@ namespace physics
 
     void PhysicsSystem::Update(ecs::World& world, float dt)
     {
+        if (!std::isfinite(dt) || dt < 0.0f)
+        {
+            return;
+        }
+
         const int substeps = std::max(1, m_settings.substeps);
         const float subDt = dt / static_cast<float>(substeps);
 
@@ -873,6 +878,11 @@ namespace physics
 
     void PhysicsIntegrationSystem::UpdateVelocities(ecs::World& world, float dt)
     {
+        if (!std::isfinite(dt) || dt <= 0.0f)
+        {
+            return;
+        }
+
         auto* rbStorage = world.GetStorage<RigidBodyComponent>();
         auto* tfStorage = world.GetStorage<TransformComponent>();
         if (!rbStorage || !tfStorage) return;

@@ -19,6 +19,7 @@
 #include "physics/Systems.hpp"
 #include "physics/Components.hpp"
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
 int main(){
@@ -29,10 +30,19 @@ int main(){
     world.AddComponent<physics::RigidBodyComponent>(e, physics::RigidBodyComponent{0.f, 0.f});
     // attach AABB to verify it moves with transform
     world.AddComponent<physics::AABBComponent>(e, physics::AABBComponent{-0.5f, 9.5f, 0.5f, 10.5f});
-    const float dt = 1.0f/60.0f;
-    world.Update(dt);
+
+    // Zero timestep should not introduce NaN/Inf values.
+    world.Update(0.0f);
     auto* t = world.GetComponent<physics::TransformComponent>(e);
     auto* rb = world.GetComponent<physics::RigidBodyComponent>(e);
+    assert(t && rb);
+    assert(std::isfinite(t->x) && std::isfinite(t->y));
+    assert(std::isfinite(rb->vx) && std::isfinite(rb->vy));
+    assert(t->x == 0.0f && t->y == 10.0f);
+
+    const float dt = 1.0f/60.0f;
+    world.Update(dt);
+
     auto* aabb = world.GetComponent<physics::AABBComponent>(e);
     assert(t && rb && aabb);
     assert(rb->vy < 0.0f);
