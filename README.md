@@ -131,6 +131,8 @@ Longer term:
 
 See [docs/contributing.md](docs/contributing.md) and module docs (`docs/*.md`). Please keep changes small, add/extend tests, and preserve deterministic behavior when modifying physics or scheduling.
 
+Project improvement tracking lives in [docs/implementation_backlog.md](docs/implementation_backlog.md).
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
