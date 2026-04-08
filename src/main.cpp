@@ -106,12 +106,14 @@ int main(int argc, char** argv)
 
     // Determine scenario by CLI arg or interactive menu
     std::unique_ptr<simlab::IScenario> scenario;
+    std::string selectedScenarioKey;
     if (!scenarioArg.empty())
     {
         auto factory = simlab::ScenarioRegistry::FindFactory(scenarioArg);
         if (factory)
         {
             scenario = factory();
+            selectedScenarioKey = scenarioArg;
         }
         else
         {
@@ -119,6 +121,7 @@ int main(int argc, char** argv)
             if (!options.empty())
             {
                 scenario = options.front().factory();
+                selectedScenarioKey = options.front().key;
             }
         }
     }
@@ -155,12 +158,14 @@ int main(int argc, char** argv)
         {
             const auto& selected = options[choice - 1];
             scenario = selected.factory();
+            selectedScenarioKey = selected.key;
             logger.Info(std::string("Running scenario: ") + selected.key);
         }
     }
     if (!scenario && !options.empty())
     {
         scenario = options.front().factory();
+        selectedScenarioKey = options.front().key;
     }
 
     if (!scenario)
@@ -190,6 +195,8 @@ int main(int argc, char** argv)
 
     std::ofstream headlessOut;
     std::ofstream headlessMetricsOut;
+    std::ofstream headlessSummaryOut;
+    simlab::HeadlessRunSummaryAccumulator headlessSummaryAccumulator;
     if (headless)
     {
         headlessOut.open("headless_output.txt");
@@ -220,6 +227,22 @@ int main(int argc, char** argv)
                 logger.Info(std::string("Headless metrics path: ") + (cwd / "headless_metrics.csv").string());
             } catch(...) {
                 logger.Warn("Could not determine current working directory for headless metrics");
+            }
+        }
+
+        headlessSummaryOut.open("headless_summary.csv");
+        if (!headlessSummaryOut.is_open())
+        {
+            logger.Error("Failed to open headless_summary.csv");
+        }
+        else
+        {
+            simlab::WriteHeadlessRunSummaryCsvHeader(headlessSummaryOut);
+            try {
+                auto cwd = std::filesystem::current_path();
+                logger.Info(std::string("Headless summary path: ") + (cwd / "headless_summary.csv").string());
+            } catch(...) {
+                logger.Warn("Could not determine current working directory for headless summary");
             }
         }
     }
@@ -258,6 +281,7 @@ int main(int argc, char** argv)
                     metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
                     metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
                                                         metrics.updateWallSeconds + metrics.renderWallSeconds);
+                    headlessSummaryAccumulator.AddFrame(metrics);
                     simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
                 }
             }
@@ -273,6 +297,12 @@ int main(int argc, char** argv)
     if (quitThread.joinable())
     {
         quitThread.join();
+    }
+
+    if (headlessSummaryOut.is_open())
+    {
+        simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut,
+                                             headlessSummaryAccumulator.Build(selectedScenarioKey));
     }
 
     logger.Info("AtlasCore shutting down.");

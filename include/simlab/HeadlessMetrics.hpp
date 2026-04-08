@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
+#include <string>
 
 namespace ecs { class World; }
 namespace physics { class PhysicsSystem; }
@@ -40,6 +41,46 @@ namespace simlab
         double frameWallSeconds{0.0};
     };
 
+    struct HeadlessRunSummary
+    {
+        std::string scenarioKey;
+        std::size_t frameCount{0};
+        std::uint64_t finalWorldHash{0};
+        std::size_t totalCollisionCount{0};
+        std::size_t peakCollisionCount{0};
+        std::size_t maxRigidBodyCount{0};
+        std::size_t maxDynamicBodyCount{0};
+        std::size_t maxTransformCount{0};
+        double avgUpdateWallSeconds{0.0};
+        double p95UpdateWallSeconds{0.0};
+        double avgRenderWallSeconds{0.0};
+        double p95RenderWallSeconds{0.0};
+        double avgFrameWallSeconds{0.0};
+        double p95FrameWallSeconds{0.0};
+    };
+
+    class HeadlessRunSummaryAccumulator
+    {
+    public:
+        void AddFrame(const FrameMetrics& metrics);
+        HeadlessRunSummary Build(const std::string& scenarioKey) const;
+
+    private:
+        std::size_t m_frameCount{0};
+        std::uint64_t m_finalWorldHash{0};
+        std::size_t m_totalCollisionCount{0};
+        std::size_t m_peakCollisionCount{0};
+        std::size_t m_maxRigidBodyCount{0};
+        std::size_t m_maxDynamicBodyCount{0};
+        std::size_t m_maxTransformCount{0};
+        double m_totalUpdateWallSeconds{0.0};
+        double m_totalRenderWallSeconds{0.0};
+        double m_totalFrameWallSeconds{0.0};
+        double m_maxUpdateWallSeconds{0.0};
+        double m_maxRenderWallSeconds{0.0};
+        double m_maxFrameWallSeconds{0.0};
+    };
+
     FrameMetrics CaptureFrameMetrics(const ecs::World& world,
                                      const physics::PhysicsSystem& physicsSystem,
                                      std::size_t frameIndex,
@@ -47,4 +88,6 @@ namespace simlab
 
     void WriteFrameMetricsCsvHeader(std::ostream& out);
     void WriteFrameMetricsCsvRow(std::ostream& out, const FrameMetrics& metrics);
+    void WriteHeadlessRunSummaryCsvHeader(std::ostream& out);
+    void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary);
 }

@@ -124,7 +124,7 @@ Options:
 ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
 ```
 
-Headless output files: `headless_output.txt` and `headless_metrics.csv` (both overwritten per run). Metrics rows include frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time.
+Headless output files: `headless_output.txt`, `headless_metrics.csv`, and `headless_summary.csv` (all overwritten per run). The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV captures one row per run with frame count, final world hash, collision totals/peaks, max body counts, and avg/p95 wall times.
 
 ## Testing
 

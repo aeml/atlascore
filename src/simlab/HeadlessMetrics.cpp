@@ -21,11 +21,58 @@
 #include "physics/Systems.hpp"
 #include "simlab/WorldHasher.hpp"
 
+#include <algorithm>
 #include <iomanip>
 #include <ostream>
 
+namespace
+{
+    double AverageOrZero(const double total, const std::size_t count) noexcept
+    {
+        return count > 0 ? total / static_cast<double>(count) : 0.0;
+    }
+}
+
 namespace simlab
 {
+    void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
+    {
+        ++m_frameCount;
+        m_finalWorldHash = metrics.worldHash;
+        m_totalCollisionCount += metrics.collisionCount;
+        m_peakCollisionCount = std::max(m_peakCollisionCount, metrics.collisionCount);
+        m_maxRigidBodyCount = std::max(m_maxRigidBodyCount, metrics.rigidBodyCount);
+        m_maxDynamicBodyCount = std::max(m_maxDynamicBodyCount, metrics.dynamicBodyCount);
+        m_maxTransformCount = std::max(m_maxTransformCount, metrics.transformCount);
+
+        m_totalUpdateWallSeconds += metrics.updateWallSeconds;
+        m_totalRenderWallSeconds += metrics.renderWallSeconds;
+        m_totalFrameWallSeconds += metrics.frameWallSeconds;
+        m_maxUpdateWallSeconds = std::max(m_maxUpdateWallSeconds, metrics.updateWallSeconds);
+        m_maxRenderWallSeconds = std::max(m_maxRenderWallSeconds, metrics.renderWallSeconds);
+        m_maxFrameWallSeconds = std::max(m_maxFrameWallSeconds, metrics.frameWallSeconds);
+    }
+
+    HeadlessRunSummary HeadlessRunSummaryAccumulator::Build(const std::string& scenarioKey) const
+    {
+        HeadlessRunSummary summary{};
+        summary.scenarioKey = scenarioKey;
+        summary.frameCount = m_frameCount;
+        summary.finalWorldHash = m_finalWorldHash;
+        summary.totalCollisionCount = m_totalCollisionCount;
+        summary.peakCollisionCount = m_peakCollisionCount;
+        summary.maxRigidBodyCount = m_maxRigidBodyCount;
+        summary.maxDynamicBodyCount = m_maxDynamicBodyCount;
+        summary.maxTransformCount = m_maxTransformCount;
+        summary.avgUpdateWallSeconds = AverageOrZero(m_totalUpdateWallSeconds, m_frameCount);
+        summary.p95UpdateWallSeconds = m_maxUpdateWallSeconds;
+        summary.avgRenderWallSeconds = AverageOrZero(m_totalRenderWallSeconds, m_frameCount);
+        summary.p95RenderWallSeconds = m_maxRenderWallSeconds;
+        summary.avgFrameWallSeconds = AverageOrZero(m_totalFrameWallSeconds, m_frameCount);
+        summary.p95FrameWallSeconds = m_maxFrameWallSeconds;
+        return summary;
+    }
+
     FrameMetrics CaptureFrameMetrics(const ecs::World& world,
                                      const physics::PhysicsSystem& physicsSystem,
                                      std::size_t frameIndex,
@@ -78,6 +125,35 @@ namespace simlab
             << metrics.updateWallSeconds << ','
             << metrics.renderWallSeconds << ','
             << metrics.frameWallSeconds << '\n';
+
+        out.flags(previousFlags);
+        out.precision(previousPrecision);
+    }
+
+    void WriteHeadlessRunSummaryCsvHeader(std::ostream& out)
+    {
+        out << "scenario_key,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
+    }
+
+    void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary)
+    {
+        const auto previousFlags = out.flags();
+        const auto previousPrecision = out.precision();
+
+        out << summary.scenarioKey << ','
+            << summary.frameCount << ','
+            << summary.finalWorldHash << ','
+            << summary.totalCollisionCount << ','
+            << summary.peakCollisionCount << ','
+            << summary.maxRigidBodyCount << ','
+            << summary.maxDynamicBodyCount << ','
+            << summary.maxTransformCount << ','
+            << std::fixed << std::setprecision(6) << summary.avgUpdateWallSeconds << ','
+            << summary.p95UpdateWallSeconds << ','
+            << summary.avgRenderWallSeconds << ','
+            << summary.p95RenderWallSeconds << ','
+            << summary.avgFrameWallSeconds << ','
+            << summary.p95FrameWallSeconds << '\n';
 
         out.flags(previousFlags);
         out.precision(previousPrecision);
