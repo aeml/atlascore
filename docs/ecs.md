@@ -2,7 +2,7 @@
 
 The `ecs` module hosts the entity-component-system core.
 
-- `World`: manages `EntityId`, systems, and component storages via a type-erased map keyed by `typeid(T).hash_code()`.
+- `World`: manages `EntityId`, systems, and component storages via a type-erased map keyed by `std::type_index`.
 - `ISystem`: polymorphic system interface with `Update(World&, float)`.
 - `ComponentStorage<T>`: simple map-based storage utility for components backing the world’s type-erased wrappers.
 

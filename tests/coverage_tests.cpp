@@ -141,9 +141,21 @@ int main()
 
         std::uint64_t h = hasher.HashAABBs(aabbs);
         assert(h != 0); // Basic check that it produces something
-        (void)h;
 
-        std::cout << "[PASS] WorldHasher AABB coverage\n";
+        ecs::World world;
+        auto entity = world.CreateEntity();
+        world.AddComponent<physics::TransformComponent>(entity, physics::TransformComponent{0.f, 1.f, 0.25f});
+        auto& body = world.AddComponent<physics::RigidBodyComponent>(entity);
+        body.vx = 2.0f;
+        body.vy = -3.0f;
+        world.AddComponent<physics::CircleColliderComponent>(entity, physics::CircleColliderComponent{0.5f, 0.1f, -0.1f});
+
+        const std::uint64_t before = hasher.HashWorld(world);
+        world.GetComponent<physics::TransformComponent>(entity)->x += 1.0f;
+        const std::uint64_t after = hasher.HashWorld(world);
+        assert(before != after);
+
+        std::cout << "[PASS] WorldHasher world-state coverage\n";
     }
 
     // ------------------------------------------------------------------------

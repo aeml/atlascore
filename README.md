@@ -130,7 +130,7 @@ Headless output file: `headless_output.txt` (overwritten per run).
 
 CTest targets (enabled when `ATLASCORE_BUILD_TESTS=ON`) include:
 
-`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_physics_circle_broadphase_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_scenario_update_contract_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
+`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_physics_circle_broadphase_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_simlab_determinism_tests`, `atlascore_scenario_update_contract_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
 
 Run all:
 ```bash
@@ -143,7 +143,7 @@ ctest -R AtlasCoreCollisionTests
 
 ## Determinism
 
-Determinism tests hash world state (transform positions, velocities, collision counts, joint and rigid body data) and compare repeated runs. Use fixed timestep loop (`1/60s`) to maintain sim stability.
+Determinism tests hash full world state (transforms, rigid bodies, AABBs, circle colliders, and joints) and compare repeated runs. `atlascore_simlab_determinism_tests` now runs the built-in scenarios twice and asserts the per-step hash stream matches exactly. Use fixed timestep loop (`1/60s`) to maintain sim stability.
 
 ## Coverage (GNU/Clang)
 

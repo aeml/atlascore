@@ -230,8 +230,8 @@ Provides interactive or automated scenarios demonstrating AtlasCore’s function
 - **Particle Fluid**: High entity count simulation with enclosed container.
 
 #### **Determinism Verification**
-- Scenarios use `WorldHasher` to verify state consistency.
-- `atlascore_simlab_scenarios_tests` runs scenarios in headless mode to ensure deterministic behavior.
+- Scenarios use `WorldHasher` to verify state consistency from live ECS world state.
+- `atlascore_simlab_determinism_tests` runs the built-in scenarios twice and compares the full per-step hash stream to catch determinism regressions.
 
 #### **ASCII Visualization**
 - Textual “rendering”

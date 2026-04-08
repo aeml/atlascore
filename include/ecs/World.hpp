@@ -73,6 +73,19 @@ namespace ecs
         }
 
         template <typename TComponent>
+        const TComponent* GetComponent(EntityId id) const
+        {
+            const std::type_index key{typeid(TComponent)};
+            auto it = m_componentStores.find(key);
+            if (it == m_componentStores.end())
+            {
+                return nullptr;
+            }
+            const auto* storage = static_cast<const StorageWrapper<TComponent>*>(it->second.get());
+            return storage->storage.Get(id);
+        }
+
+        template <typename TComponent>
         ComponentStorage<TComponent>* GetStorage()
         {
             const std::type_index key{typeid(TComponent)};
@@ -82,6 +95,19 @@ namespace ecs
                 return nullptr;
             }
             auto* storage = static_cast<StorageWrapper<TComponent>*>(it->second.get());
+            return &storage->storage;
+        }
+
+        template <typename TComponent>
+        const ComponentStorage<TComponent>* GetStorage() const
+        {
+            const std::type_index key{typeid(TComponent)};
+            auto it = m_componentStores.find(key);
+            if (it == m_componentStores.end())
+            {
+                return nullptr;
+            }
+            const auto* storage = static_cast<const StorageWrapper<TComponent>*>(it->second.get());
             return &storage->storage;
         }
 
@@ -166,11 +192,19 @@ namespace ecs
         template <typename... Ts>
         std::optional<std::tuple<Ts&...>> GetComponentsTuple(EntityId id)
         {
-            std::tuple<Ts*...> ptrs = std::make_tuple(GetComponent<Ts>(id)...);
-            bool allFound = ((std::get<Ts*>(ptrs) != nullptr) && ...);
-            if (!allFound) return std::nullopt;
-            
-            return std::tuple<Ts&...>(*std::get<Ts*>(ptrs)...);
+            if constexpr (sizeof...(Ts) == 0)
+            {
+                (void)id;
+                return std::tuple<>{};
+            }
+            else
+            {
+                std::tuple<Ts*...> ptrs = std::make_tuple(GetComponent<Ts>(id)...);
+                bool allFound = ((std::get<Ts*>(ptrs) != nullptr) && ...);
+                if (!allFound) return std::nullopt;
+
+                return std::tuple<Ts&...>(*std::get<Ts*>(ptrs)...);
+            }
         }
 
         EntityId                                      m_nextEntity{1};

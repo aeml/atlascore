@@ -54,6 +54,12 @@ namespace ecs
             return it != m_entityToDense.end() ? &m_data[it->second] : nullptr;
         }
 
+        const TComponent* Get(EntityId id) const
+        {
+            auto it = m_entityToDense.find(id);
+            return it != m_entityToDense.end() ? &m_data[it->second] : nullptr;
+        }
+
         bool Remove(EntityId id)
         {
             auto it = m_entityToDense.find(id);
