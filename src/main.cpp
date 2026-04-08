@@ -118,6 +118,8 @@ int main(int argc, char** argv)
     // Determine scenario by CLI arg or interactive menu
     std::unique_ptr<simlab::IScenario> scenario;
     std::string selectedScenarioKey;
+    const std::string requestedScenarioKey = scenarioArg.empty() ? (options.empty() ? std::string{} : options.front().key) : scenarioArg;
+    bool fallbackUsed = false;
     if (!scenarioArg.empty())
     {
         auto factory = simlab::ScenarioRegistry::FindFactory(scenarioArg);
@@ -133,6 +135,7 @@ int main(int argc, char** argv)
             {
                 scenario = options.front().factory();
                 selectedScenarioKey = options.front().key;
+                fallbackUsed = true;
             }
         }
     }
@@ -365,6 +368,9 @@ int main(int argc, char** argv)
     }
 
     auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
+    runSummary.requestedScenarioKey = requestedScenarioKey;
+    runSummary.resolvedScenarioKey = selectedScenarioKey;
+    runSummary.fallbackUsed = fallbackUsed;
     runSummary.fixedDtSeconds = fixedDtSeconds;
     runSummary.requestedFrames = requestedFrames;
     runSummary.headless = headless;
@@ -401,6 +407,9 @@ int main(int argc, char** argv)
 
         simlab::HeadlessRunManifest manifest{};
         manifest.scenarioKey = selectedScenarioKey;
+        manifest.requestedScenarioKey = requestedScenarioKey;
+        manifest.resolvedScenarioKey = selectedScenarioKey;
+        manifest.fallbackUsed = fallbackUsed;
         manifest.fixedDtSeconds = fixedDtSeconds;
         manifest.requestedFrames = requestedFrames;
         manifest.headless = headless;

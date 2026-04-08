@@ -107,22 +107,24 @@ namespace
 
         const auto summaryLines = ReadLines(summaryPath);
         assert(summaryLines.size() == 2);
-        assert(summaryLines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
+        assert(summaryLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
-        assert(summaryColumns.size() == 18u);
+        assert(summaryColumns.size() == 20u);
         assert(summaryColumns[0] == expectedScenarioKey);
-        assert(summaryColumns[1] == "0.016667");
-        assert(summaryColumns[2] == "3");
-        assert(summaryColumns[3] == "1");
-        assert(!summaryColumns[4].empty());
-        assert(summaryColumns[5] == "3");
+        assert(summaryColumns[1] == expectedScenarioKey);
+        assert(summaryColumns[2] == "0");
+        assert(summaryColumns[3] == "0.016667");
+        assert(summaryColumns[4] == "3");
+        assert(summaryColumns[5] == "1");
         assert(!summaryColumns[6].empty());
-        assert(ParseDouble(summaryColumns[12]) >= 0.0);
-        assert(ParseDouble(summaryColumns[13]) >= ParseDouble(summaryColumns[12]));
+        assert(summaryColumns[7] == "3");
+        assert(!summaryColumns[8].empty());
         assert(ParseDouble(summaryColumns[14]) >= 0.0);
         assert(ParseDouble(summaryColumns[15]) >= ParseDouble(summaryColumns[14]));
         assert(ParseDouble(summaryColumns[16]) >= 0.0);
         assert(ParseDouble(summaryColumns[17]) >= ParseDouble(summaryColumns[16]));
+        assert(ParseDouble(summaryColumns[18]) >= 0.0);
+        assert(ParseDouble(summaryColumns[19]) >= ParseDouble(summaryColumns[18]));
 
         double maxUpdate = 0.0;
         double maxRender = 0.0;
@@ -135,31 +137,33 @@ namespace
             maxFrame = std::max(maxFrame, ParseDouble(columns[9]));
         }
 
-        const double p95Update = ParseDouble(summaryColumns[13]);
-        const double p95Render = ParseDouble(summaryColumns[15]);
-        const double p95Frame = ParseDouble(summaryColumns[17]);
+        const double p95Update = ParseDouble(summaryColumns[15]);
+        const double p95Render = ParseDouble(summaryColumns[17]);
+        const double p95Frame = ParseDouble(summaryColumns[19]);
         assert(p95Update <= maxUpdate);
         assert(p95Render <= maxRender);
         assert(p95Frame <= maxFrame);
 
         const auto manifestLines = ReadLines(manifestPath);
         assert(manifestLines.size() == 2);
-        assert(manifestLines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+        assert(manifestLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 13u);
+        assert(manifestColumns.size() == 15u);
         assert(manifestColumns[0] == expectedScenarioKey);
-        assert(manifestColumns[1] == "0.016667");
-        assert(manifestColumns[2] == "3");
-        assert(manifestColumns[3] == "1");
-        assert(!manifestColumns[4].empty());
-        assert(manifestColumns[5] == "3");
-        assert(manifestColumns[6] == outputPath.string());
-        assert(manifestColumns[7] == metricsPath.string());
-        assert(manifestColumns[8] == summaryPath.string());
-        assert(!manifestColumns[9].empty());
-        assert(!manifestColumns[10].empty());
-        assert(manifestColumns[11] == "0" || manifestColumns[11] == "1");
+        assert(manifestColumns[1] == expectedScenarioKey);
+        assert(manifestColumns[2] == "0");
+        assert(manifestColumns[3] == "0.016667");
+        assert(manifestColumns[4] == "3");
+        assert(manifestColumns[5] == "1");
+        assert(!manifestColumns[6].empty());
+        assert(manifestColumns[7] == "3");
+        assert(manifestColumns[8] == outputPath.string());
+        assert(manifestColumns[9] == metricsPath.string());
+        assert(manifestColumns[10] == summaryPath.string());
+        assert(!manifestColumns[11].empty());
         assert(!manifestColumns[12].empty());
+        assert(manifestColumns[13] == "0" || manifestColumns[13] == "1");
+        assert(!manifestColumns[14].empty());
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()
@@ -211,19 +215,50 @@ namespace
 
         const auto lines = ReadLines(batchIndexPath);
         assert(lines.size() == 3);
-        assert(lines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+        assert(lines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
 
         const auto firstColumns = SplitCsvRow(lines[1]);
         const auto secondColumns = SplitCsvRow(lines[2]);
-        assert(firstColumns.size() == 13u);
-        assert(secondColumns.size() == 13u);
+        assert(firstColumns.size() == 15u);
+        assert(secondColumns.size() == 15u);
         assert(firstColumns[0] == "gravity");
         assert(secondColumns[0] == "gravity");
-        assert(firstColumns[2] == "2");
-        assert(secondColumns[2] == "2");
-        assert(firstColumns[6] == (cwd / "artifacts" / "batch_runs" / "gravity_a_output.txt").string());
-        assert(secondColumns[6] == (cwd / "artifacts" / "batch_runs" / "gravity_b_output.txt").string());
-        assert(firstColumns[4] == secondColumns[4]);
+        assert(firstColumns[1] == "gravity");
+        assert(secondColumns[1] == "gravity");
+        assert(firstColumns[2] == "0");
+        assert(secondColumns[2] == "0");
+        assert(firstColumns[4] == "2");
+        assert(secondColumns[4] == "2");
+        assert(firstColumns[8] == (cwd / "artifacts" / "batch_runs" / "gravity_a_output.txt").string());
+        assert(secondColumns[8] == (cwd / "artifacts" / "batch_runs" / "gravity_b_output.txt").string());
+        assert(firstColumns[6] == secondColumns[6]);
+    }
+
+    void VerifyFallbackScenarioSelectionIsExported()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "fallback_run";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("./atlascore_app does-not-exist --headless --frames=2 --output-prefix=artifacts/fallback_run > /tmp/atlascore_headless_fallback_selection.log 2>&1");
+        assert(rc == 0);
+
+        const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
+        const auto summaryColumns = SplitCsvRow(summaryLines[1]);
+        assert(summaryColumns.size() == 20u);
+        assert(summaryColumns[0] == "does-not-exist");
+        assert(summaryColumns[1] == "gravity");
+        assert(summaryColumns[2] == "1");
+
+        const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
+        const auto manifestColumns = SplitCsvRow(manifestLines[1]);
+        assert(manifestColumns.size() == 15u);
+        assert(manifestColumns[0] == "does-not-exist");
+        assert(manifestColumns[1] == "gravity");
+        assert(manifestColumns[2] == "1");
     }
 }
 
@@ -232,6 +267,7 @@ int main()
     VerifyAppWritesHeadlessMetricsCsv();
     VerifyAppWritesPrefixedHeadlessArtifacts();
     VerifyBatchIndexAppendsAcrossRuns();
+    VerifyFallbackScenarioSelectionIsExported();
     std::cout << "Headless metrics app tests passed\n";
     return 0;
 }

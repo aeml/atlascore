@@ -172,7 +172,9 @@ namespace
     void VerifySummaryCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunSummary summary{};
-        summary.scenarioKey = "fluid";
+        summary.requestedScenarioKey = "fluid";
+        summary.resolvedScenarioKey = "fluid";
+        summary.fallbackUsed = false;
         summary.fixedDtSeconds = 1.0 / 120.0;
         summary.requestedFrames = 300;
         summary.headless = true;
@@ -196,14 +198,16 @@ namespace
         simlab::WriteHeadlessRunSummaryCsvRow(out, summary);
 
         const std::string csv = out.str();
-        assert(csv.find("scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n") == 0);
-        assert(csv.find("fluid,0.008333,300,1,777,300,123456,900,17,250,240,260,0.010000,0.020000,0.003000,0.004000,0.013500,0.024500\n") != std::string::npos);
+        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n") == 0);
+        assert(csv.find("fluid,fluid,0,0.008333,300,1,777,300,123456,900,17,250,240,260,0.010000,0.020000,0.003000,0.004000,0.013500,0.024500\n") != std::string::npos);
     }
 
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
-        manifest.scenarioKey = "gravity";
+        manifest.requestedScenarioKey = "gravity";
+        manifest.resolvedScenarioKey = "gravity";
+        manifest.fallbackUsed = false;
         manifest.fixedDtSeconds = 1.0 / 60.0;
         manifest.requestedFrames = 180;
         manifest.headless = true;
@@ -222,8 +226,8 @@ namespace
         simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
 
         const std::string csv = out.str();
-        assert(csv.find("scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
-        assert(csv.find("gravity,0.016667,180,1,424242,180,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
+        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
+        assert(csv.find("gravity,gravity,0,0.016667,180,1,424242,180,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
     }
 
     void VerifyRunConfigHashChangesWhenInputsChange()

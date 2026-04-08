@@ -45,6 +45,9 @@ namespace simlab
     struct HeadlessRunSummary
     {
         std::string scenarioKey;
+        std::string requestedScenarioKey;
+        std::string resolvedScenarioKey;
+        bool fallbackUsed{false};
         double fixedDtSeconds{0.0};
         std::size_t requestedFrames{0};
         bool headless{false};
@@ -67,6 +70,9 @@ namespace simlab
     struct HeadlessRunManifest
     {
         std::string scenarioKey;
+        std::string requestedScenarioKey;
+        std::string resolvedScenarioKey;
+        bool fallbackUsed{false};
         double fixedDtSeconds{0.0};
         std::size_t requestedFrames{0};
         bool headless{false};
