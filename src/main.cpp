@@ -380,6 +380,9 @@ int main(int argc, char** argv)
         manifest.metricsPath = toAbsolutePathString(metricsPath);
         manifest.summaryPath = toAbsolutePathString(summaryPath);
         manifest.timestampUtc = formatTimestampUtc();
+        manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
+        manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
+        manifest.buildType = ATLASCORE_BUILD_TYPE;
         simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
     }
 

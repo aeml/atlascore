@@ -1,6 +1,35 @@
 cmake_minimum_required(VERSION 3.20)
 project(AtlasCore LANGUAGES CXX)
 
+find_package(Git QUIET)
+set(ATLASCORE_GIT_COMMIT "unknown")
+set(ATLASCORE_GIT_DIRTY 0)
+if (GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE ATLASCORE_GIT_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE ATLASCORE_GIT_COMMIT_RESULT)
+    if (NOT ATLASCORE_GIT_COMMIT_RESULT EQUAL 0 OR ATLASCORE_GIT_COMMIT STREQUAL "")
+        set(ATLASCORE_GIT_COMMIT "unknown")
+    endif()
+
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} diff --quiet --ignore-submodules HEAD --
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE ATLASCORE_GIT_DIRTY_RESULT)
+    if (ATLASCORE_GIT_DIRTY_RESULT EQUAL 1)
+        set(ATLASCORE_GIT_DIRTY 1)
+    endif()
+endif()
+
+set(ATLASCORE_BUILD_TYPE_VALUE "${CMAKE_BUILD_TYPE}")
+if (ATLASCORE_BUILD_TYPE_VALUE STREQUAL "")
+    set(ATLASCORE_BUILD_TYPE_VALUE "Unknown")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -50,6 +79,10 @@ endif()
 add_executable(atlascore_app src/main.cpp)
 
 target_link_libraries(atlascore_app PRIVATE atlascore)
+target_compile_definitions(atlascore_app PRIVATE
+    ATLASCORE_BUILD_GIT_COMMIT="${ATLASCORE_GIT_COMMIT}"
+    ATLASCORE_BUILD_GIT_DIRTY=${ATLASCORE_GIT_DIRTY}
+    ATLASCORE_BUILD_TYPE="${ATLASCORE_BUILD_TYPE_VALUE}")
 
 # Apply coverage flags to app executable as well (needed for linking gcov symbols)
 if (ATLASCORE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

@@ -68,6 +68,9 @@ namespace simlab
         std::string metricsPath;
         std::string summaryPath;
         std::string timestampUtc;
+        std::string gitCommit;
+        bool gitDirty{false};
+        std::string buildType;
     };
 
     class HeadlessRunSummaryAccumulator

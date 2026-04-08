@@ -205,14 +205,17 @@ namespace
         manifest.metricsPath = "artifacts/gravity_metrics.csv";
         manifest.summaryPath = "artifacts/gravity_summary.csv";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
+        manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
+        manifest.gitDirty = true;
+        manifest.buildType = "Debug";
 
         std::ostringstream out;
         simlab::WriteHeadlessRunManifestCsvHeader(out);
         simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
 
         const std::string csv = out.str();
-        assert(csv.find("scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc\n") == 0);
-        assert(csv.find("gravity,180,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,2026-04-08T04:00:00Z\n") != std::string::npos);
+        assert(csv.find("scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
+        assert(csv.find("gravity,180,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
     }
 }
 

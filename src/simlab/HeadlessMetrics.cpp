@@ -177,7 +177,7 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc\n";
+        out << "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
@@ -187,6 +187,9 @@ namespace simlab
             << manifest.outputPath << ','
             << manifest.metricsPath << ','
             << manifest.summaryPath << ','
-            << manifest.timestampUtc << '\n';
+            << manifest.timestampUtc << ','
+            << manifest.gitCommit << ','
+            << (manifest.gitDirty ? 1 : 0) << ','
+            << manifest.buildType << '\n';
     }
 }

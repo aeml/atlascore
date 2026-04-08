@@ -140,15 +140,18 @@ namespace
 
         const auto manifestLines = ReadLines(manifestPath);
         assert(manifestLines.size() == 2);
-        assert(manifestLines[0] == "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc");
+        assert(manifestLines[0] == "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 6u);
+        assert(manifestColumns.size() == 9u);
         assert(manifestColumns[0] == expectedScenarioKey);
         assert(manifestColumns[1] == "3");
         assert(manifestColumns[2] == outputPath.string());
         assert(manifestColumns[3] == metricsPath.string());
         assert(manifestColumns[4] == summaryPath.string());
         assert(!manifestColumns[5].empty());
+        assert(!manifestColumns[6].empty());
+        assert(manifestColumns[7] == "0" || manifestColumns[7] == "1");
+        assert(!manifestColumns[8].empty());
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()
