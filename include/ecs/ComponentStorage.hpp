@@ -94,6 +94,15 @@ namespace ecs
             }
         }
 
+        template <typename Fn>
+        void ForEach(Fn&& fn) const
+        {
+            for (size_t i = 0; i < m_data.size(); ++i)
+            {
+                fn(m_denseToEntity[i], m_data[i]);
+            }
+        }
+
         // Direct access for systems (e.g. JobSystem)
         std::vector<TComponent>& GetData() { return m_data; }
         const std::vector<TComponent>& GetData() const { return m_data; }

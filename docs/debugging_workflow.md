@@ -9,6 +9,7 @@ The `IScenario` interface has been refactored to separate simulation logic from 
 -   `Update(ecs::World& world, float dt)`: Contains scenario-specific logic independent of renderer output.
 -   `world.Update(dt)` is called by the engine loop exactly once per frame.
 -   `Render(ecs::World& world, std::ostream&)`: Contains visualization logic; in headless mode it writes to `headless_output.txt`.
+-   Headless runs also emit `headless_metrics.csv` with deterministic per-frame metrics for regression analysis.
 
 ## Verification Strategy
 
@@ -24,7 +25,7 @@ To verify that the physics engine, ECS, and job system are working correctly *wi
     These tests cover individual components and integration scenarios.
 
 2.  **Run Headless Scenarios**:
-    You can run the main application in headless mode. This runs the full update + render path, but render output goes to `headless_output.txt` instead of the terminal.
+    You can run the main application in headless mode. This runs the full update + render path, writes render output to `headless_output.txt`, and writes deterministic per-frame metrics to `headless_metrics.csv`.
     ```bash
     ./atlascore_app --headless [scenario_name]
     ```

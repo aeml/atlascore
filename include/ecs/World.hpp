@@ -114,6 +114,32 @@ namespace ecs
         void AddSystem(std::unique_ptr<ISystem> system);
         void Update(float dt);
 
+        template <typename TSystem>
+        TSystem* FindSystem()
+        {
+            for (auto& system : m_systems)
+            {
+                if (auto* typed = dynamic_cast<TSystem*>(system.get()))
+                {
+                    return typed;
+                }
+            }
+            return nullptr;
+        }
+
+        template <typename TSystem>
+        const TSystem* FindSystem() const
+        {
+            for (const auto& system : m_systems)
+            {
+                if (auto* typed = dynamic_cast<const TSystem*>(system.get()))
+                {
+                    return typed;
+                }
+            }
+            return nullptr;
+        }
+
         template <typename TComponent, typename Fn>
         void ForEach(Fn&& fn)
         {

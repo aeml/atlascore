@@ -20,6 +20,8 @@
 #include "core/FixedTimestepLoop.hpp"
 #include "ecs/World.hpp"
 #include "simlab/Scenario.hpp"
+#include "simlab/HeadlessMetrics.hpp"
+#include "physics/Systems.hpp"
 
 #include <atomic>
 #include <cstdlib>
@@ -185,6 +187,7 @@ int main(int argc, char** argv)
     }
 
     std::ofstream headlessOut;
+    std::ofstream headlessMetricsOut;
     if (headless)
     {
         headlessOut.open("headless_output.txt");
@@ -201,19 +204,47 @@ int main(int argc, char** argv)
                 logger.Warn("Could not determine current working directory for headless output");
             }
         }
+
+        headlessMetricsOut.open("headless_metrics.csv");
+        if (!headlessMetricsOut.is_open())
+        {
+            logger.Error("Failed to open headless_metrics.csv");
+        }
+        else
+        {
+            simlab::WriteFrameMetricsCsvHeader(headlessMetricsOut);
+            try {
+                auto cwd = std::filesystem::current_path();
+                logger.Info(std::string("Headless metrics path: ") + (cwd / "headless_metrics.csv").string());
+            } catch(...) {
+                logger.Warn("Could not determine current working directory for headless metrics");
+            }
+        }
     }
 
     int frameCounter = 0;
+    double simTimeSeconds = 0.0;
     loop.Run(
         [&](float dt)
         {
             scenario->Update(world, dt);
             world.Update(dt);
+            simTimeSeconds += static_cast<double>(dt);
+            ++frameCounter;
+
             if (headless)
             {
                 if (headlessOut.is_open())
                 {
                     scenario->Render(world, headlessOut);
+                }
+                if (headlessMetricsOut.is_open())
+                {
+                    if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
+                    {
+                        const auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
+                        simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
+                    }
                 }
             }
             else
@@ -221,13 +252,9 @@ int main(int argc, char** argv)
                 scenario->Render(world, std::cout);
             }
 
-            if (maxFrames > 0)
+            if (maxFrames > 0 && frameCounter >= maxFrames)
             {
-                ++frameCounter;
-                if (frameCounter >= maxFrames)
-                {
-                    running.store(false);
-                }
+                running.store(false);
             }
             // Otherwise runs until Enter is pressed.
         },

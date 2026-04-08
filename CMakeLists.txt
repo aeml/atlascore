@@ -22,6 +22,7 @@ add_library(atlascore
     src/ascii/Renderer.cpp
     src/ascii/TextRenderer.cpp
     src/simlab/WorldHasher.cpp
+    src/simlab/HeadlessMetrics.cpp
     src/simlab/ScenarioRegistry.cpp
     src/simlab/PlanetaryGravityScenario.cpp
     src/simlab/WreckingBallScenario.cpp
@@ -92,6 +93,8 @@ if (ATLASCORE_BUILD_TESTS)
     atlascore_add_test_executable(atlascore_ecs_physics_tests tests/ecs_physics_tests.cpp AtlasCoreEcsPhysicsTests)
     atlascore_add_test_executable(atlascore_physics_stability_tests tests/physics_stability_tests.cpp AtlasCorePhysicsStabilityTests)
     atlascore_add_test_executable(atlascore_physics_circle_broadphase_tests tests/physics_circle_broadphase_tests.cpp AtlasCorePhysicsCircleBroadphaseTests)
+    atlascore_add_test_executable(atlascore_headless_metrics_tests tests/headless_metrics_tests.cpp AtlasCoreHeadlessMetricsTests)
+    atlascore_add_test_executable(atlascore_headless_metrics_app_tests tests/headless_metrics_app_tests.cpp AtlasCoreHeadlessMetricsAppTests)
     atlascore_add_test_executable(atlascore_simlab_scenarios_tests tests/simlab_scenarios_tests.cpp AtlasCoreSimlabScenariosTests)
     atlascore_add_test_executable(atlascore_simlab_determinism_tests tests/simlab_determinism_tests.cpp AtlasCoreSimlabDeterminismTests)
     atlascore_add_test_executable(atlascore_scenario_update_contract_tests tests/scenario_update_contract_tests.cpp AtlasCoreScenarioUpdateContractTests)

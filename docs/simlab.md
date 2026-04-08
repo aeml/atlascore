@@ -8,6 +8,7 @@ The `simlab` module contains the scenario framework and a collection of scenario
 -   `Setup(World&)`: Initializes the world with entities and systems.
 -   `Update(World&, float)`: Scenario-specific update hook (engine steps `world.Update(dt)`).
 -   `Render(World&, std::ostream&)`: Renders the current state to an output stream.
+-   Headless app runs also emit `headless_metrics.csv`, a per-frame metrics/export stream containing frame index, sim time, world hash, collision count, rigid-body count, dynamic-body count, and transform count.
 -   **`ScenarioRegistry`**: A singleton registry that manages available scenarios. It allows looking up scenarios by key and creating instances.
 -   **`WorldHasher`**: A utility for generating a deterministic hash of live world state (transforms, rigid bodies, AABBs, circle colliders, joints). Used for verifying determinism across runs and for scenario-level regression tests.
 

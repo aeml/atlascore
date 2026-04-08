@@ -74,7 +74,7 @@ wrecking         # Wrecking Ball (Joints & Collisions)
 fluid            # Particle Fluid (High Entity Count)
 ```
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream output to `headless_output.txt`.
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream render output to `headless_output.txt` and per-frame metrics to `headless_metrics.csv`.
 
 ## Directory Structure (Public Headers)
 
@@ -124,7 +124,7 @@ Options:
 ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
 ```
 
-Headless output file: `headless_output.txt` (overwritten per run).
+Headless output files: `headless_output.txt` and `headless_metrics.csv` (both overwritten per run). Metrics rows include frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, and transform count.
 
 ## Testing
 
