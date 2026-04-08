@@ -67,6 +67,54 @@ When in doubt, optimize for:
 
 Performance matters, but not at the cost of losing the reason the project is impressive in the first place.
 
+## Milestones to final vision
+
+### Milestone 1: Runtime correctness and determinism hardening
+Goal:
+Make the core runtime obviously trustworthy.
+
+Success looks like:
+- fixed-step simulation rules are consistent and documented
+- determinism-sensitive paths are tested and validated routinely
+- shutdown, exception handling, and edge-case runtime behavior are boring in the best way
+
+### Milestone 2: Scenario quality and simulation depth
+Goal:
+Make SimLab scenarios worth studying, not just running once.
+
+Success looks like:
+- scenarios stress different system behaviors intentionally
+- demo scenarios showcase collision, joints, scheduling, and scale clearly
+- headless outputs become genuinely useful for debugging and comparison
+
+### Milestone 3: Instrumentation and profiling
+Goal:
+Make runtime behavior easy to measure.
+
+Success looks like:
+- frame cost, job timing, and scenario metrics are easier to inspect
+- profiling and debug overlays exist without muddying the architecture
+- headless/export paths support analysis workflows cleanly
+
+### Milestone 4: Architecture and extension polish
+Goal:
+Make the project easier to extend without weakening its design.
+
+Success looks like:
+- module boundaries stay clean under new features
+- physics, jobs, ECS, and rendering remain independently understandable
+- docs and examples make extension paths obvious
+- new functionality grows the project's signal instead of bloating it
+
+### Milestone 5: Portfolio-grade finish
+Goal:
+Make AtlasCore read like a genuinely strong systems project from top to bottom.
+
+Success looks like:
+- docs, CI, sanitizers, tests, and scenario outputs feel complete and coherent
+- the repo demonstrates engineering taste, not just effort
+- a reviewer can quickly understand why the project is serious
+
 ## The north star
 The north star is:
 
