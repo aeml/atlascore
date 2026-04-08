@@ -8,7 +8,7 @@ The `simlab` module contains the scenario framework and a collection of scenario
 -   `Setup(World&)`: Initializes the world with entities and systems.
 -   `Update(World&, float)`: Scenario-specific update hook (engine steps `world.Update(dt)`).
 -   `Render(World&, std::ostream&)`: Renders the current state to an output stream.
--   Headless app runs also emit `headless_metrics.csv` for per-frame state/timing metrics, `headless_summary.csv` for one-row run summaries (now including run-config metadata such as fixed dt, requested frame cap, headless flag, and run-config hash before the aggregate counters/timings), and `headless_manifest.csv` for scenario/frame/path/timestamp/provenance indexing. `--output-prefix=PATH_BASE` redirects all four artifacts to a caller-chosen path base for batch runs.
+-   Headless app runs also emit `headless_metrics.csv` for per-frame state/timing metrics, `headless_summary.csv` for one-row run summaries (now including run-config metadata such as fixed dt, requested frame cap, headless flag, and run-config hash before the aggregate counters/timings), and `headless_manifest.csv` for scenario/frame/path/timestamp/provenance indexing. `--output-prefix=PATH_BASE` redirects all four artifacts to a caller-chosen path base for batch runs. `--batch-index=PATH.csv` appends the manifest row into a shared batch ledger for multi-run sweeps.
 -   **`ScenarioRegistry`**: A singleton registry that manages available scenarios. It allows looking up scenarios by key and creating instances.
 -   **`WorldHasher`**: A utility for generating a deterministic hash of live world state (transforms, rigid bodies, AABBs, circle colliders, joints). Used for verifying determinism across runs and for scenario-level regression tests.
 

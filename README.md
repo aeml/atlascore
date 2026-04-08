@@ -74,7 +74,7 @@ wrecking         # Wrecking Ball (Joints & Collisions)
 fluid            # Particle Fluid (High Entity Count)
 ```
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` for file-based headless exports. Add `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead of the default `headless_*` files.
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` for file-based headless exports. Add `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead of the default `headless_*` files. Add `--batch-index=PATH.csv` to append each run manifest row into a shared batch ledger.
 
 ## Directory Structure (Public Headers)
 
@@ -122,10 +122,11 @@ Options:
 ./atlascore_app fluid --headless
 ./atlascore_app demo --headless --frames=300  # auto-quit after 300 frames
 ./atlascore_app gravity --headless --frames=300 --output-prefix=artifacts/gravity_run
+./atlascore_app gravity --headless --frames=300 --output-prefix=artifacts/gravity_run --batch-index=artifacts/batch_index.csv
 ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
 ```
 
-Headless output files default to `headless_output.txt`, `headless_metrics.csv`, `headless_summary.csv`, and `headless_manifest.csv` (all overwritten per run). Use `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead. The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV now also records run config metadata (`fixed_dt_seconds`, `requested_frames`, `headless`, `run_config_hash`) before the aggregate timing/state fields. The manifest CSV records the same run-config fingerprint plus scenario key, frame count, resolved artifact paths, a UTC timestamp, the build git commit, dirty-state flag, and build type so batch runs can be indexed against the exact binary provenance and invocation shape that produced them.
+Headless output files default to `headless_output.txt`, `headless_metrics.csv`, `headless_summary.csv`, and `headless_manifest.csv` (all overwritten per run). Use `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead. The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV now also records run config metadata (`fixed_dt_seconds`, `requested_frames`, `headless`, `run_config_hash`) before the aggregate timing/state fields. The manifest CSV records the same run-config fingerprint plus scenario key, frame count, resolved artifact paths, a UTC timestamp, the build git commit, dirty-state flag, and build type so batch runs can be indexed against the exact binary provenance and invocation shape that produced them. If `--batch-index=PATH.csv` is provided, AtlasCore appends the same manifest row into that shared CSV, writing the header only when the file is created/empty.
 
 ## Testing
 

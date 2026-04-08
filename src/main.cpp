@@ -78,6 +78,7 @@ int main(int argc, char** argv)
     bool headless = envTruthy(headlessEnvValue.c_str());
     std::string scenarioArg;
     std::string outputPrefix;
+    std::string batchIndexPath;
     int maxFrames = -1; // Headless auto-termination after N frames if >0
     for (int i = 1; i < argc; ++i)
     {
@@ -98,6 +99,10 @@ int main(int argc, char** argv)
         else if (arg.rfind("--output-prefix=", 0) == 0)
         {
             outputPrefix = std::string(arg.substr(16));
+        }
+        else if (arg.rfind("--batch-index=", 0) == 0)
+        {
+            batchIndexPath = std::string(arg.substr(14));
         }
         else if (scenarioArg.empty())
         {
@@ -217,20 +222,30 @@ int main(int argc, char** argv)
     std::string manifestPath;
     if (headless)
     {
+        auto ensureParentDirectoryExists = [&](const std::filesystem::path& path, const std::string& label) {
+            if (!path.has_parent_path())
+            {
+                return;
+            }
+
+            std::error_code ec;
+            std::filesystem::create_directories(path.parent_path(), ec);
+            if (ec)
+            {
+                logger.Error(std::string("Failed to create ") + label + " directory: " + path.parent_path().string());
+            }
+        };
+
         const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
         const std::filesystem::path outputBasePath(outputBase);
         outputPath = outputBasePath.string() + "_output.txt";
         metricsPath = outputBasePath.string() + "_metrics.csv";
         summaryPath = outputBasePath.string() + "_summary.csv";
         manifestPath = outputBasePath.string() + "_manifest.csv";
-        if (outputBasePath.has_parent_path())
+        ensureParentDirectoryExists(outputBasePath, "output");
+        if (!batchIndexPath.empty())
         {
-            std::error_code ec;
-            std::filesystem::create_directories(outputBasePath.parent_path(), ec);
-            if (ec)
-            {
-                logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
-            }
+            ensureParentDirectoryExists(std::filesystem::path(batchIndexPath), "batch index");
         }
 
         headlessOut.open(outputPath);
@@ -399,6 +414,28 @@ int main(int argc, char** argv)
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
         manifest.buildType = ATLASCORE_BUILD_TYPE;
         simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
+
+        if (!batchIndexPath.empty())
+        {
+            const auto absoluteBatchIndexPath = toAbsolutePathString(batchIndexPath);
+            std::error_code ec;
+            const bool needsHeader = !std::filesystem::exists(absoluteBatchIndexPath, ec)
+                                  || (!ec && std::filesystem::is_regular_file(absoluteBatchIndexPath, ec)
+                                      && std::filesystem::file_size(absoluteBatchIndexPath, ec) == 0);
+            std::ofstream batchIndexOut(absoluteBatchIndexPath, std::ios::app);
+            if (!batchIndexOut.is_open())
+            {
+                logger.Error(std::string("Failed to open batch index: ") + absoluteBatchIndexPath);
+            }
+            else
+            {
+                if (needsHeader)
+                {
+                    simlab::WriteHeadlessRunManifestCsvHeader(batchIndexOut);
+                }
+                simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
+            }
+        }
     }
 
     logger.Info("AtlasCore shutting down.");

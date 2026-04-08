@@ -196,12 +196,42 @@ namespace
                                              prefix.string() + "_manifest.csv",
                                              "gravity");
     }
+
+    void VerifyBatchIndexAppendsAcrossRuns()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto batchIndexPath = cwd / "artifacts" / "batch_index.csv";
+        std::filesystem::remove(batchIndexPath);
+        std::filesystem::remove_all(cwd / "artifacts" / "batch_runs");
+
+        const int firstRc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_a --batch-index=artifacts/batch_index.csv > /tmp/atlascore_headless_batch_index_a.log 2>&1");
+        assert(firstRc == 0);
+        const int secondRc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_b --batch-index=artifacts/batch_index.csv > /tmp/atlascore_headless_batch_index_b.log 2>&1");
+        assert(secondRc == 0);
+
+        const auto lines = ReadLines(batchIndexPath);
+        assert(lines.size() == 3);
+        assert(lines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+
+        const auto firstColumns = SplitCsvRow(lines[1]);
+        const auto secondColumns = SplitCsvRow(lines[2]);
+        assert(firstColumns.size() == 13u);
+        assert(secondColumns.size() == 13u);
+        assert(firstColumns[0] == "gravity");
+        assert(secondColumns[0] == "gravity");
+        assert(firstColumns[2] == "2");
+        assert(secondColumns[2] == "2");
+        assert(firstColumns[6] == (cwd / "artifacts" / "batch_runs" / "gravity_a_output.txt").string());
+        assert(secondColumns[6] == (cwd / "artifacts" / "batch_runs" / "gravity_b_output.txt").string());
+        assert(firstColumns[4] == secondColumns[4]);
+    }
 }
 
 int main()
 {
     VerifyAppWritesHeadlessMetricsCsv();
     VerifyAppWritesPrefixedHeadlessArtifacts();
+    VerifyBatchIndexAppendsAcrossRuns();
     std::cout << "Headless metrics app tests passed\n";
     return 0;
 }
