@@ -191,6 +191,8 @@ int main(int argc, char** argv)
     scenario->Setup(world);
 
     std::atomic<bool> running{true};
+    std::atomic<bool> quitRequestedByInput{false};
+    std::atomic<bool> quitRequestedByEof{false};
 
     constexpr double fixedDtSeconds = 1.0 / 60.0;
     const bool boundedFrames = maxFrames > 0;
@@ -207,10 +209,17 @@ int main(int argc, char** argv)
     if (useInputQuitThread)
     {
         // Stop interactive simulations when Enter is pressed.
-        quitThread = std::thread([&running, &logger]() {
+        quitThread = std::thread([&running, &quitRequestedByInput, &quitRequestedByEof, &logger]() {
             logger.Info("Press Enter to quit...");
             std::string line;
-            std::getline(std::cin, line);
+            if (std::getline(std::cin, line))
+            {
+                quitRequestedByInput.store(true);
+            }
+            else
+            {
+                quitRequestedByEof.store(true);
+            }
             running.store(false);
         });
     }
@@ -359,6 +368,10 @@ int main(int argc, char** argv)
             {
                 running.store(false);
             }
+            else if (headless && !boundedFrames)
+            {
+                running.store(false);
+            }
             // Otherwise runs until Enter is pressed.
         },
         running);
@@ -366,6 +379,24 @@ int main(int argc, char** argv)
     if (quitThread.joinable())
     {
         quitThread.join();
+    }
+
+    std::string terminationReason;
+    if (boundedFrames)
+    {
+        terminationReason = "frame_cap";
+    }
+    else if (headless)
+    {
+        terminationReason = "unbounded_headless_default";
+    }
+    else if (quitRequestedByEof.load())
+    {
+        terminationReason = "eof_quit";
+    }
+    else if (quitRequestedByInput.load())
+    {
+        terminationReason = "user_quit";
     }
 
     auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
@@ -377,6 +408,7 @@ int main(int argc, char** argv)
     runSummary.requestedFrames = requestedFrames;
     runSummary.headless = headless;
     runSummary.runConfigHash = runConfigHash;
+    runSummary.terminationReason = terminationReason;
     if (headlessSummaryOut.is_open())
     {
         simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
@@ -418,6 +450,7 @@ int main(int argc, char** argv)
         manifest.headless = headless;
         manifest.runConfigHash = runConfigHash;
         manifest.frameCount = runSummary.frameCount;
+        manifest.terminationReason = terminationReason;
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);
         manifest.summaryPath = toAbsolutePathString(summaryPath);
