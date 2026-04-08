@@ -35,6 +35,9 @@ namespace simlab
         std::size_t rigidBodyCount{0};
         std::size_t dynamicBodyCount{0};
         std::size_t transformCount{0};
+        double updateWallSeconds{0.0};
+        double renderWallSeconds{0.0};
+        double frameWallSeconds{0.0};
     };
 
     FrameMetrics CaptureFrameMetrics(const ecs::World& world,

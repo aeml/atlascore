@@ -60,7 +60,7 @@ namespace simlab
 
     void WriteFrameMetricsCsvHeader(std::ostream& out)
     {
-        out << "frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count\n";
+        out << "frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count,update_wall_seconds,render_wall_seconds,frame_wall_seconds\n";
     }
 
     void WriteFrameMetricsCsvRow(std::ostream& out, const FrameMetrics& metrics)
@@ -74,7 +74,10 @@ namespace simlab
             << metrics.collisionCount << ','
             << metrics.rigidBodyCount << ','
             << metrics.dynamicBodyCount << ','
-            << metrics.transformCount << '\n';
+            << metrics.transformCount << ','
+            << metrics.updateWallSeconds << ','
+            << metrics.renderWallSeconds << ','
+            << metrics.frameWallSeconds << '\n';
 
         out.flags(previousFlags);
         out.precision(previousPrecision);

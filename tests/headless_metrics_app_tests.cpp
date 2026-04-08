@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <charconv>
 
 namespace
 {
@@ -37,6 +38,29 @@ namespace
             lines.push_back(line);
         }
         return lines;
+    }
+
+    std::vector<std::string> SplitCsvRow(const std::string& line)
+    {
+        std::vector<std::string> columns;
+        std::stringstream stream(line);
+        std::string column;
+        while (std::getline(stream, column, ','))
+        {
+            columns.push_back(column);
+        }
+        return columns;
+    }
+
+    double ParseDouble(const std::string& text)
+    {
+        double value = 0.0;
+        const auto* begin = text.data();
+        const auto* end = text.data() + text.size();
+        const auto result = std::from_chars(begin, end, value);
+        assert(result.ec == std::errc{});
+        assert(result.ptr == end);
+        return value;
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()
@@ -54,10 +78,25 @@ namespace
 
         const auto lines = ReadLines(metricsPath);
         assert(lines.size() == 4);
-        assert(lines[0] == "frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count");
+        assert(lines[0] == "frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count,update_wall_seconds,render_wall_seconds,frame_wall_seconds");
         assert(lines[1].rfind("1,0.016667,", 0) == 0);
         assert(lines[2].rfind("2,0.033333,", 0) == 0);
         assert(lines[3].rfind("3,0.050000,", 0) == 0);
+
+        for (std::size_t i = 1; i < lines.size(); ++i)
+        {
+            const auto columns = SplitCsvRow(lines[i]);
+            assert(columns.size() == 10u);
+
+            const double updateWallSeconds = ParseDouble(columns[7]);
+            const double renderWallSeconds = ParseDouble(columns[8]);
+            const double frameWallSeconds = ParseDouble(columns[9]);
+
+            assert(updateWallSeconds >= 0.0);
+            assert(renderWallSeconds >= 0.0);
+            assert(frameWallSeconds >= updateWallSeconds);
+            assert(frameWallSeconds >= renderWallSeconds);
+        }
     }
 }
 

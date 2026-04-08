@@ -32,6 +32,8 @@
 #include <vector>
 #include <thread>
 #include <filesystem>
+#include <algorithm>
+#include <chrono>
 
 int main(int argc, char** argv)
 {
@@ -227,29 +229,37 @@ int main(int argc, char** argv)
     loop.Run(
         [&](float dt)
         {
+            using steady_clock = std::chrono::steady_clock;
+            const auto frameStart = steady_clock::now();
+            const auto updateStart = frameStart;
             scenario->Update(world, dt);
             world.Update(dt);
+            const auto updateEnd = steady_clock::now();
             simTimeSeconds += static_cast<double>(dt);
             ++frameCounter;
 
-            if (headless)
+            std::ostream* renderStream = &std::cout;
+            if (headless && headlessOut.is_open())
             {
-                if (headlessOut.is_open())
-                {
-                    scenario->Render(world, headlessOut);
-                }
-                if (headlessMetricsOut.is_open())
-                {
-                    if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
-                    {
-                        const auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
-                        simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
-                    }
-                }
+                renderStream = &headlessOut;
             }
-            else
+
+            const auto renderStart = steady_clock::now();
+            scenario->Render(world, *renderStream);
+            const auto renderEnd = steady_clock::now();
+
+            if (headlessMetricsOut.is_open())
             {
-                scenario->Render(world, std::cout);
+                if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
+                {
+                    auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
+                    metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
+                    metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
+                    metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
+                    metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
+                                                        metrics.updateWallSeconds + metrics.renderWallSeconds);
+                    simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
+                }
             }
 
             if (maxFrames > 0 && frameCounter >= maxFrames)

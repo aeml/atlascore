@@ -63,6 +63,9 @@ namespace
         assert(metrics.rigidBodyCount == 2u);
         assert(metrics.dynamicBodyCount == 2u);
         assert(metrics.transformCount == 2u);
+        assert(metrics.updateWallSeconds == 0.0);
+        assert(metrics.renderWallSeconds == 0.0);
+        assert(metrics.frameWallSeconds == 0.0);
     }
 
     void VerifyCsvWriterProducesStableHeaderAndRow()
@@ -75,14 +78,17 @@ namespace
         metrics.rigidBodyCount = 5;
         metrics.dynamicBodyCount = 4;
         metrics.transformCount = 6;
+        metrics.updateWallSeconds = 0.001234;
+        metrics.renderWallSeconds = 0.000321;
+        metrics.frameWallSeconds = 0.001555;
 
         std::ostringstream out;
         simlab::WriteFrameMetricsCsvHeader(out);
         simlab::WriteFrameMetricsCsvRow(out, metrics);
 
         const std::string csv = out.str();
-        assert(csv.find("frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count\n") == 0);
-        assert(csv.find("7,0.125000,42,3,5,4,6\n") != std::string::npos);
+        assert(csv.find("frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count,update_wall_seconds,render_wall_seconds,frame_wall_seconds\n") == 0);
+        assert(csv.find("7,0.125000,42,3,5,4,6,0.001234,0.000321,0.001555\n") != std::string::npos);
     }
 }
 
