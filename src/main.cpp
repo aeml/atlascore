@@ -581,8 +581,27 @@ int main(int argc, char** argv)
                 if (needsHeader)
                 {
                     simlab::WriteHeadlessRunManifestCsvHeader(batchIndexOut);
+                    batchIndexOut.flush();
+                    if (!batchIndexOut.good())
+                    {
+                        batchIndexAppendStatus = "append_failed";
+                        batchIndexFailureCategory = "batch_index_write_failed";
+                        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
+                        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
+                    }
                 }
-                simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
+                if (batchIndexFailureCategory.empty())
+                {
+                    simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
+                    batchIndexOut.flush();
+                    if (!batchIndexOut.good())
+                    {
+                        batchIndexAppendStatus = "append_failed";
+                        batchIndexFailureCategory = "batch_index_write_failed";
+                        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
+                        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
+                    }
+                }
             }
         }
 

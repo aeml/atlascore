@@ -302,6 +302,38 @@ namespace
         simlab::WriteHeadlessRunManifestCsvRow(manifestOut, manifest);
         assert(manifestOut.str().find("gravity,gravity,0,0.016667,0,0,1,111,12,success,,unbounded_headless_default,out.txt,metrics.csv,summary.csv,,not_requested,,") != std::string::npos);
     }
+
+    void VerifyManifestCsvWriterSerializesBatchIndexWriteFailures()
+    {
+        simlab::HeadlessRunManifest manifest{};
+        manifest.requestedScenarioKey = "gravity";
+        manifest.resolvedScenarioKey = "gravity";
+        manifest.fallbackUsed = false;
+        manifest.fixedDtSeconds = 1.0 / 60.0;
+        manifest.boundedFrames = true;
+        manifest.requestedFrames = 2;
+        manifest.headless = true;
+        manifest.runConfigHash = 222;
+        manifest.frameCount = 2;
+        manifest.runStatus = "success";
+        manifest.failureCategory = "";
+        manifest.terminationReason = "frame_cap";
+        manifest.outputPath = "out.txt";
+        manifest.metricsPath = "metrics.csv";
+        manifest.summaryPath = "summary.csv";
+        manifest.batchIndexPath = "/dev/full";
+        manifest.batchIndexAppendStatus = "append_failed";
+        manifest.batchIndexFailureCategory = "batch_index_write_failed";
+        manifest.timestampUtc = "2026-04-08T04:00:00Z";
+        manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
+        manifest.gitDirty = false;
+        manifest.buildType = "Debug";
+
+        std::ostringstream out;
+        simlab::WriteHeadlessRunManifestCsvHeader(out);
+        simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
+        assert(out.str().find("gravity,gravity,0,0.016667,1,2,1,222,2,success,,frame_cap,out.txt,metrics.csv,summary.csv,/dev/full,append_failed,batch_index_write_failed,") != std::string::npos);
+    }
 }
 
 int main()
@@ -314,6 +346,7 @@ int main()
     VerifyManifestCsvWriterProducesStableHeaderAndRow();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
+    VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();
     std::cout << "Headless metrics tests passed\n";
     return 0;
 }

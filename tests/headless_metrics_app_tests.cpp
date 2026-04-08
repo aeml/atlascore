@@ -401,6 +401,29 @@ namespace
         assert(manifestColumns[16] == "append_failed");
         assert(manifestColumns[17] == "batch_index_open_failed");
     }
+
+    void VerifyBatchIndexWriteFailureIsRecordedInManifest()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "batch_write_failure_run";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_write_failure_run --batch-index=/dev/full > /tmp/atlascore_headless_batch_write_failure.log 2>&1");
+        assert(rc == 0);
+
+        const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
+        const auto manifestColumns = SplitCsvRow(manifestLines[1]);
+        assert(manifestColumns.size() == 22u);
+        assert(manifestColumns[9] == "success");
+        assert(manifestColumns[10].empty());
+        assert(manifestColumns[11] == "frame_cap");
+        assert(manifestColumns[15] == "/dev/full");
+        assert(manifestColumns[16] == "append_failed");
+        assert(manifestColumns[17] == "batch_index_write_failed");
+    }
 }
 
 int main()
@@ -412,6 +435,7 @@ int main()
     VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason();
     VerifyOutputOpenFailureIsClassified();
     VerifyBatchIndexAppendFailureIsRecordedInManifest();
+    VerifyBatchIndexWriteFailureIsRecordedInManifest();
     std::cout << "Headless metrics app tests passed\n";
     return 0;
 }
