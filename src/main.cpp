@@ -202,6 +202,29 @@ int main(int argc, char** argv)
                                                              requestedFrames,
                                                              headless);
 
+    auto formatTimestampUtc = []() -> std::string {
+        const auto now = std::chrono::system_clock::now();
+        const std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+        std::tm utcTime{};
+#if defined(_WIN32)
+        gmtime_s(&utcTime, &nowTime);
+#else
+        gmtime_r(&nowTime, &utcTime);
+#endif
+        char buffer[32]{};
+        if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utcTime) == 0)
+        {
+            return {};
+        }
+        return std::string(buffer);
+    };
+
+    auto toAbsolutePathString = [](const std::string& pathText) -> std::string {
+        std::error_code ec;
+        const auto absolutePath = std::filesystem::absolute(std::filesystem::path(pathText), ec);
+        return ec ? pathText : absolutePath.string();
+    };
+
     core::FixedTimestepLoop loop{static_cast<float>(fixedDtSeconds)};
 
     std::thread quitThread;
@@ -233,6 +256,70 @@ int main(int argc, char** argv)
     std::string metricsPath;
     std::string summaryPath;
     std::string manifestPath;
+    std::string runStatus{"success"};
+    std::string failureCategory;
+    const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
+    const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
+    auto writeStartupFailureArtifacts = [&](const std::string& category) {
+        simlab::HeadlessRunSummary failureSummary{};
+        failureSummary.scenarioKey = selectedScenarioKey;
+        failureSummary.requestedScenarioKey = requestedScenarioKey;
+        failureSummary.resolvedScenarioKey = selectedScenarioKey;
+        failureSummary.fallbackUsed = fallbackUsed;
+        failureSummary.fixedDtSeconds = fixedDtSeconds;
+        failureSummary.boundedFrames = boundedFrames;
+        failureSummary.requestedFrames = requestedFrames;
+        failureSummary.headless = headless;
+        failureSummary.runConfigHash = runConfigHash;
+        failureSummary.frameCount = 0;
+        failureSummary.runStatus = "startup_failure";
+        failureSummary.failureCategory = category;
+        failureSummary.terminationReason = "startup_failure";
+
+        std::ofstream failureSummaryOut(startupFailureSummaryPath);
+        if (failureSummaryOut.is_open())
+        {
+            simlab::WriteHeadlessRunSummaryCsvHeader(failureSummaryOut);
+            simlab::WriteHeadlessRunSummaryCsvRow(failureSummaryOut, failureSummary);
+        }
+        else
+        {
+            logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
+        }
+
+        simlab::HeadlessRunManifest failureManifest{};
+        failureManifest.scenarioKey = selectedScenarioKey;
+        failureManifest.requestedScenarioKey = requestedScenarioKey;
+        failureManifest.resolvedScenarioKey = selectedScenarioKey;
+        failureManifest.fallbackUsed = fallbackUsed;
+        failureManifest.fixedDtSeconds = fixedDtSeconds;
+        failureManifest.boundedFrames = boundedFrames;
+        failureManifest.requestedFrames = requestedFrames;
+        failureManifest.headless = headless;
+        failureManifest.runConfigHash = runConfigHash;
+        failureManifest.frameCount = 0;
+        failureManifest.runStatus = "startup_failure";
+        failureManifest.failureCategory = category;
+        failureManifest.terminationReason = "startup_failure";
+        failureManifest.outputPath = "";
+        failureManifest.metricsPath = "";
+        failureManifest.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
+        failureManifest.timestampUtc = formatTimestampUtc();
+        failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
+        failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
+        failureManifest.buildType = ATLASCORE_BUILD_TYPE;
+
+        std::ofstream failureManifestOut(startupFailureManifestPath);
+        if (failureManifestOut.is_open())
+        {
+            simlab::WriteHeadlessRunManifestCsvHeader(failureManifestOut);
+            simlab::WriteHeadlessRunManifestCsvRow(failureManifestOut, failureManifest);
+        }
+        else
+        {
+            logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
+        }
+    };
     if (headless)
     {
         auto ensureParentDirectoryExists = [&](const std::filesystem::path& path, const std::string& label) {
@@ -245,6 +332,8 @@ int main(int argc, char** argv)
             std::filesystem::create_directories(path.parent_path(), ec);
             if (ec)
             {
+                runStatus = "startup_failure";
+                failureCategory = label == "output" ? "output_open_failed" : "batch_index_open_failed";
                 logger.Error(std::string("Failed to create ") + label + " directory: " + path.parent_path().string());
             }
         };
@@ -264,6 +353,8 @@ int main(int argc, char** argv)
         headlessOut.open(outputPath);
         if (!headlessOut.is_open())
         {
+            runStatus = "startup_failure";
+            failureCategory = "output_open_failed";
             logger.Error(std::string("Failed to open ") + outputPath);
         }
         else
@@ -279,6 +370,8 @@ int main(int argc, char** argv)
         headlessMetricsOut.open(metricsPath);
         if (!headlessMetricsOut.is_open())
         {
+            runStatus = "startup_failure";
+            failureCategory = "output_open_failed";
             logger.Error(std::string("Failed to open ") + metricsPath);
         }
         else
@@ -295,6 +388,8 @@ int main(int argc, char** argv)
         headlessSummaryOut.open(summaryPath);
         if (!headlessSummaryOut.is_open())
         {
+            runStatus = "startup_failure";
+            failureCategory = "output_open_failed";
             logger.Error(std::string("Failed to open ") + summaryPath);
         }
         else
@@ -311,6 +406,8 @@ int main(int argc, char** argv)
         headlessManifestOut.open(manifestPath);
         if (!headlessManifestOut.is_open())
         {
+            runStatus = "startup_failure";
+            failureCategory = "output_open_failed";
             logger.Error(std::string("Failed to open ") + manifestPath);
         }
         else
@@ -323,6 +420,13 @@ int main(int argc, char** argv)
                 logger.Warn("Could not determine current working directory for headless manifest");
             }
         }
+    }
+
+    if (runStatus == "startup_failure")
+    {
+        writeStartupFailureArtifacts(failureCategory);
+        logger.Info("AtlasCore shutting down.");
+        return 1;
     }
 
     int frameCounter = 0;
@@ -408,6 +512,8 @@ int main(int argc, char** argv)
     runSummary.requestedFrames = requestedFrames;
     runSummary.headless = headless;
     runSummary.runConfigHash = runConfigHash;
+    runSummary.runStatus = runStatus;
+    runSummary.failureCategory = failureCategory;
     runSummary.terminationReason = terminationReason;
     if (headlessSummaryOut.is_open())
     {
@@ -416,29 +522,6 @@ int main(int argc, char** argv)
 
     if (headlessManifestOut.is_open())
     {
-        auto formatTimestampUtc = []() -> std::string {
-            const auto now = std::chrono::system_clock::now();
-            const std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
-            std::tm utcTime{};
-#if defined(_WIN32)
-            gmtime_s(&utcTime, &nowTime);
-#else
-            gmtime_r(&nowTime, &utcTime);
-#endif
-            char buffer[32]{};
-            if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utcTime) == 0)
-            {
-                return {};
-            }
-            return std::string(buffer);
-        };
-
-        auto toAbsolutePathString = [](const std::string& pathText) -> std::string {
-            std::error_code ec;
-            const auto absolutePath = std::filesystem::absolute(std::filesystem::path(pathText), ec);
-            return ec ? pathText : absolutePath.string();
-        };
-
         simlab::HeadlessRunManifest manifest{};
         manifest.scenarioKey = selectedScenarioKey;
         manifest.requestedScenarioKey = requestedScenarioKey;
@@ -450,6 +533,8 @@ int main(int argc, char** argv)
         manifest.headless = headless;
         manifest.runConfigHash = runConfigHash;
         manifest.frameCount = runSummary.frameCount;
+        manifest.runStatus = runStatus;
+        manifest.failureCategory = failureCategory;
         manifest.terminationReason = terminationReason;
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);

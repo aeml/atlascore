@@ -54,6 +54,8 @@ namespace simlab
         bool headless{false};
         std::uint64_t runConfigHash{0};
         std::size_t frameCount{0};
+        std::string runStatus;
+        std::string failureCategory;
         std::string terminationReason;
         std::uint64_t finalWorldHash{0};
         std::size_t totalCollisionCount{0};
@@ -81,6 +83,8 @@ namespace simlab
         bool headless{false};
         std::uint64_t runConfigHash{0};
         std::size_t frameCount{0};
+        std::string runStatus;
+        std::string failureCategory;
         std::string terminationReason;
         std::string outputPath;
         std::string metricsPath;

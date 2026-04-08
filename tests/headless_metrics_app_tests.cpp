@@ -107,9 +107,9 @@ namespace
 
         const auto summaryLines = ReadLines(summaryPath);
         assert(summaryLines.size() == 2);
-        assert(summaryLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,termination_reason,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
+        assert(summaryLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
-        assert(summaryColumns.size() == 22u);
+        assert(summaryColumns.size() == 24u);
         assert(summaryColumns[0] == expectedScenarioKey);
         assert(summaryColumns[1] == expectedScenarioKey);
         assert(summaryColumns[2] == "0");
@@ -119,14 +119,16 @@ namespace
         assert(summaryColumns[6] == "1");
         assert(!summaryColumns[7].empty());
         assert(summaryColumns[8] == "3");
-        assert(summaryColumns[9] == "frame_cap");
-        assert(!summaryColumns[10].empty());
-        assert(ParseDouble(summaryColumns[16]) >= 0.0);
-        assert(ParseDouble(summaryColumns[17]) >= ParseDouble(summaryColumns[16]));
+        assert(summaryColumns[9] == "success");
+        assert(summaryColumns[10].empty());
+        assert(summaryColumns[11] == "frame_cap");
+        assert(!summaryColumns[12].empty());
         assert(ParseDouble(summaryColumns[18]) >= 0.0);
         assert(ParseDouble(summaryColumns[19]) >= ParseDouble(summaryColumns[18]));
         assert(ParseDouble(summaryColumns[20]) >= 0.0);
         assert(ParseDouble(summaryColumns[21]) >= ParseDouble(summaryColumns[20]));
+        assert(ParseDouble(summaryColumns[22]) >= 0.0);
+        assert(ParseDouble(summaryColumns[23]) >= ParseDouble(summaryColumns[22]));
 
         double maxUpdate = 0.0;
         double maxRender = 0.0;
@@ -139,18 +141,18 @@ namespace
             maxFrame = std::max(maxFrame, ParseDouble(columns[9]));
         }
 
-        const double p95Update = ParseDouble(summaryColumns[17]);
-        const double p95Render = ParseDouble(summaryColumns[19]);
-        const double p95Frame = ParseDouble(summaryColumns[21]);
+        const double p95Update = ParseDouble(summaryColumns[19]);
+        const double p95Render = ParseDouble(summaryColumns[21]);
+        const double p95Frame = ParseDouble(summaryColumns[23]);
         assert(p95Update <= maxUpdate);
         assert(p95Render <= maxRender);
         assert(p95Frame <= maxFrame);
 
         const auto manifestLines = ReadLines(manifestPath);
         assert(manifestLines.size() == 2);
-        assert(manifestLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+        assert(manifestLines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 17u);
+        assert(manifestColumns.size() == 19u);
         assert(manifestColumns[0] == expectedScenarioKey);
         assert(manifestColumns[1] == expectedScenarioKey);
         assert(manifestColumns[2] == "0");
@@ -160,14 +162,16 @@ namespace
         assert(manifestColumns[6] == "1");
         assert(!manifestColumns[7].empty());
         assert(manifestColumns[8] == "3");
-        assert(manifestColumns[9] == "frame_cap");
-        assert(manifestColumns[10] == outputPath.string());
-        assert(manifestColumns[11] == metricsPath.string());
-        assert(manifestColumns[12] == summaryPath.string());
-        assert(!manifestColumns[13].empty());
-        assert(!manifestColumns[14].empty());
-        assert(manifestColumns[15] == "0" || manifestColumns[15] == "1");
+        assert(manifestColumns[9] == "success");
+        assert(manifestColumns[10].empty());
+        assert(manifestColumns[11] == "frame_cap");
+        assert(manifestColumns[12] == outputPath.string());
+        assert(manifestColumns[13] == metricsPath.string());
+        assert(manifestColumns[14] == summaryPath.string());
+        assert(!manifestColumns[15].empty());
         assert(!manifestColumns[16].empty());
+        assert(manifestColumns[17] == "0" || manifestColumns[17] == "1");
+        assert(!manifestColumns[18].empty());
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()
@@ -219,12 +223,12 @@ namespace
 
         const auto lines = ReadLines(batchIndexPath);
         assert(lines.size() == 3);
-        assert(lines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+        assert(lines[0] == "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
 
         const auto firstColumns = SplitCsvRow(lines[1]);
         const auto secondColumns = SplitCsvRow(lines[2]);
-        assert(firstColumns.size() == 17u);
-        assert(secondColumns.size() == 17u);
+        assert(firstColumns.size() == 19u);
+        assert(secondColumns.size() == 19u);
         assert(firstColumns[0] == "gravity");
         assert(secondColumns[0] == "gravity");
         assert(firstColumns[1] == "gravity");
@@ -235,10 +239,14 @@ namespace
         assert(secondColumns[4] == "1");
         assert(firstColumns[5] == "2");
         assert(secondColumns[5] == "2");
-        assert(firstColumns[9] == "frame_cap");
-        assert(secondColumns[9] == "frame_cap");
-        assert(firstColumns[10] == (cwd / "artifacts" / "batch_runs" / "gravity_a_output.txt").string());
-        assert(secondColumns[10] == (cwd / "artifacts" / "batch_runs" / "gravity_b_output.txt").string());
+        assert(firstColumns[9] == "success");
+        assert(secondColumns[9] == "success");
+        assert(firstColumns[10].empty());
+        assert(secondColumns[10].empty());
+        assert(firstColumns[11] == "frame_cap");
+        assert(secondColumns[11] == "frame_cap");
+        assert(firstColumns[12] == (cwd / "artifacts" / "batch_runs" / "gravity_a_output.txt").string());
+        assert(secondColumns[12] == (cwd / "artifacts" / "batch_runs" / "gravity_b_output.txt").string());
         assert(firstColumns[7] == secondColumns[7]);
     }
 
@@ -256,21 +264,25 @@ namespace
 
         const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
-        assert(summaryColumns.size() == 22u);
+        assert(summaryColumns.size() == 24u);
         assert(summaryColumns[0] == "does-not-exist");
         assert(summaryColumns[1] == "gravity");
         assert(summaryColumns[2] == "1");
         assert(summaryColumns[4] == "1");
-        assert(summaryColumns[9] == "frame_cap");
+        assert(summaryColumns[9] == "success");
+        assert(summaryColumns[10].empty());
+        assert(summaryColumns[11] == "frame_cap");
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 17u);
+        assert(manifestColumns.size() == 19u);
         assert(manifestColumns[0] == "does-not-exist");
         assert(manifestColumns[1] == "gravity");
         assert(manifestColumns[2] == "1");
         assert(manifestColumns[4] == "1");
-        assert(manifestColumns[9] == "frame_cap");
+        assert(manifestColumns[9] == "success");
+        assert(manifestColumns[10].empty());
+        assert(manifestColumns[11] == "frame_cap");
     }
 
     void VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason()
@@ -287,17 +299,57 @@ namespace
 
         const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
-        assert(summaryColumns.size() == 22u);
+        assert(summaryColumns.size() == 24u);
         assert(summaryColumns[4] == "0");
         assert(summaryColumns[5] == "0");
-        assert(summaryColumns[9] == "unbounded_headless_default");
+        assert(summaryColumns[9] == "success");
+        assert(summaryColumns[10].empty());
+        assert(summaryColumns[11] == "unbounded_headless_default");
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 17u);
+        assert(manifestColumns.size() == 19u);
         assert(manifestColumns[4] == "0");
         assert(manifestColumns[5] == "0");
-        assert(manifestColumns[9] == "unbounded_headless_default");
+        assert(manifestColumns[9] == "success");
+        assert(manifestColumns[10].empty());
+        assert(manifestColumns[11] == "unbounded_headless_default");
+    }
+
+    void VerifyOutputOpenFailureIsClassified()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto blockingPath = cwd / "artifacts" / "blocked_output_base";
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove_all(cwd / "artifacts" / "blocked_output_base");
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+
+        {
+            std::ofstream blocker(blockingPath);
+            assert(blocker.is_open());
+            blocker << "not a directory";
+        }
+
+        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_output_base/run > /tmp/atlascore_headless_output_open_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryLines = ReadLines(fallbackSummaryPath);
+        const auto summaryColumns = SplitCsvRow(summaryLines[1]);
+        assert(summaryColumns.size() == 24u);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "output_open_failed");
+        assert(summaryColumns[11] == "startup_failure");
+        assert(summaryColumns[8] == "0");
+
+        const auto manifestLines = ReadLines(fallbackManifestPath);
+        const auto manifestColumns = SplitCsvRow(manifestLines[1]);
+        assert(manifestColumns.size() == 19u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "output_open_failed");
+        assert(manifestColumns[11] == "startup_failure");
+        assert(manifestColumns[8] == "0");
     }
 }
 
@@ -308,6 +360,7 @@ int main()
     VerifyBatchIndexAppendsAcrossRuns();
     VerifyFallbackScenarioSelectionIsExported();
     VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason();
+    VerifyOutputOpenFailureIsClassified();
     std::cout << "Headless metrics app tests passed\n";
     return 0;
 }
