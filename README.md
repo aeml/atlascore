@@ -1,15 +1,26 @@
 # AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-%2Fcoverage-blue)](https://aeml.github.io/atlascore/coverage/) [![Docs](https://img.shields.io/badge/docs-doxygen-green)](https://aeml.github.io/atlascore/)
 
-AtlasCore is a modern C++20 simulation framework demonstrating:
+AtlasCore is a modern C++20 simulation framework for deterministic, testable, systems-heavy experiments across ECS composition, multithreaded job scheduling, fixed-timestep physics, and lightweight ASCII rendering.
 
-* Multithreaded job scheduling (work queues + optional parallel physics/collision)
-* An Entity–Component–System (ECS) with type‑erased component registries
-* Deterministic, fixed‑timestep physics (integration, collision detection, resolution, constraints)
-* ASCII (ANSI) text rendering for lightweight visualization (diff/frame based)
-* A Simulation Lab of interactive + headless scenarios (benchmarks, determinism tests, visual demos)
-* Extensive self‑tests + determinism hashing across scenarios
+## Why this project exists
+- Explore engine-style architecture without hiding the interesting parts behind heavyweight dependencies
+- Make determinism, scheduling, physics, and scenario-driven testing first-class concerns
+- Provide a compact but serious codebase for simulation, concurrency, and systems design work
 
-See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module‑specific docs live under [docs/](docs/).
+## Technical highlights
+- Multithreaded job scheduling with optional parallel physics/collision phases
+- ECS with type-erased component registries and polymorphic system updates
+- Deterministic fixed-timestep physics covering integration, collision detection, resolution, and constraints
+- Simulation Lab scenarios for demos, headless runs, benchmarks, and determinism hashing
+- Extensive self-tests plus CI coverage, sanitizer jobs, and published docs
+
+## What it demonstrates
+- concurrency and systems programming
+- determinism and testability
+- simulation / engine architecture
+- shipping discipline beyond toy demos
+
+See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module-specific docs live under [docs/](docs/).
 
 ## Modules
 
