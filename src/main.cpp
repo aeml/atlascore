@@ -258,6 +258,8 @@ int main(int argc, char** argv)
     std::string manifestPath;
     std::string runStatus{"success"};
     std::string failureCategory;
+    int exitCode = 0;
+    std::string exitClassification{"success_exit"};
     std::string batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
     std::string batchIndexFailureCategory;
     std::string outputWriteStatus;
@@ -340,6 +342,8 @@ int main(int argc, char** argv)
         failureManifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
         failureManifest.startupFailureManifestWriteStatus = "pending";
         failureManifest.startupFailureManifestFailureCategory = "";
+        failureManifest.exitCode = 1;
+        failureManifest.exitClassification = "startup_failure_exit";
         failureManifest.timestampUtc = formatTimestampUtc();
         failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -497,9 +501,11 @@ int main(int argc, char** argv)
 
     if (runStatus == "startup_failure")
     {
+        exitCode = 1;
+        exitClassification = "startup_failure_exit";
         writeStartupFailureArtifacts(failureCategory);
         logger.Info("AtlasCore shutting down.");
-        return 1;
+        return exitCode;
     }
 
     int frameCounter = 0;
@@ -648,6 +654,8 @@ int main(int argc, char** argv)
         manifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
         manifest.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
         manifest.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
+        manifest.exitCode = exitCode;
+        manifest.exitClassification = exitClassification;
         manifest.timestampUtc = formatTimestampUtc();
         manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;

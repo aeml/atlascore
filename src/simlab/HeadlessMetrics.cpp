@@ -228,7 +228,7 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,timestamp_utc,git_commit,git_dirty,build_type\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,exit_code,exit_classification,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
@@ -266,6 +266,8 @@ namespace simlab
             << manifest.startupFailureSummaryFailureCategory << ','
             << manifest.startupFailureManifestWriteStatus << ','
             << manifest.startupFailureManifestFailureCategory << ','
+            << manifest.exitCode << ','
+            << manifest.exitClassification << ','
             << manifest.timestampUtc << ','
             << manifest.gitCommit << ','
             << (manifest.gitDirty ? 1 : 0) << ','

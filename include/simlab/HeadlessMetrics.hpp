@@ -104,6 +104,8 @@ namespace simlab
         std::string startupFailureSummaryFailureCategory;
         std::string startupFailureManifestWriteStatus;
         std::string startupFailureManifestFailureCategory;
+        int exitCode{0};
+        std::string exitClassification;
         std::string timestampUtc;
         std::string gitCommit;
         bool gitDirty{false};

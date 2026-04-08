@@ -239,6 +239,8 @@ namespace
         manifest.startupFailureSummaryFailureCategory = "";
         manifest.startupFailureManifestWriteStatus = "not_applicable";
         manifest.startupFailureManifestFailureCategory = "";
+        manifest.exitCode = 0;
+        manifest.exitClassification = "success_exit";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
         manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
         manifest.gitDirty = true;
@@ -249,8 +251,8 @@ namespace
         simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
 
         const std::string csv = out.str();
-        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
-        assert(csv.find("gravity,gravity,0,0.016667,1,180,1,424242,180,success,,frame_cap,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,artifacts/batch_index.csv,appended,,written,,written,,written,,written,,not_applicable,,not_applicable,,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
+        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,exit_code,exit_classification,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
+        assert(csv.find("gravity,gravity,0,0.016667,1,180,1,424242,180,success,,frame_cap,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,artifacts/batch_index.csv,appended,,written,,written,,written,,written,,not_applicable,,not_applicable,,0,success_exit,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
     }
 
     void VerifyRunConfigHashChangesWhenInputsChange()
@@ -316,6 +318,8 @@ namespace
         manifest.startupFailureSummaryFailureCategory = "";
         manifest.startupFailureManifestWriteStatus = "not_applicable";
         manifest.startupFailureManifestFailureCategory = "";
+        manifest.exitCode = 0;
+        manifest.exitClassification = "success_exit";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
         manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
         manifest.gitDirty = false;
@@ -324,7 +328,7 @@ namespace
         std::ostringstream manifestOut;
         simlab::WriteHeadlessRunManifestCsvHeader(manifestOut);
         simlab::WriteHeadlessRunManifestCsvRow(manifestOut, manifest);
-        assert(manifestOut.str().find("gravity,gravity,0,0.016667,0,0,1,111,12,success,,unbounded_headless_default,out.txt,metrics.csv,summary.csv,,not_requested,,written,,written,,written,,written,,not_applicable,,not_applicable,,") != std::string::npos);
+        assert(manifestOut.str().find("gravity,gravity,0,0.016667,0,0,1,111,12,success,,unbounded_headless_default,out.txt,metrics.csv,summary.csv,,not_requested,,written,,written,,written,,written,,not_applicable,,not_applicable,,0,success_exit,") != std::string::npos);
     }
 
     void VerifyManifestCsvWriterSerializesBatchIndexWriteFailures()
@@ -360,6 +364,8 @@ namespace
         manifest.startupFailureSummaryFailureCategory = "";
         manifest.startupFailureManifestWriteStatus = "not_applicable";
         manifest.startupFailureManifestFailureCategory = "";
+        manifest.exitCode = 0;
+        manifest.exitClassification = "success_exit";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
         manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
         manifest.gitDirty = false;
@@ -368,7 +374,7 @@ namespace
         std::ostringstream out;
         simlab::WriteHeadlessRunManifestCsvHeader(out);
         simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
-        assert(out.str().find("gravity,gravity,0,0.016667,1,2,1,222,2,success,,frame_cap,out.txt,metrics.csv,summary.csv,/dev/full,append_failed,batch_index_write_failed,written,,written,,written,,written,,not_applicable,,not_applicable,,") != std::string::npos);
+        assert(out.str().find("gravity,gravity,0,0.016667,1,2,1,222,2,success,,frame_cap,out.txt,metrics.csv,summary.csv,/dev/full,append_failed,batch_index_write_failed,written,,written,,written,,written,,not_applicable,,not_applicable,,0,success_exit,") != std::string::npos);
     }
 }
 
