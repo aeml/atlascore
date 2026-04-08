@@ -174,4 +174,19 @@ namespace simlab
         out.flags(previousFlags);
         out.precision(previousPrecision);
     }
+
+    void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
+    {
+        out << "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc\n";
+    }
+
+    void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
+    {
+        out << manifest.scenarioKey << ','
+            << manifest.frameCount << ','
+            << manifest.outputPath << ','
+            << manifest.metricsPath << ','
+            << manifest.summaryPath << ','
+            << manifest.timestampUtc << '\n';
+    }
 }

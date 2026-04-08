@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <chrono>
+#include <ctime>
 
 int main(int argc, char** argv)
 {
@@ -201,14 +202,20 @@ int main(int argc, char** argv)
     std::ofstream headlessOut;
     std::ofstream headlessMetricsOut;
     std::ofstream headlessSummaryOut;
+    std::ofstream headlessManifestOut;
     simlab::HeadlessRunSummaryAccumulator headlessSummaryAccumulator;
+    std::string outputPath;
+    std::string metricsPath;
+    std::string summaryPath;
+    std::string manifestPath;
     if (headless)
     {
         const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
         const std::filesystem::path outputBasePath(outputBase);
-        const auto outputPath = outputBasePath.string() + "_output.txt";
-        const auto metricsPath = outputBasePath.string() + "_metrics.csv";
-        const auto summaryPath = outputBasePath.string() + "_summary.csv";
+        outputPath = outputBasePath.string() + "_output.txt";
+        metricsPath = outputBasePath.string() + "_metrics.csv";
+        summaryPath = outputBasePath.string() + "_summary.csv";
+        manifestPath = outputBasePath.string() + "_manifest.csv";
         if (outputBasePath.has_parent_path())
         {
             std::error_code ec;
@@ -265,6 +272,22 @@ int main(int argc, char** argv)
                 logger.Warn("Could not determine current working directory for headless summary");
             }
         }
+
+        headlessManifestOut.open(manifestPath);
+        if (!headlessManifestOut.is_open())
+        {
+            logger.Error(std::string("Failed to open ") + manifestPath);
+        }
+        else
+        {
+            simlab::WriteHeadlessRunManifestCsvHeader(headlessManifestOut);
+            try {
+                auto cwd = std::filesystem::current_path();
+                logger.Info(std::string("Headless manifest path: ") + (cwd / manifestPath).string());
+            } catch(...) {
+                logger.Warn("Could not determine current working directory for headless manifest");
+            }
+        }
     }
 
     int frameCounter = 0;
@@ -319,10 +342,45 @@ int main(int argc, char** argv)
         quitThread.join();
     }
 
+    const auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
     if (headlessSummaryOut.is_open())
     {
-        simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut,
-                                             headlessSummaryAccumulator.Build(selectedScenarioKey));
+        simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
+    }
+
+    if (headlessManifestOut.is_open())
+    {
+        auto formatTimestampUtc = []() -> std::string {
+            const auto now = std::chrono::system_clock::now();
+            const std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+            std::tm utcTime{};
+#if defined(_WIN32)
+            gmtime_s(&utcTime, &nowTime);
+#else
+            gmtime_r(&nowTime, &utcTime);
+#endif
+            char buffer[32]{};
+            if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utcTime) == 0)
+            {
+                return {};
+            }
+            return std::string(buffer);
+        };
+
+        auto toAbsolutePathString = [](const std::string& pathText) -> std::string {
+            std::error_code ec;
+            const auto absolutePath = std::filesystem::absolute(std::filesystem::path(pathText), ec);
+            return ec ? pathText : absolutePath.string();
+        };
+
+        simlab::HeadlessRunManifest manifest{};
+        manifest.scenarioKey = selectedScenarioKey;
+        manifest.frameCount = runSummary.frameCount;
+        manifest.outputPath = toAbsolutePathString(outputPath);
+        manifest.metricsPath = toAbsolutePathString(metricsPath);
+        manifest.summaryPath = toAbsolutePathString(summaryPath);
+        manifest.timestampUtc = formatTimestampUtc();
+        simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
     }
 
     logger.Info("AtlasCore shutting down.");

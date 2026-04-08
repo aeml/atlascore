@@ -9,7 +9,7 @@ The `IScenario` interface has been refactored to separate simulation logic from 
 -   `Update(ecs::World& world, float dt)`: Contains scenario-specific logic independent of renderer output.
 -   `world.Update(dt)` is called by the engine loop exactly once per frame.
 -   `Render(ecs::World& world, std::ostream&)`: Contains visualization logic; in headless mode it writes to `headless_output.txt`.
--   Headless runs also emit `headless_metrics.csv` with deterministic state metrics plus per-frame wall-time columns, and `headless_summary.csv` with one-row aggregate run statistics for regression and profiling analysis, including true nearest-rank p95 timing columns. `--output-prefix=PATH_BASE` redirects all three artifacts to `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, and `PATH_BASE_summary.csv`.
+-   Headless runs also emit `headless_metrics.csv` with deterministic state metrics plus per-frame wall-time columns, `headless_summary.csv` with one-row aggregate run statistics for regression and profiling analysis, including true nearest-rank p95 timing columns, and `headless_manifest.csv` with scenario/frame/path/timestamp metadata for batch indexing. `--output-prefix=PATH_BASE` redirects all four artifacts to `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv`.
 
 ## Verification Strategy
 
@@ -25,7 +25,7 @@ To verify that the physics engine, ECS, and job system are working correctly *wi
     These tests cover individual components and integration scenarios.
 
 2.  **Run Headless Scenarios**:
-    You can run the main application in headless mode. This runs the full update + render path, writes render output to `headless_output.txt`, writes per-frame metrics to `headless_metrics.csv`, and writes one-row aggregate run stats to `headless_summary.csv`. Use `--output-prefix=PATH_BASE` when you need multiple runs side-by-side without overwriting prior artifacts.
+    You can run the main application in headless mode. This runs the full update + render path, writes render output to `headless_output.txt`, writes per-frame metrics to `headless_metrics.csv`, writes one-row aggregate run stats to `headless_summary.csv`, and writes a one-row manifest index to `headless_manifest.csv`. Use `--output-prefix=PATH_BASE` when you need multiple runs side-by-side without overwriting prior artifacts.
     ```bash
     ./atlascore_app --headless [scenario_name]
     ```

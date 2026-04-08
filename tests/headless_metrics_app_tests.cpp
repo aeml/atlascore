@@ -68,17 +68,20 @@ namespace
                                               const std::filesystem::path& metricsPath,
                                               const std::filesystem::path& summaryPath,
                                               const std::filesystem::path& outputPath,
+                                              const std::filesystem::path& manifestPath,
                                               const std::string& expectedScenarioKey)
     {
         std::filesystem::remove(metricsPath);
         std::filesystem::remove(summaryPath);
         std::filesystem::remove(outputPath);
+        std::filesystem::remove(manifestPath);
 
         const int rc = std::system(command.c_str());
         assert(rc == 0);
         assert(std::filesystem::exists(metricsPath));
         assert(std::filesystem::exists(summaryPath));
         assert(std::filesystem::exists(outputPath));
+        assert(std::filesystem::exists(manifestPath));
 
         const auto lines = ReadLines(metricsPath);
         assert(lines.size() == 4);
@@ -134,6 +137,18 @@ namespace
         assert(p95Update <= maxUpdate);
         assert(p95Render <= maxRender);
         assert(p95Frame <= maxFrame);
+
+        const auto manifestLines = ReadLines(manifestPath);
+        assert(manifestLines.size() == 2);
+        assert(manifestLines[0] == "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc");
+        const auto manifestColumns = SplitCsvRow(manifestLines[1]);
+        assert(manifestColumns.size() == 6u);
+        assert(manifestColumns[0] == expectedScenarioKey);
+        assert(manifestColumns[1] == "3");
+        assert(manifestColumns[2] == outputPath.string());
+        assert(manifestColumns[3] == metricsPath.string());
+        assert(manifestColumns[4] == summaryPath.string());
+        assert(!manifestColumns[5].empty());
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()
@@ -142,11 +157,13 @@ namespace
         const auto metricsPath = cwd / "headless_metrics.csv";
         const auto summaryPath = cwd / "headless_summary.csv";
         const auto outputPath = cwd / "headless_output.txt";
+        const auto manifestPath = cwd / "headless_manifest.csv";
 
         VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 > /tmp/atlascore_headless_metrics_app_test.log 2>&1",
                                              metricsPath,
                                              summaryPath,
                                              outputPath,
+                                             manifestPath,
                                              "gravity");
 
     }
@@ -158,12 +175,14 @@ namespace
         std::filesystem::remove(prefix.string() + "_metrics.csv");
         std::filesystem::remove(prefix.string() + "_summary.csv");
         std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
         std::filesystem::remove_all(cwd / "artifacts");
 
         VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run > /tmp/atlascore_headless_metrics_prefixed_app_test.log 2>&1",
                                              prefix.string() + "_metrics.csv",
                                              prefix.string() + "_summary.csv",
                                              prefix.string() + "_output.txt",
+                                             prefix.string() + "_manifest.csv",
                                              "gravity");
     }
 }

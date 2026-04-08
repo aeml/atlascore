@@ -60,6 +60,16 @@ namespace simlab
         double p95FrameWallSeconds{0.0};
     };
 
+    struct HeadlessRunManifest
+    {
+        std::string scenarioKey;
+        std::size_t frameCount{0};
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string timestampUtc;
+    };
+
     class HeadlessRunSummaryAccumulator
     {
     public:
@@ -91,4 +101,6 @@ namespace simlab
     void WriteFrameMetricsCsvRow(std::ostream& out, const FrameMetrics& metrics);
     void WriteHeadlessRunSummaryCsvHeader(std::ostream& out);
     void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary);
+    void WriteHeadlessRunManifestCsvHeader(std::ostream& out);
+    void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest);
 }
