@@ -92,6 +92,12 @@ namespace simlab
         std::string batchIndexPath;
         std::string batchIndexAppendStatus;
         std::string batchIndexFailureCategory;
+        std::string outputWriteStatus;
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus;
+        std::string metricsFailureCategory;
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
         std::string timestampUtc;
         std::string gitCommit;
         bool gitDirty{false};

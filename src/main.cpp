@@ -260,6 +260,12 @@ int main(int argc, char** argv)
     std::string failureCategory;
     std::string batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
     std::string batchIndexFailureCategory;
+    std::string outputWriteStatus;
+    std::string outputFailureCategory;
+    std::string metricsWriteStatus;
+    std::string metricsFailureCategory;
+    std::string summaryWriteStatus;
+    std::string summaryFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
@@ -309,6 +315,12 @@ int main(int argc, char** argv)
         failureManifest.batchIndexPath = "";
         failureManifest.batchIndexAppendStatus = "not_requested";
         failureManifest.batchIndexFailureCategory = "";
+        failureManifest.outputWriteStatus = "";
+        failureManifest.outputFailureCategory = "";
+        failureManifest.metricsWriteStatus = "";
+        failureManifest.metricsFailureCategory = "";
+        failureManifest.summaryWriteStatus = "";
+        failureManifest.summaryFailureCategory = "";
         failureManifest.timestampUtc = formatTimestampUtc();
         failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -372,6 +384,7 @@ int main(int argc, char** argv)
         }
         else
         {
+            outputWriteStatus = "written";
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless output path: ") + (cwd / outputPath).string());
@@ -389,7 +402,14 @@ int main(int argc, char** argv)
         }
         else
         {
+            metricsWriteStatus = "written";
             simlab::WriteFrameMetricsCsvHeader(headlessMetricsOut);
+            headlessMetricsOut.flush();
+            if (!headlessMetricsOut.good())
+            {
+                metricsWriteStatus = "write_failed";
+                metricsFailureCategory = "metrics_write_failed";
+            }
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless metrics path: ") + (cwd / metricsPath).string());
@@ -407,7 +427,14 @@ int main(int argc, char** argv)
         }
         else
         {
+            summaryWriteStatus = "written";
             simlab::WriteHeadlessRunSummaryCsvHeader(headlessSummaryOut);
+            headlessSummaryOut.flush();
+            if (!headlessSummaryOut.good())
+            {
+                summaryWriteStatus = "write_failed";
+                summaryFailureCategory = "summary_write_failed";
+            }
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless summary path: ") + (cwd / summaryPath).string());
@@ -464,20 +491,35 @@ int main(int argc, char** argv)
 
             const auto renderStart = steady_clock::now();
             scenario->Render(world, *renderStream);
+            if (headless && headlessOut.is_open())
+            {
+                headlessOut.flush();
+                if (!headlessOut.good())
+                {
+                    outputWriteStatus = "write_failed";
+                    outputFailureCategory = "output_write_failed";
+                }
+            }
             const auto renderEnd = steady_clock::now();
 
-            if (headlessMetricsOut.is_open())
+            if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
             {
-                if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
+                auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
+                metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
+                metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
+                metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
+                metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
+                                                    metrics.updateWallSeconds + metrics.renderWallSeconds);
+                headlessSummaryAccumulator.AddFrame(metrics);
+                if (headlessMetricsOut.is_open() && metricsFailureCategory.empty())
                 {
-                    auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
-                    metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
-                    metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
-                    metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
-                    metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
-                                                        metrics.updateWallSeconds + metrics.renderWallSeconds);
-                    headlessSummaryAccumulator.AddFrame(metrics);
                     simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
+                    headlessMetricsOut.flush();
+                    if (!headlessMetricsOut.good())
+                    {
+                        metricsWriteStatus = "write_failed";
+                        metricsFailureCategory = "metrics_write_failed";
+                    }
                 }
             }
 
@@ -528,9 +570,15 @@ int main(int argc, char** argv)
     runSummary.runStatus = runStatus;
     runSummary.failureCategory = failureCategory;
     runSummary.terminationReason = terminationReason;
-    if (headlessSummaryOut.is_open())
+    if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
     {
         simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
+        headlessSummaryOut.flush();
+        if (!headlessSummaryOut.good())
+        {
+            summaryWriteStatus = "write_failed";
+            summaryFailureCategory = "summary_write_failed";
+        }
     }
 
     if (headlessManifestOut.is_open())
@@ -555,6 +603,12 @@ int main(int argc, char** argv)
         manifest.batchIndexPath = batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath);
         manifest.batchIndexAppendStatus = batchIndexAppendStatus;
         manifest.batchIndexFailureCategory = batchIndexFailureCategory;
+        manifest.outputWriteStatus = outputWriteStatus;
+        manifest.outputFailureCategory = outputFailureCategory;
+        manifest.metricsWriteStatus = metricsWriteStatus;
+        manifest.metricsFailureCategory = metricsFailureCategory;
+        manifest.summaryWriteStatus = summaryWriteStatus;
+        manifest.summaryFailureCategory = summaryFailureCategory;
         manifest.timestampUtc = formatTimestampUtc();
         manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
