@@ -49,6 +49,7 @@ namespace simlab
         std::string resolvedScenarioKey;
         bool fallbackUsed{false};
         double fixedDtSeconds{0.0};
+        bool boundedFrames{false};
         std::size_t requestedFrames{0};
         bool headless{false};
         std::uint64_t runConfigHash{0};
@@ -74,6 +75,7 @@ namespace simlab
         std::string resolvedScenarioKey;
         bool fallbackUsed{false};
         double fixedDtSeconds{0.0};
+        bool boundedFrames{false};
         std::size_t requestedFrames{0};
         bool headless{false};
         std::uint64_t runConfigHash{0};

@@ -189,7 +189,7 @@ namespace simlab
 
     void WriteHeadlessRunSummaryCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
     }
 
     void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary)
@@ -201,6 +201,7 @@ namespace simlab
             << summary.resolvedScenarioKey << ','
             << (summary.fallbackUsed ? 1 : 0) << ','
             << std::fixed << std::setprecision(6) << summary.fixedDtSeconds << ','
+            << (summary.boundedFrames ? 1 : 0) << ','
             << summary.requestedFrames << ','
             << (summary.headless ? 1 : 0) << ','
             << summary.runConfigHash << ','
@@ -224,7 +225,7 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
@@ -236,6 +237,7 @@ namespace simlab
             << manifest.resolvedScenarioKey << ','
             << (manifest.fallbackUsed ? 1 : 0) << ','
             << std::fixed << std::setprecision(6) << manifest.fixedDtSeconds << ','
+            << (manifest.boundedFrames ? 1 : 0) << ','
             << manifest.requestedFrames << ','
             << (manifest.headless ? 1 : 0) << ','
             << manifest.runConfigHash << ','

@@ -193,7 +193,8 @@ int main(int argc, char** argv)
     std::atomic<bool> running{true};
 
     constexpr double fixedDtSeconds = 1.0 / 60.0;
-    const auto requestedFrames = maxFrames > 0 ? static_cast<std::size_t>(maxFrames) : 0u;
+    const bool boundedFrames = maxFrames > 0;
+    const auto requestedFrames = boundedFrames ? static_cast<std::size_t>(maxFrames) : 0u;
     const auto runConfigHash = simlab::HashHeadlessRunConfig(selectedScenarioKey,
                                                              fixedDtSeconds,
                                                              requestedFrames,
@@ -372,6 +373,7 @@ int main(int argc, char** argv)
     runSummary.resolvedScenarioKey = selectedScenarioKey;
     runSummary.fallbackUsed = fallbackUsed;
     runSummary.fixedDtSeconds = fixedDtSeconds;
+    runSummary.boundedFrames = boundedFrames;
     runSummary.requestedFrames = requestedFrames;
     runSummary.headless = headless;
     runSummary.runConfigHash = runConfigHash;
@@ -411,6 +413,7 @@ int main(int argc, char** argv)
         manifest.resolvedScenarioKey = selectedScenarioKey;
         manifest.fallbackUsed = fallbackUsed;
         manifest.fixedDtSeconds = fixedDtSeconds;
+        manifest.boundedFrames = boundedFrames;
         manifest.requestedFrames = requestedFrames;
         manifest.headless = headless;
         manifest.runConfigHash = runConfigHash;
