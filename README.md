@@ -20,6 +20,26 @@ AtlasCore is a modern C++20 simulation framework for deterministic, testable, sy
 - simulation / engine architecture
 - shipping discipline beyond toy demos
 
+## Recommended visuals to add
+- Terminal capture or GIF of the `demo` scenario running
+- Screenshot of headless output or determinism-oriented scenario output
+- One architecture image or annotated screenshot showing modules / simulation flow
+
+## System architecture
+
+```mermaid
+graph TD
+    App[atlascore_app] --> SimLab[Scenario Registry / SimLab]
+    SimLab --> Loop[FixedTimestepLoop]
+    Loop --> Jobs[JobSystem]
+    Loop --> ECS[World / ECS]
+    ECS --> Physics[Physics Systems]
+    ECS --> Render[ASCII Renderer]
+    Physics --> Hashing[Determinism Hashing / Tests]
+    Jobs --> Physics
+    Render --> Output[Interactive Terminal or Headless Output]
+```
+
 See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module-specific docs live under [docs/](docs/).
 
 ## Modules
