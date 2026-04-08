@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iosfwd>
 #include <string>
+#include <vector>
 
 namespace ecs { class World; }
 namespace physics { class PhysicsSystem; }
@@ -76,9 +77,9 @@ namespace simlab
         double m_totalUpdateWallSeconds{0.0};
         double m_totalRenderWallSeconds{0.0};
         double m_totalFrameWallSeconds{0.0};
-        double m_maxUpdateWallSeconds{0.0};
-        double m_maxRenderWallSeconds{0.0};
-        double m_maxFrameWallSeconds{0.0};
+        std::vector<double> m_updateWallSamples;
+        std::vector<double> m_renderWallSamples;
+        std::vector<double> m_frameWallSamples;
     };
 
     FrameMetrics CaptureFrameMetrics(const ecs::World& world,

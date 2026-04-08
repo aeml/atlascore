@@ -91,7 +91,7 @@ namespace
         assert(csv.find("7,0.125000,42,3,5,4,6,0.001234,0.000321,0.001555\n") != std::string::npos);
     }
 
-    void VerifySummaryAccumulatorTracksFinalHashAndPercentiles()
+    void VerifySummaryAccumulatorTracksFinalHashAndAggregates()
     {
         simlab::HeadlessRunSummary summary{};
         summary.scenarioKey = "gravity";
@@ -138,11 +138,35 @@ namespace
         assert(summary.maxDynamicBodyCount == 4u);
         assert(summary.maxTransformCount == 6u);
         assert(summary.avgUpdateWallSeconds == 0.002000);
-        assert(summary.p95UpdateWallSeconds == 0.003000);
         assert(summary.avgRenderWallSeconds == 0.0005333333333333334);
-        assert(summary.p95RenderWallSeconds == 0.000700);
         assert(summary.avgFrameWallSeconds == 0.0026999999999999997);
-        assert(summary.p95FrameWallSeconds == 0.003900);
+    }
+
+    void VerifySummaryAccumulatorUsesTrueNearestRankPercentiles()
+    {
+        simlab::HeadlessRunSummaryAccumulator accumulator;
+        for (std::size_t i = 0; i < 20; ++i)
+        {
+            const double update = 0.001 * static_cast<double>(i + 1);
+            const double render = 0.0001 * static_cast<double>(i + 1);
+            const double frame = update + render;
+            accumulator.AddFrame(simlab::FrameMetrics{.frameIndex = i + 1,
+                                                      .simTimeSeconds = static_cast<double>(i + 1) / 60.0,
+                                                      .worldHash = static_cast<std::uint64_t>(100 + i),
+                                                      .collisionCount = i,
+                                                      .rigidBodyCount = 10 + i,
+                                                      .dynamicBodyCount = 9 + i,
+                                                      .transformCount = 11 + i,
+                                                      .updateWallSeconds = update,
+                                                      .renderWallSeconds = render,
+                                                      .frameWallSeconds = frame});
+        }
+
+        const auto summary = accumulator.Build("percentile");
+        assert(summary.frameCount == 20u);
+        assert(summary.p95UpdateWallSeconds == 0.019000);
+        assert(summary.p95RenderWallSeconds == 0.001900);
+        assert(summary.p95FrameWallSeconds == 0.020900);
     }
 
     void VerifySummaryCsvWriterProducesStableHeaderAndRow()
@@ -177,7 +201,8 @@ int main()
 {
     VerifyFrameMetricsCapturePhysicsState();
     VerifyCsvWriterProducesStableHeaderAndRow();
-    VerifySummaryAccumulatorTracksFinalHashAndPercentiles();
+    VerifySummaryAccumulatorTracksFinalHashAndAggregates();
+    VerifySummaryAccumulatorUsesTrueNearestRankPercentiles();
     VerifySummaryCsvWriterProducesStableHeaderAndRow();
     std::cout << "Headless metrics tests passed\n";
     return 0;

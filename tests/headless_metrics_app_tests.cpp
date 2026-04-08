@@ -24,6 +24,7 @@
 #include <vector>
 #include <cstdlib>
 #include <charconv>
+#include <algorithm>
 
 namespace
 {
@@ -115,6 +116,24 @@ namespace
         assert(ParseDouble(summaryColumns[11]) >= ParseDouble(summaryColumns[10]));
         assert(ParseDouble(summaryColumns[12]) >= 0.0);
         assert(ParseDouble(summaryColumns[13]) >= ParseDouble(summaryColumns[12]));
+
+        double maxUpdate = 0.0;
+        double maxRender = 0.0;
+        double maxFrame = 0.0;
+        for (std::size_t i = 1; i < lines.size(); ++i)
+        {
+            const auto columns = SplitCsvRow(lines[i]);
+            maxUpdate = std::max(maxUpdate, ParseDouble(columns[7]));
+            maxRender = std::max(maxRender, ParseDouble(columns[8]));
+            maxFrame = std::max(maxFrame, ParseDouble(columns[9]));
+        }
+
+        const double p95Update = ParseDouble(summaryColumns[9]);
+        const double p95Render = ParseDouble(summaryColumns[11]);
+        const double p95Frame = ParseDouble(summaryColumns[13]);
+        assert(p95Update <= maxUpdate);
+        assert(p95Render <= maxRender);
+        assert(p95Frame <= maxFrame);
     }
 }
 

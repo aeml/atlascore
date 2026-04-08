@@ -9,7 +9,7 @@ The `IScenario` interface has been refactored to separate simulation logic from 
 -   `Update(ecs::World& world, float dt)`: Contains scenario-specific logic independent of renderer output.
 -   `world.Update(dt)` is called by the engine loop exactly once per frame.
 -   `Render(ecs::World& world, std::ostream&)`: Contains visualization logic; in headless mode it writes to `headless_output.txt`.
--   Headless runs also emit `headless_metrics.csv` with deterministic state metrics plus per-frame wall-time columns, and `headless_summary.csv` with one-row aggregate run statistics for regression and profiling analysis.
+-   Headless runs also emit `headless_metrics.csv` with deterministic state metrics plus per-frame wall-time columns, and `headless_summary.csv` with one-row aggregate run statistics for regression and profiling analysis, including true nearest-rank p95 timing columns.
 
 ## Verification Strategy
 

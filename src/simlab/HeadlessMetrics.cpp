@@ -22,14 +22,30 @@
 #include "simlab/WorldHasher.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <ostream>
+#include <vector>
 
 namespace
 {
     double AverageOrZero(const double total, const std::size_t count) noexcept
     {
         return count > 0 ? total / static_cast<double>(count) : 0.0;
+    }
+
+    double NearestRankPercentile(std::vector<double> samples, const double percentile) noexcept
+    {
+        if (samples.empty())
+        {
+            return 0.0;
+        }
+
+        std::sort(samples.begin(), samples.end());
+        const double rank = std::ceil((percentile / 100.0) * static_cast<double>(samples.size()));
+        const std::size_t index = std::min(samples.size() - 1,
+                                           static_cast<std::size_t>(std::max(1.0, rank) - 1.0));
+        return samples[index];
     }
 }
 
@@ -48,9 +64,9 @@ namespace simlab
         m_totalUpdateWallSeconds += metrics.updateWallSeconds;
         m_totalRenderWallSeconds += metrics.renderWallSeconds;
         m_totalFrameWallSeconds += metrics.frameWallSeconds;
-        m_maxUpdateWallSeconds = std::max(m_maxUpdateWallSeconds, metrics.updateWallSeconds);
-        m_maxRenderWallSeconds = std::max(m_maxRenderWallSeconds, metrics.renderWallSeconds);
-        m_maxFrameWallSeconds = std::max(m_maxFrameWallSeconds, metrics.frameWallSeconds);
+        m_updateWallSamples.push_back(metrics.updateWallSeconds);
+        m_renderWallSamples.push_back(metrics.renderWallSeconds);
+        m_frameWallSamples.push_back(metrics.frameWallSeconds);
     }
 
     HeadlessRunSummary HeadlessRunSummaryAccumulator::Build(const std::string& scenarioKey) const
@@ -65,11 +81,11 @@ namespace simlab
         summary.maxDynamicBodyCount = m_maxDynamicBodyCount;
         summary.maxTransformCount = m_maxTransformCount;
         summary.avgUpdateWallSeconds = AverageOrZero(m_totalUpdateWallSeconds, m_frameCount);
-        summary.p95UpdateWallSeconds = m_maxUpdateWallSeconds;
+        summary.p95UpdateWallSeconds = NearestRankPercentile(m_updateWallSamples, 95.0);
         summary.avgRenderWallSeconds = AverageOrZero(m_totalRenderWallSeconds, m_frameCount);
-        summary.p95RenderWallSeconds = m_maxRenderWallSeconds;
+        summary.p95RenderWallSeconds = NearestRankPercentile(m_renderWallSamples, 95.0);
         summary.avgFrameWallSeconds = AverageOrZero(m_totalFrameWallSeconds, m_frameCount);
-        summary.p95FrameWallSeconds = m_maxFrameWallSeconds;
+        summary.p95FrameWallSeconds = NearestRankPercentile(m_frameWallSamples, 95.0);
         return summary;
     }
 
