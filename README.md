@@ -25,6 +25,16 @@ AtlasCore is a modern C++20 simulation framework for deterministic, testable, sy
 - Screenshot of headless output or determinism-oriented scenario output
 - One architecture image or annotated screenshot showing modules / simulation flow
 
+## Vision and media
+- Final vision: [final_vision.md](final_vision.md)
+- Planned media folder: [`docs/media/`](docs/media/)
+
+## Preview placeholders
+![AtlasCore demo placeholder](docs/media/demo-terminal.svg)
+![AtlasCore headless output placeholder](docs/media/headless-output.svg)
+
+> Replace the placeholder SVG files in `docs/media/` with terminal captures or GIFs from real scenarios. Add an animated capture as `docs/media/demo-loop.gif` when ready.
+
 ## System architecture
 
 ```mermaid

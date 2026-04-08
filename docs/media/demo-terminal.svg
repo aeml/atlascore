@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0b1020"/>
+  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#111827" stroke="#60a5fa" stroke-width="3" stroke-dasharray="12 10"/>
+  <text x="640" y="210" text-anchor="middle" fill="#eff6ff" font-size="42" font-family="Arial, sans-serif">AtlasCore README Placeholder</text>
+  <text x="640" y="280" text-anchor="middle" fill="#93c5fd" font-size="28" font-family="Arial, sans-serif">Replace with interactive demo terminal capture</text>
+  <text x="640" y="330" text-anchor="middle" fill="#93c5fd" font-size="28" font-family="Arial, sans-serif">Show motion, scenario structure, and legible simulation output</text>
+  <text x="640" y="600" text-anchor="middle" fill="#bfdbfe" font-size="24" font-family="Arial, sans-serif">docs/media/demo-terminal.svg → replace with real capture</text>
+</svg>
