@@ -74,7 +74,7 @@ wrecking         # Wrecking Ball (Joints & Collisions)
 fluid            # Particle Fluid (High Entity Count)
 ```
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` to stream render output to `headless_output.txt` and per-frame metrics to `headless_metrics.csv`.
+Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` for file-based headless exports. Add `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, and `PATH_BASE_summary.csv` instead of the default `headless_*` files.
 
 ## Directory Structure (Public Headers)
 
@@ -121,10 +121,11 @@ Options:
 ./atlascore_app gravity         # specific scenario
 ./atlascore_app fluid --headless
 ./atlascore_app demo --headless --frames=300  # auto-quit after 300 frames
+./atlascore_app gravity --headless --frames=300 --output-prefix=artifacts/gravity_run
 ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
 ```
 
-Headless output files: `headless_output.txt`, `headless_metrics.csv`, and `headless_summary.csv` (all overwritten per run). The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV captures one row per run with frame count, final world hash, collision totals/peaks, max body counts, and avg/true nearest-rank p95 wall times.
+Headless output files default to `headless_output.txt`, `headless_metrics.csv`, and `headless_summary.csv` (all overwritten per run). Use `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, and `PATH_BASE_summary.csv` instead. The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV captures one row per run with frame count, final world hash, collision totals/peaks, max body counts, and avg/true nearest-rank p95 wall times.
 
 ## Testing
 

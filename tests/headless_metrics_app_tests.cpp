@@ -64,17 +64,17 @@ namespace
         return value;
     }
 
-    void VerifyAppWritesHeadlessMetricsCsv()
+    void VerifyHeadlessRunWritesExpectedFiles(const std::string& command,
+                                              const std::filesystem::path& metricsPath,
+                                              const std::filesystem::path& summaryPath,
+                                              const std::filesystem::path& outputPath,
+                                              const std::string& expectedScenarioKey)
     {
-        const auto cwd = std::filesystem::current_path();
-        const auto metricsPath = cwd / "headless_metrics.csv";
-        const auto summaryPath = cwd / "headless_summary.csv";
-        const auto outputPath = cwd / "headless_output.txt";
         std::filesystem::remove(metricsPath);
         std::filesystem::remove(summaryPath);
         std::filesystem::remove(outputPath);
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=3 > /tmp/atlascore_headless_metrics_app_test.log 2>&1");
+        const int rc = std::system(command.c_str());
         assert(rc == 0);
         assert(std::filesystem::exists(metricsPath));
         assert(std::filesystem::exists(summaryPath));
@@ -107,7 +107,7 @@ namespace
         assert(summaryLines[0] == "scenario_key,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
         assert(summaryColumns.size() == 14u);
-        assert(summaryColumns[0] == "gravity");
+        assert(summaryColumns[0] == expectedScenarioKey);
         assert(summaryColumns[1] == "3");
         assert(!summaryColumns[2].empty());
         assert(ParseDouble(summaryColumns[8]) >= 0.0);
@@ -135,11 +135,43 @@ namespace
         assert(p95Render <= maxRender);
         assert(p95Frame <= maxFrame);
     }
+
+    void VerifyAppWritesHeadlessMetricsCsv()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto metricsPath = cwd / "headless_metrics.csv";
+        const auto summaryPath = cwd / "headless_summary.csv";
+        const auto outputPath = cwd / "headless_output.txt";
+
+        VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 > /tmp/atlascore_headless_metrics_app_test.log 2>&1",
+                                             metricsPath,
+                                             summaryPath,
+                                             outputPath,
+                                             "gravity");
+
+    }
+
+    void VerifyAppWritesPrefixedHeadlessArtifacts()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "gravity_batch_run";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove_all(cwd / "artifacts");
+
+        VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run > /tmp/atlascore_headless_metrics_prefixed_app_test.log 2>&1",
+                                             prefix.string() + "_metrics.csv",
+                                             prefix.string() + "_summary.csv",
+                                             prefix.string() + "_output.txt",
+                                             "gravity");
+    }
 }
 
 int main()
 {
     VerifyAppWritesHeadlessMetricsCsv();
+    VerifyAppWritesPrefixedHeadlessArtifacts();
     std::cout << "Headless metrics app tests passed\n";
     return 0;
 }

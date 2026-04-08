@@ -76,6 +76,7 @@ int main(int argc, char** argv)
     std::string headlessEnvValue = getEnvValue("ATLASCORE_HEADLESS");
     bool headless = envTruthy(headlessEnvValue.c_str());
     std::string scenarioArg;
+    std::string outputPrefix;
     int maxFrames = -1; // Headless auto-termination after N frames if >0
     for (int i = 1; i < argc; ++i)
     {
@@ -92,6 +93,10 @@ int main(int argc, char** argv)
             if (maxFrames < 0) {
                 logger.Warn("Ignoring invalid --frames value: " + std::string(value));
             }
+        }
+        else if (arg.rfind("--output-prefix=", 0) == 0)
+        {
+            outputPrefix = std::string(arg.substr(16));
         }
         else if (scenarioArg.empty())
         {
@@ -199,48 +204,63 @@ int main(int argc, char** argv)
     simlab::HeadlessRunSummaryAccumulator headlessSummaryAccumulator;
     if (headless)
     {
-        headlessOut.open("headless_output.txt");
+        const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
+        const std::filesystem::path outputBasePath(outputBase);
+        const auto outputPath = outputBasePath.string() + "_output.txt";
+        const auto metricsPath = outputBasePath.string() + "_metrics.csv";
+        const auto summaryPath = outputBasePath.string() + "_summary.csv";
+        if (outputBasePath.has_parent_path())
+        {
+            std::error_code ec;
+            std::filesystem::create_directories(outputBasePath.parent_path(), ec);
+            if (ec)
+            {
+                logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
+            }
+        }
+
+        headlessOut.open(outputPath);
         if (!headlessOut.is_open())
         {
-            logger.Error("Failed to open headless_output.txt");
+            logger.Error(std::string("Failed to open ") + outputPath);
         }
         else
         {
             try {
                 auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless output path: ") + (cwd / "headless_output.txt").string());
+                logger.Info(std::string("Headless output path: ") + (cwd / outputPath).string());
             } catch(...) {
                 logger.Warn("Could not determine current working directory for headless output");
             }
         }
 
-        headlessMetricsOut.open("headless_metrics.csv");
+        headlessMetricsOut.open(metricsPath);
         if (!headlessMetricsOut.is_open())
         {
-            logger.Error("Failed to open headless_metrics.csv");
+            logger.Error(std::string("Failed to open ") + metricsPath);
         }
         else
         {
             simlab::WriteFrameMetricsCsvHeader(headlessMetricsOut);
             try {
                 auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless metrics path: ") + (cwd / "headless_metrics.csv").string());
+                logger.Info(std::string("Headless metrics path: ") + (cwd / metricsPath).string());
             } catch(...) {
                 logger.Warn("Could not determine current working directory for headless metrics");
             }
         }
 
-        headlessSummaryOut.open("headless_summary.csv");
+        headlessSummaryOut.open(summaryPath);
         if (!headlessSummaryOut.is_open())
         {
-            logger.Error("Failed to open headless_summary.csv");
+            logger.Error(std::string("Failed to open ") + summaryPath);
         }
         else
         {
             simlab::WriteHeadlessRunSummaryCsvHeader(headlessSummaryOut);
             try {
                 auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless summary path: ") + (cwd / "headless_summary.csv").string());
+                logger.Info(std::string("Headless summary path: ") + (cwd / summaryPath).string());
             } catch(...) {
                 logger.Warn("Could not determine current working directory for headless summary");
             }
