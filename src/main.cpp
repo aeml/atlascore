@@ -266,6 +266,12 @@ int main(int argc, char** argv)
     std::string metricsFailureCategory;
     std::string summaryWriteStatus;
     std::string summaryFailureCategory;
+    std::string manifestWriteStatus;
+    std::string manifestFailureCategory;
+    std::string startupFailureSummaryWriteStatus{"not_applicable"};
+    std::string startupFailureSummaryFailureCategory;
+    std::string startupFailureManifestWriteStatus{"not_applicable"};
+    std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
@@ -287,8 +293,15 @@ int main(int argc, char** argv)
         std::ofstream failureSummaryOut(startupFailureSummaryPath);
         if (failureSummaryOut.is_open())
         {
+            startupFailureSummaryWriteStatus = "written";
             simlab::WriteHeadlessRunSummaryCsvHeader(failureSummaryOut);
             simlab::WriteHeadlessRunSummaryCsvRow(failureSummaryOut, failureSummary);
+            failureSummaryOut.flush();
+            if (!failureSummaryOut.good())
+            {
+                startupFailureSummaryWriteStatus = "write_failed";
+                startupFailureSummaryFailureCategory = "startup_failure_summary_write_failed";
+            }
         }
         else
         {
@@ -321,6 +334,12 @@ int main(int argc, char** argv)
         failureManifest.metricsFailureCategory = "";
         failureManifest.summaryWriteStatus = "";
         failureManifest.summaryFailureCategory = "";
+        failureManifest.manifestWriteStatus = "written";
+        failureManifest.manifestFailureCategory = "";
+        failureManifest.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
+        failureManifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
+        failureManifest.startupFailureManifestWriteStatus = "pending";
+        failureManifest.startupFailureManifestFailureCategory = "";
         failureManifest.timestampUtc = formatTimestampUtc();
         failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -329,8 +348,15 @@ int main(int argc, char** argv)
         std::ofstream failureManifestOut(startupFailureManifestPath);
         if (failureManifestOut.is_open())
         {
+            failureManifest.startupFailureManifestWriteStatus = "written";
             simlab::WriteHeadlessRunManifestCsvHeader(failureManifestOut);
             simlab::WriteHeadlessRunManifestCsvRow(failureManifestOut, failureManifest);
+            failureManifestOut.flush();
+            if (!failureManifestOut.good())
+            {
+                failureManifest.startupFailureManifestWriteStatus = "write_failed";
+                failureManifest.startupFailureManifestFailureCategory = "startup_failure_manifest_write_failed";
+            }
         }
         else
         {
@@ -452,7 +478,14 @@ int main(int argc, char** argv)
         }
         else
         {
+            manifestWriteStatus = "written";
             simlab::WriteHeadlessRunManifestCsvHeader(headlessManifestOut);
+            headlessManifestOut.flush();
+            if (!headlessManifestOut.good())
+            {
+                manifestWriteStatus = "write_failed";
+                manifestFailureCategory = "manifest_write_failed";
+            }
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless manifest path: ") + (cwd / manifestPath).string());
@@ -609,6 +642,12 @@ int main(int argc, char** argv)
         manifest.metricsFailureCategory = metricsFailureCategory;
         manifest.summaryWriteStatus = summaryWriteStatus;
         manifest.summaryFailureCategory = summaryFailureCategory;
+        manifest.manifestWriteStatus = manifestWriteStatus;
+        manifest.manifestFailureCategory = manifestFailureCategory;
+        manifest.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
+        manifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
+        manifest.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
+        manifest.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
         manifest.timestampUtc = formatTimestampUtc();
         manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -659,7 +698,16 @@ int main(int argc, char** argv)
             }
         }
 
-        simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
+        if (manifestFailureCategory.empty())
+        {
+            simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
+            headlessManifestOut.flush();
+            if (!headlessManifestOut.good())
+            {
+                manifestWriteStatus = "write_failed";
+                manifestFailureCategory = "manifest_write_failed";
+            }
+        }
     }
 
     logger.Info("AtlasCore shutting down.");

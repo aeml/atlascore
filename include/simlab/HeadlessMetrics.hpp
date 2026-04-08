@@ -98,6 +98,12 @@ namespace simlab
         std::string metricsFailureCategory;
         std::string summaryWriteStatus;
         std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+        std::string startupFailureSummaryWriteStatus;
+        std::string startupFailureSummaryFailureCategory;
+        std::string startupFailureManifestWriteStatus;
+        std::string startupFailureManifestFailureCategory;
         std::string timestampUtc;
         std::string gitCommit;
         bool gitDirty{false};
