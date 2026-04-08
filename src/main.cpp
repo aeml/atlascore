@@ -258,6 +258,8 @@ int main(int argc, char** argv)
     std::string manifestPath;
     std::string runStatus{"success"};
     std::string failureCategory;
+    std::string batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
+    std::string batchIndexFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
@@ -304,6 +306,9 @@ int main(int argc, char** argv)
         failureManifest.outputPath = "";
         failureManifest.metricsPath = "";
         failureManifest.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
+        failureManifest.batchIndexPath = "";
+        failureManifest.batchIndexAppendStatus = "not_requested";
+        failureManifest.batchIndexFailureCategory = "";
         failureManifest.timestampUtc = formatTimestampUtc();
         failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -332,8 +337,16 @@ int main(int argc, char** argv)
             std::filesystem::create_directories(path.parent_path(), ec);
             if (ec)
             {
-                runStatus = "startup_failure";
-                failureCategory = label == "output" ? "output_open_failed" : "batch_index_open_failed";
+                if (label == "output")
+                {
+                    runStatus = "startup_failure";
+                    failureCategory = "output_open_failed";
+                }
+                else
+                {
+                    batchIndexAppendStatus = "append_failed";
+                    batchIndexFailureCategory = "batch_index_open_failed";
+                }
                 logger.Error(std::string("Failed to create ") + label + " directory: " + path.parent_path().string());
             }
         };
@@ -539,11 +552,13 @@ int main(int argc, char** argv)
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);
         manifest.summaryPath = toAbsolutePathString(summaryPath);
+        manifest.batchIndexPath = batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath);
+        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
+        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
         manifest.timestampUtc = formatTimestampUtc();
         manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
         manifest.buildType = ATLASCORE_BUILD_TYPE;
-        simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
 
         if (!batchIndexPath.empty())
         {
@@ -555,6 +570,10 @@ int main(int argc, char** argv)
             std::ofstream batchIndexOut(absoluteBatchIndexPath, std::ios::app);
             if (!batchIndexOut.is_open())
             {
+                batchIndexAppendStatus = "append_failed";
+                batchIndexFailureCategory = "batch_index_open_failed";
+                manifest.batchIndexAppendStatus = batchIndexAppendStatus;
+                manifest.batchIndexFailureCategory = batchIndexFailureCategory;
                 logger.Error(std::string("Failed to open batch index: ") + absoluteBatchIndexPath);
             }
             else
@@ -566,6 +585,8 @@ int main(int argc, char** argv)
                 simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
             }
         }
+
+        simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
     }
 
     logger.Info("AtlasCore shutting down.");

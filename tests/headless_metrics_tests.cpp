@@ -224,6 +224,9 @@ namespace
         manifest.outputPath = "artifacts/gravity_output.txt";
         manifest.metricsPath = "artifacts/gravity_metrics.csv";
         manifest.summaryPath = "artifacts/gravity_summary.csv";
+        manifest.batchIndexPath = "artifacts/batch_index.csv";
+        manifest.batchIndexAppendStatus = "appended";
+        manifest.batchIndexFailureCategory = "";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
         manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
         manifest.gitDirty = true;
@@ -234,8 +237,8 @@ namespace
         simlab::WriteHeadlessRunManifestCsvRow(out, manifest);
 
         const std::string csv = out.str();
-        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
-        assert(csv.find("gravity,gravity,0,0.016667,1,180,1,424242,180,success,,frame_cap,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
+        assert(csv.find("requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,timestamp_utc,git_commit,git_dirty,build_type\n") == 0);
+        assert(csv.find("gravity,gravity,0,0.016667,1,180,1,424242,180,success,,frame_cap,artifacts/gravity_output.txt,artifacts/gravity_metrics.csv,artifacts/gravity_summary.csv,artifacts/batch_index.csv,appended,,2026-04-08T04:00:00Z,0123456789abcdef0123456789abcdef01234567,1,Debug\n") != std::string::npos);
     }
 
     void VerifyRunConfigHashChangesWhenInputsChange()
@@ -286,6 +289,9 @@ namespace
         manifest.outputPath = "out.txt";
         manifest.metricsPath = "metrics.csv";
         manifest.summaryPath = "summary.csv";
+        manifest.batchIndexPath = "";
+        manifest.batchIndexAppendStatus = "not_requested";
+        manifest.batchIndexFailureCategory = "";
         manifest.timestampUtc = "2026-04-08T04:00:00Z";
         manifest.gitCommit = "0123456789abcdef0123456789abcdef01234567";
         manifest.gitDirty = false;
@@ -294,7 +300,7 @@ namespace
         std::ostringstream manifestOut;
         simlab::WriteHeadlessRunManifestCsvHeader(manifestOut);
         simlab::WriteHeadlessRunManifestCsvRow(manifestOut, manifest);
-        assert(manifestOut.str().find("gravity,gravity,0,0.016667,0,0,1,111,12,success,,unbounded_headless_default,out.txt,metrics.csv,summary.csv,") != std::string::npos);
+        assert(manifestOut.str().find("gravity,gravity,0,0.016667,0,0,1,111,12,success,,unbounded_headless_default,out.txt,metrics.csv,summary.csv,,not_requested,,") != std::string::npos);
     }
 }
 

@@ -228,7 +228,7 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
@@ -251,6 +251,9 @@ namespace simlab
             << manifest.outputPath << ','
             << manifest.metricsPath << ','
             << manifest.summaryPath << ','
+            << manifest.batchIndexPath << ','
+            << manifest.batchIndexAppendStatus << ','
+            << manifest.batchIndexFailureCategory << ','
             << manifest.timestampUtc << ','
             << manifest.gitCommit << ','
             << (manifest.gitDirty ? 1 : 0) << ','
