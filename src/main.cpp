@@ -276,6 +276,14 @@ int main(int argc, char** argv)
     std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
+    auto classifyStartupFailure = [&](const std::string& category) {
+        if (runStatus != "startup_failure")
+        {
+            runStatus = "startup_failure";
+            failureCategory = category;
+        }
+    };
+
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
         simlab::HeadlessRunSummary failureSummary{};
         failureSummary.scenarioKey = selectedScenarioKey;
@@ -381,8 +389,7 @@ int main(int argc, char** argv)
             {
                 if (label == "output")
                 {
-                    runStatus = "startup_failure";
-                    failureCategory = "output_open_failed";
+                    classifyStartupFailure("output_directory_create_failed");
                 }
                 else
                 {
@@ -408,8 +415,7 @@ int main(int argc, char** argv)
         headlessOut.open(outputPath);
         if (!headlessOut.is_open())
         {
-            runStatus = "startup_failure";
-            failureCategory = "output_open_failed";
+            classifyStartupFailure("output_file_open_failed");
             logger.Error(std::string("Failed to open ") + outputPath);
         }
         else
@@ -426,8 +432,7 @@ int main(int argc, char** argv)
         headlessMetricsOut.open(metricsPath);
         if (!headlessMetricsOut.is_open())
         {
-            runStatus = "startup_failure";
-            failureCategory = "output_open_failed";
+            classifyStartupFailure("metrics_file_open_failed");
             logger.Error(std::string("Failed to open ") + metricsPath);
         }
         else
@@ -451,8 +456,7 @@ int main(int argc, char** argv)
         headlessSummaryOut.open(summaryPath);
         if (!headlessSummaryOut.is_open())
         {
-            runStatus = "startup_failure";
-            failureCategory = "output_open_failed";
+            classifyStartupFailure("summary_file_open_failed");
             logger.Error(std::string("Failed to open ") + summaryPath);
         }
         else
@@ -476,8 +480,7 @@ int main(int argc, char** argv)
         headlessManifestOut.open(manifestPath);
         if (!headlessManifestOut.is_open())
         {
-            runStatus = "startup_failure";
-            failureCategory = "output_open_failed";
+            classifyStartupFailure("manifest_file_open_failed");
             logger.Error(std::string("Failed to open ") + manifestPath);
         }
         else

@@ -401,7 +401,7 @@ namespace
         assert(manifestColumns[31] == "success_exit");
     }
 
-    void VerifyOutputOpenFailureIsClassified()
+    void VerifyOutputDirectoryCreateFailureIsClassified()
     {
         const auto cwd = std::filesystem::current_path();
         const auto blockingPath = cwd / "artifacts" / "blocked_output_base";
@@ -424,7 +424,7 @@ namespace
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
         assert(summaryColumns.size() == 24u);
         assert(summaryColumns[9] == "startup_failure");
-        assert(summaryColumns[10] == "output_open_failed");
+        assert(summaryColumns[10] == "output_directory_create_failed");
         assert(summaryColumns[11] == "startup_failure");
         assert(summaryColumns[8] == "0");
 
@@ -432,7 +432,7 @@ namespace
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
         assert(manifestColumns.size() == 36u);
         assert(manifestColumns[9] == "startup_failure");
-        assert(manifestColumns[10] == "output_open_failed");
+        assert(manifestColumns[10] == "output_directory_create_failed");
         assert(manifestColumns[11] == "startup_failure");
         assert(manifestColumns[8] == "0");
         assert(manifestColumns[15].empty());
@@ -450,6 +450,102 @@ namespace
         assert(manifestColumns[27].empty());
         assert(manifestColumns[28] == "written");
         assert(manifestColumns[29].empty());
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "startup_failure_exit");
+    }
+
+    void VerifyMetricsOpenFailureIsClassified()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "blocked_metrics_open";
+        const auto metricsBlockPath = std::filesystem::path(prefix.string() + "_metrics.csv");
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove_all(metricsBlockPath);
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+        std::filesystem::create_directories(metricsBlockPath);
+
+        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_metrics_open > /tmp/atlascore_headless_metrics_open_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "metrics_file_open_failed");
+        assert(summaryColumns[11] == "startup_failure");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "metrics_file_open_failed");
+        assert(manifestColumns[11] == "startup_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "startup_failure_exit");
+    }
+
+    void VerifySummaryOpenFailureIsClassified()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "blocked_summary_open";
+        const auto summaryBlockPath = std::filesystem::path(prefix.string() + "_summary.csv");
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove_all(summaryBlockPath);
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+        std::filesystem::create_directories(summaryBlockPath);
+
+        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_summary_open > /tmp/atlascore_headless_summary_open_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "summary_file_open_failed");
+        assert(summaryColumns[11] == "startup_failure");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "summary_file_open_failed");
+        assert(manifestColumns[11] == "startup_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "startup_failure_exit");
+    }
+
+    void VerifyManifestOpenFailureIsClassified()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "blocked_manifest_open";
+        const auto manifestBlockPath = std::filesystem::path(prefix.string() + "_manifest.csv");
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove_all(manifestBlockPath);
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+        std::filesystem::create_directories(manifestBlockPath);
+
+        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_manifest_open > /tmp/atlascore_headless_manifest_open_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "manifest_file_open_failed");
+        assert(summaryColumns[11] == "startup_failure");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "manifest_file_open_failed");
+        assert(manifestColumns[11] == "startup_failure");
         assert(manifestColumns[30] == "1");
         assert(manifestColumns[31] == "startup_failure_exit");
     }
@@ -576,7 +672,10 @@ int main()
     VerifyBatchIndexAppendsAcrossRuns();
     VerifyFallbackScenarioSelectionIsExported();
     VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason();
-    VerifyOutputOpenFailureIsClassified();
+    VerifyOutputDirectoryCreateFailureIsClassified();
+    VerifyMetricsOpenFailureIsClassified();
+    VerifySummaryOpenFailureIsClassified();
+    VerifyManifestOpenFailureIsClassified();
     VerifyBatchIndexAppendFailureIsRecordedInManifest();
     VerifyBatchIndexWriteFailureIsRecordedInManifest();
     VerifySummaryWriteFailureIsRecordedInManifest();
