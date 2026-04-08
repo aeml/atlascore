@@ -184,7 +184,14 @@ int main(int argc, char** argv)
 
     std::atomic<bool> running{true};
 
-    core::FixedTimestepLoop loop{1.0f / 60.0f};
+    constexpr double fixedDtSeconds = 1.0 / 60.0;
+    const auto requestedFrames = maxFrames > 0 ? static_cast<std::size_t>(maxFrames) : 0u;
+    const auto runConfigHash = simlab::HashHeadlessRunConfig(selectedScenarioKey,
+                                                             fixedDtSeconds,
+                                                             requestedFrames,
+                                                             headless);
+
+    core::FixedTimestepLoop loop{static_cast<float>(fixedDtSeconds)};
 
     std::thread quitThread;
     const bool useInputQuitThread = !headless && maxFrames <= 0;
@@ -342,7 +349,11 @@ int main(int argc, char** argv)
         quitThread.join();
     }
 
-    const auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
+    auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
+    runSummary.fixedDtSeconds = fixedDtSeconds;
+    runSummary.requestedFrames = requestedFrames;
+    runSummary.headless = headless;
+    runSummary.runConfigHash = runConfigHash;
     if (headlessSummaryOut.is_open())
     {
         simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
@@ -375,6 +386,10 @@ int main(int argc, char** argv)
 
         simlab::HeadlessRunManifest manifest{};
         manifest.scenarioKey = selectedScenarioKey;
+        manifest.fixedDtSeconds = fixedDtSeconds;
+        manifest.requestedFrames = requestedFrames;
+        manifest.headless = headless;
+        manifest.runConfigHash = runConfigHash;
         manifest.frameCount = runSummary.frameCount;
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);

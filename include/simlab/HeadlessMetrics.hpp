@@ -45,6 +45,10 @@ namespace simlab
     struct HeadlessRunSummary
     {
         std::string scenarioKey;
+        double fixedDtSeconds{0.0};
+        std::size_t requestedFrames{0};
+        bool headless{false};
+        std::uint64_t runConfigHash{0};
         std::size_t frameCount{0};
         std::uint64_t finalWorldHash{0};
         std::size_t totalCollisionCount{0};
@@ -63,6 +67,10 @@ namespace simlab
     struct HeadlessRunManifest
     {
         std::string scenarioKey;
+        double fixedDtSeconds{0.0};
+        std::size_t requestedFrames{0};
+        bool headless{false};
+        std::uint64_t runConfigHash{0};
         std::size_t frameCount{0};
         std::string outputPath;
         std::string metricsPath;
@@ -99,6 +107,11 @@ namespace simlab
                                      const physics::PhysicsSystem& physicsSystem,
                                      std::size_t frameIndex,
                                      double simTimeSeconds) noexcept;
+
+    std::uint64_t HashHeadlessRunConfig(const std::string& scenarioKey,
+                                        double fixedDtSeconds,
+                                        std::size_t requestedFrames,
+                                        bool headless) noexcept;
 
     void WriteFrameMetricsCsvHeader(std::ostream& out);
     void WriteFrameMetricsCsvRow(std::ostream& out, const FrameMetrics& metrics);

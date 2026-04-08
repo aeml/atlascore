@@ -107,18 +107,22 @@ namespace
 
         const auto summaryLines = ReadLines(summaryPath);
         assert(summaryLines.size() == 2);
-        assert(summaryLines[0] == "scenario_key,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
+        assert(summaryLines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
-        assert(summaryColumns.size() == 14u);
+        assert(summaryColumns.size() == 18u);
         assert(summaryColumns[0] == expectedScenarioKey);
-        assert(summaryColumns[1] == "3");
-        assert(!summaryColumns[2].empty());
-        assert(ParseDouble(summaryColumns[8]) >= 0.0);
-        assert(ParseDouble(summaryColumns[9]) >= ParseDouble(summaryColumns[8]));
-        assert(ParseDouble(summaryColumns[10]) >= 0.0);
-        assert(ParseDouble(summaryColumns[11]) >= ParseDouble(summaryColumns[10]));
+        assert(summaryColumns[1] == "0.016667");
+        assert(summaryColumns[2] == "3");
+        assert(summaryColumns[3] == "1");
+        assert(!summaryColumns[4].empty());
+        assert(summaryColumns[5] == "3");
+        assert(!summaryColumns[6].empty());
         assert(ParseDouble(summaryColumns[12]) >= 0.0);
         assert(ParseDouble(summaryColumns[13]) >= ParseDouble(summaryColumns[12]));
+        assert(ParseDouble(summaryColumns[14]) >= 0.0);
+        assert(ParseDouble(summaryColumns[15]) >= ParseDouble(summaryColumns[14]));
+        assert(ParseDouble(summaryColumns[16]) >= 0.0);
+        assert(ParseDouble(summaryColumns[17]) >= ParseDouble(summaryColumns[16]));
 
         double maxUpdate = 0.0;
         double maxRender = 0.0;
@@ -131,27 +135,31 @@ namespace
             maxFrame = std::max(maxFrame, ParseDouble(columns[9]));
         }
 
-        const double p95Update = ParseDouble(summaryColumns[9]);
-        const double p95Render = ParseDouble(summaryColumns[11]);
-        const double p95Frame = ParseDouble(summaryColumns[13]);
+        const double p95Update = ParseDouble(summaryColumns[13]);
+        const double p95Render = ParseDouble(summaryColumns[15]);
+        const double p95Frame = ParseDouble(summaryColumns[17]);
         assert(p95Update <= maxUpdate);
         assert(p95Render <= maxRender);
         assert(p95Frame <= maxFrame);
 
         const auto manifestLines = ReadLines(manifestPath);
         assert(manifestLines.size() == 2);
-        assert(manifestLines[0] == "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
+        assert(manifestLines[0] == "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
-        assert(manifestColumns.size() == 9u);
+        assert(manifestColumns.size() == 13u);
         assert(manifestColumns[0] == expectedScenarioKey);
-        assert(manifestColumns[1] == "3");
-        assert(manifestColumns[2] == outputPath.string());
-        assert(manifestColumns[3] == metricsPath.string());
-        assert(manifestColumns[4] == summaryPath.string());
-        assert(!manifestColumns[5].empty());
-        assert(!manifestColumns[6].empty());
-        assert(manifestColumns[7] == "0" || manifestColumns[7] == "1");
-        assert(!manifestColumns[8].empty());
+        assert(manifestColumns[1] == "0.016667");
+        assert(manifestColumns[2] == "3");
+        assert(manifestColumns[3] == "1");
+        assert(!manifestColumns[4].empty());
+        assert(manifestColumns[5] == "3");
+        assert(manifestColumns[6] == outputPath.string());
+        assert(manifestColumns[7] == metricsPath.string());
+        assert(manifestColumns[8] == summaryPath.string());
+        assert(!manifestColumns[9].empty());
+        assert(!manifestColumns[10].empty());
+        assert(manifestColumns[11] == "0" || manifestColumns[11] == "1");
+        assert(!manifestColumns[12].empty());
     }
 
     void VerifyAppWritesHeadlessMetricsCsv()

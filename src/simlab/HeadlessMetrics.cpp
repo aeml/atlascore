@@ -23,12 +23,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 #include <ostream>
 #include <vector>
 
 namespace
 {
+    constexpr std::uint64_t kFnvOffsetBasis = 1469598103934665603ull;
+    constexpr std::uint64_t kFnvPrime = 1099511628211ull;
+
     double AverageOrZero(const double total, const std::size_t count) noexcept
     {
         return count > 0 ? total / static_cast<double>(count) : 0.0;
@@ -46,6 +50,27 @@ namespace
         const std::size_t index = std::min(samples.size() - 1,
                                            static_cast<std::size_t>(std::max(1.0, rank) - 1.0));
         return samples[index];
+    }
+
+    void HashBytes(std::uint64_t& hash, const void* data, const std::size_t size) noexcept
+    {
+        const auto* bytes = static_cast<const unsigned char*>(data);
+        for (std::size_t i = 0; i < size; ++i)
+        {
+            hash ^= static_cast<std::uint64_t>(bytes[i]);
+            hash *= kFnvPrime;
+        }
+    }
+
+    void HashString(std::uint64_t& hash, const std::string& value) noexcept
+    {
+        HashBytes(hash, value.data(), value.size());
+    }
+
+    template <typename TValue>
+    void HashValue(std::uint64_t& hash, const TValue& value) noexcept
+    {
+        HashBytes(hash, &value, sizeof(TValue));
     }
 }
 
@@ -121,6 +146,20 @@ namespace simlab
         return metrics;
     }
 
+    std::uint64_t HashHeadlessRunConfig(const std::string& scenarioKey,
+                                        const double fixedDtSeconds,
+                                        const std::size_t requestedFrames,
+                                        const bool headless) noexcept
+    {
+        std::uint64_t hash = kFnvOffsetBasis;
+        HashString(hash, scenarioKey);
+        HashValue(hash, fixedDtSeconds);
+        HashValue(hash, requestedFrames);
+        const std::uint8_t headlessByte = headless ? 1u : 0u;
+        HashValue(hash, headlessByte);
+        return hash;
+    }
+
     void WriteFrameMetricsCsvHeader(std::ostream& out)
     {
         out << "frame,sim_time_seconds,world_hash,collision_count,rigid_body_count,dynamic_body_count,transform_count,update_wall_seconds,render_wall_seconds,frame_wall_seconds\n";
@@ -148,7 +187,7 @@ namespace simlab
 
     void WriteHeadlessRunSummaryCsvHeader(std::ostream& out)
     {
-        out << "scenario_key,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
+        out << "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
     }
 
     void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary)
@@ -157,6 +196,10 @@ namespace simlab
         const auto previousPrecision = out.precision();
 
         out << summary.scenarioKey << ','
+            << std::fixed << std::setprecision(6) << summary.fixedDtSeconds << ','
+            << summary.requestedFrames << ','
+            << (summary.headless ? 1 : 0) << ','
+            << summary.runConfigHash << ','
             << summary.frameCount << ','
             << summary.finalWorldHash << ','
             << summary.totalCollisionCount << ','
@@ -164,7 +207,7 @@ namespace simlab
             << summary.maxRigidBodyCount << ','
             << summary.maxDynamicBodyCount << ','
             << summary.maxTransformCount << ','
-            << std::fixed << std::setprecision(6) << summary.avgUpdateWallSeconds << ','
+            << summary.avgUpdateWallSeconds << ','
             << summary.p95UpdateWallSeconds << ','
             << summary.avgRenderWallSeconds << ','
             << summary.p95RenderWallSeconds << ','
@@ -177,12 +220,19 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "scenario_key,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
+        out << "scenario_key,fixed_dt_seconds,requested_frames,headless,run_config_hash,frame_count,output_path,metrics_path,summary_path,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
     {
+        const auto previousFlags = out.flags();
+        const auto previousPrecision = out.precision();
+
         out << manifest.scenarioKey << ','
+            << std::fixed << std::setprecision(6) << manifest.fixedDtSeconds << ','
+            << manifest.requestedFrames << ','
+            << (manifest.headless ? 1 : 0) << ','
+            << manifest.runConfigHash << ','
             << manifest.frameCount << ','
             << manifest.outputPath << ','
             << manifest.metricsPath << ','
@@ -191,5 +241,8 @@ namespace simlab
             << manifest.gitCommit << ','
             << (manifest.gitDirty ? 1 : 0) << ','
             << manifest.buildType << '\n';
+
+        out.flags(previousFlags);
+        out.precision(previousPrecision);
     }
 }
