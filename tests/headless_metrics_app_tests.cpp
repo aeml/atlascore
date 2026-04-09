@@ -633,14 +633,14 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("ATLASCORE_FAIL_PHASE=world_update ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_world_update > /tmp/atlascore_headless_world_update_failure.log 2>&1");
+        const int rc = std::system("./atlascore_app fail_world_update --headless --frames=2 --output-prefix=artifacts/fail_world_update > /tmp/atlascore_headless_world_update_failure.log 2>&1");
         assert(rc != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
         assert(summaryColumns[9] == "runtime_failure");
         assert(summaryColumns[10] == "world_update_failed");
-        assert(summaryColumns[11] == "Injected failure for phase: world_update");
+        assert(summaryColumns[11] == "Test world update failure");
         assert(summaryColumns[12] == "runtime_failure");
         assert(summaryColumns[13] == "0");
 
@@ -649,7 +649,7 @@ namespace
         assert(manifestColumns[8] == "0");
         assert(manifestColumns[9] == "runtime_failure");
         assert(manifestColumns[10] == "world_update_failed");
-        assert(manifestColumns[11] == "Injected failure for phase: world_update");
+        assert(manifestColumns[11] == "Test world update failure");
         assert(manifestColumns[12] == "runtime_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "runtime_failure_exit");

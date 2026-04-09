@@ -41,6 +41,7 @@ namespace simlab
     std::unique_ptr<IScenario> CreateFullDemoScenario();
     std::unique_ptr<IScenario> CreateFailSetupScenario();
     std::unique_ptr<IScenario> CreateFailUpdateScenario();
+    std::unique_ptr<IScenario> CreateFailWorldUpdateScenario();
     std::unique_ptr<IScenario> CreateFailRenderScenario();
 
     using ScenarioFactory = std::unique_ptr<IScenario>(*)();

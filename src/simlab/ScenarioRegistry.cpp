@@ -50,6 +50,7 @@ namespace simlab
             ScenarioRegistry::Register("demo", "Full Demo (All Systems Active)", &CreateFullDemoScenario);
             ScenarioRegistry::Register("fail_setup", "Fail Setup (Test Scenario)", &CreateFailSetupScenario);
             ScenarioRegistry::Register("fail_update", "Fail Update (Test Scenario)", &CreateFailUpdateScenario);
+            ScenarioRegistry::Register("fail_world_update", "Fail World Update (Test Scenario)", &CreateFailWorldUpdateScenario);
             ScenarioRegistry::Register("fail_render", "Fail Render (Test Scenario)", &CreateFailRenderScenario);
         }
     }

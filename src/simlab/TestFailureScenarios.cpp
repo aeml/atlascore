@@ -17,6 +17,8 @@
 
 #include "simlab/Scenario.hpp"
 
+#include "ecs/World.hpp"
+
 #include <stdexcept>
 #include <memory>
 
@@ -49,6 +51,27 @@ namespace simlab
             void Render(ecs::World&, std::ostream&) override {}
         };
 
+        class ThrowingWorldUpdateSystem final : public ecs::ISystem
+        {
+        public:
+            void Update(ecs::World&, float) override
+            {
+                throw std::runtime_error("Test world update failure");
+            }
+        };
+
+        class FailWorldUpdateScenario final : public IScenario
+        {
+        public:
+            void Setup(ecs::World& world) override
+            {
+                world.AddSystem(std::make_unique<ThrowingWorldUpdateSystem>());
+            }
+
+            void Update(ecs::World&, float) override {}
+            void Render(ecs::World&, std::ostream&) override {}
+        };
+
         class FailRenderScenario final : public IScenario
         {
         public:
@@ -70,6 +93,11 @@ namespace simlab
     std::unique_ptr<IScenario> CreateFailUpdateScenario()
     {
         return std::make_unique<FailUpdateScenario>();
+    }
+
+    std::unique_ptr<IScenario> CreateFailWorldUpdateScenario()
+    {
+        return std::make_unique<FailWorldUpdateScenario>();
     }
 
     std::unique_ptr<IScenario> CreateFailRenderScenario()
