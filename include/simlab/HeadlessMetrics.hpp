@@ -303,6 +303,16 @@ namespace simlab
         std::ofstream manifestStream;
     };
 
+    struct AppliedHeadlessRunFinalizationResult
+    {
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+        std::string batchIndexAppendStatus;
+        std::string batchIndexFailureCategory;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -442,6 +452,7 @@ namespace simlab
                                                                       std::string_view gitCommit,
                                                                       bool gitDirty,
                                                                       std::string_view buildType);
+    AppliedHeadlessRunFinalizationResult ApplyHeadlessRunFinalizationResult(const HeadlessRunFinalizationResult& finalization);
 
     class HeadlessRunSummaryAccumulator
     {

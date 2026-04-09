@@ -1043,6 +1043,26 @@ namespace
         assert(prepared.artifacts.buildType == "Debug");
     }
 
+    void VerifyFinalizationResultApplicationCopiesArtifactStatuses()
+    {
+        simlab::HeadlessRunFinalizationResult finalization{};
+        finalization.artifacts.summaryWriteStatus = "write_failed";
+        finalization.artifacts.summaryFailureCategory = "summary_write_failed";
+        finalization.artifacts.manifestWriteStatus = "written";
+        finalization.artifacts.manifestFailureCategory = "";
+        finalization.artifacts.batchIndexAppendStatus = "append_failed";
+        finalization.artifacts.batchIndexFailureCategory = "batch_index_open_failed";
+
+        const auto applied = simlab::ApplyHeadlessRunFinalizationResult(finalization);
+
+        assert(applied.summaryWriteStatus == "write_failed");
+        assert(applied.summaryFailureCategory == "summary_write_failed");
+        assert(applied.manifestWriteStatus == "written");
+        assert(applied.manifestFailureCategory.empty());
+        assert(applied.batchIndexAppendStatus == "append_failed");
+        assert(applied.batchIndexFailureCategory == "batch_index_open_failed");
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -1526,6 +1546,7 @@ int main()
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();
+    VerifyFinalizationResultApplicationCopiesArtifactStatuses();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();

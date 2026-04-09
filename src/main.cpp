@@ -435,12 +435,13 @@ int main(int argc, char** argv)
                                                                  headlessSummaryOut.is_open() ? static_cast<std::ostream*>(&headlessSummaryOut) : nullptr,
                                                                  headlessManifestOut.is_open() ? static_cast<std::ostream*>(&headlessManifestOut) : nullptr);
 
-    summaryWriteStatus = finalization.artifacts.summaryWriteStatus;
-    summaryFailureCategory = finalization.artifacts.summaryFailureCategory;
-    manifestWriteStatus = finalization.artifacts.manifestWriteStatus;
-    manifestFailureCategory = finalization.artifacts.manifestFailureCategory;
-    batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
-    batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
+    const auto appliedFinalization = simlab::ApplyHeadlessRunFinalizationResult(finalization);
+    summaryWriteStatus = appliedFinalization.summaryWriteStatus;
+    summaryFailureCategory = appliedFinalization.summaryFailureCategory;
+    manifestWriteStatus = appliedFinalization.manifestWriteStatus;
+    manifestFailureCategory = appliedFinalization.manifestFailureCategory;
+    batchIndexAppendStatus = appliedFinalization.batchIndexAppendStatus;
+    batchIndexFailureCategory = appliedFinalization.batchIndexFailureCategory;
 
     simlab::LogHeadlessFinalizationMessages(logger,
                                             batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),

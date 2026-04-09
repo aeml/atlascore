@@ -942,6 +942,18 @@ namespace simlab
         return result;
     }
 
+    AppliedHeadlessRunFinalizationResult ApplyHeadlessRunFinalizationResult(const HeadlessRunFinalizationResult& finalization)
+    {
+        AppliedHeadlessRunFinalizationResult applied{};
+        applied.summaryWriteStatus = finalization.artifacts.summaryWriteStatus;
+        applied.summaryFailureCategory = finalization.artifacts.summaryFailureCategory;
+        applied.manifestWriteStatus = finalization.artifacts.manifestWriteStatus;
+        applied.manifestFailureCategory = finalization.artifacts.manifestFailureCategory;
+        applied.batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
+        applied.batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
+        return applied;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;
