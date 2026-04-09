@@ -1030,14 +1030,24 @@ namespace
         assert(log.find("Failed to open startup failure manifest: headless_startup_failure_manifest.csv") != std::string::npos);
     }
 
+    void VerifyFinalizationLoggingPreparationResolvesBatchIndexPath()
+    {
+        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("artifacts/batch/index.csv");
+        assert(prepared.batchIndexPath.find("artifacts/batch/index.csv") != std::string::npos);
+
+        const auto emptyPrepared = simlab::PrepareHeadlessFinalizationLogging("");
+        assert(emptyPrepared.batchIndexPath.empty());
+    }
+
     void VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure()
     {
         core::Logger logger;
         auto sink = std::make_shared<std::ostringstream>();
         logger.SetOutput(sink);
 
+        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("/tmp/atlascore_batch/index.csv");
         simlab::LogHeadlessFinalizationMessages(logger,
-                                               "/tmp/atlascore_batch/index.csv",
+                                               prepared.batchIndexPath,
                                                "batch_index_open_failed");
 
         const auto log = sink->str();
@@ -1609,6 +1619,7 @@ int main()
     VerifyStartupResultApplicationMovesBootstrapState();
     VerifyStartupLoggingPreparationBuildsResolvedPaths();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
+    VerifyFinalizationLoggingPreparationResolvesBatchIndexPath();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();
     VerifyFinalizationResultApplicationCopiesArtifactStatuses();

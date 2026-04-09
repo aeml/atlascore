@@ -330,6 +330,11 @@ namespace simlab
         std::string startupFailureManifestPath;
     };
 
+    struct HeadlessFinalizationLoggingPreparation
+    {
+        std::string batchIndexPath;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -431,6 +436,7 @@ namespace simlab
                                                                    std::string_view batchIndexPath,
                                                                    std::string_view startupFailureSummaryPath,
                                                                    std::string_view startupFailureManifestPath);
+    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(std::string_view batchIndexPath);
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

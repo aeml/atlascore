@@ -739,6 +739,13 @@ namespace simlab
         return prepared;
     }
 
+    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(const std::string_view batchIndexPath)
+    {
+        HeadlessFinalizationLoggingPreparation prepared{};
+        prepared.batchIndexPath = batchIndexPath.empty() ? std::string{} : std::filesystem::absolute(std::filesystem::path(batchIndexPath)).string();
+        return prepared;
+    }
+
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

@@ -445,8 +445,9 @@ int main(int argc, char** argv)
     batchIndexAppendStatus = appliedFinalization.batchIndexAppendStatus;
     batchIndexFailureCategory = appliedFinalization.batchIndexFailureCategory;
 
+    const auto finalizationLogging = simlab::PrepareHeadlessFinalizationLogging(batchIndexPath);
     simlab::LogHeadlessFinalizationMessages(logger,
-                                            batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),
+                                            finalizationLogging.batchIndexPath,
                                             batchIndexFailureCategory);
 
     logger.Info("AtlasCore shutting down.");
