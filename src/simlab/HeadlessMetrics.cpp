@@ -189,7 +189,7 @@ namespace simlab
 
     void WriteHeadlessRunSummaryCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,failure_detail,termination_reason,final_world_hash,total_collision_count,peak_collision_count,max_rigid_body_count,max_dynamic_body_count,max_transform_count,avg_update_wall_seconds,p95_update_wall_seconds,avg_render_wall_seconds,p95_render_wall_seconds,avg_frame_wall_seconds,p95_frame_wall_seconds\n";
     }
 
     void WriteHeadlessRunSummaryCsvRow(std::ostream& out, const HeadlessRunSummary& summary)
@@ -208,6 +208,7 @@ namespace simlab
             << summary.frameCount << ','
             << summary.runStatus << ','
             << summary.failureCategory << ','
+            << summary.failureDetail << ','
             << summary.terminationReason << ','
             << summary.finalWorldHash << ','
             << summary.totalCollisionCount << ','
@@ -228,7 +229,7 @@ namespace simlab
 
     void WriteHeadlessRunManifestCsvHeader(std::ostream& out)
     {
-        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,exit_code,exit_classification,timestamp_utc,git_commit,git_dirty,build_type\n";
+        out << "requested_scenario_key,resolved_scenario_key,fallback_used,fixed_dt_seconds,bounded_frames,requested_frames,headless,run_config_hash,frame_count,run_status,failure_category,failure_detail,termination_reason,output_path,metrics_path,summary_path,batch_index_path,batch_index_append_status,batch_index_failure_category,output_write_status,output_failure_category,metrics_write_status,metrics_failure_category,summary_write_status,summary_failure_category,manifest_write_status,manifest_failure_category,startup_failure_summary_write_status,startup_failure_summary_failure_category,startup_failure_manifest_write_status,startup_failure_manifest_failure_category,exit_code,exit_classification,timestamp_utc,git_commit,git_dirty,build_type\n";
     }
 
     void WriteHeadlessRunManifestCsvRow(std::ostream& out, const HeadlessRunManifest& manifest)
@@ -247,6 +248,7 @@ namespace simlab
             << manifest.frameCount << ','
             << manifest.runStatus << ','
             << manifest.failureCategory << ','
+            << manifest.failureDetail << ','
             << manifest.terminationReason << ','
             << manifest.outputPath << ','
             << manifest.metricsPath << ','

@@ -264,6 +264,7 @@ int main(int argc, char** argv)
     std::string manifestPath;
     std::string runStatus{"success"};
     std::string failureCategory;
+    std::string failureDetail;
     int exitCode = 0;
     std::string exitClassification{"success_exit"};
     std::string batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
@@ -282,11 +283,12 @@ int main(int argc, char** argv)
     std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
-    auto classifyStartupFailure = [&](const std::string& category) {
+    auto classifyStartupFailure = [&](const std::string& category, const std::string& detail = std::string{}) {
         if (runStatus != "startup_failure")
         {
             runStatus = "startup_failure";
             failureCategory = category;
+            failureDetail = detail;
         }
     };
 
@@ -304,6 +306,7 @@ int main(int argc, char** argv)
         failureSummary.frameCount = 0;
         failureSummary.runStatus = "startup_failure";
         failureSummary.failureCategory = category;
+        failureSummary.failureDetail = failureDetail;
         failureSummary.terminationReason = "startup_failure";
 
         std::ofstream failureSummaryOut(startupFailureSummaryPath);
@@ -337,6 +340,7 @@ int main(int argc, char** argv)
         failureManifest.frameCount = 0;
         failureManifest.runStatus = "startup_failure";
         failureManifest.failureCategory = category;
+        failureManifest.failureDetail = failureDetail;
         failureManifest.terminationReason = "startup_failure";
         failureManifest.outputPath = "";
         failureManifest.metricsPath = "";
@@ -598,8 +602,9 @@ int main(int argc, char** argv)
             },
             running);
     }
-    catch (const std::exception&)
+    catch (const std::exception& ex)
     {
+        failureDetail = std::string(ex.what());
         if (failPhase == "update")
         {
             runStatus = "runtime_failure";
@@ -663,6 +668,7 @@ int main(int argc, char** argv)
     runSummary.runConfigHash = runConfigHash;
     runSummary.runStatus = runStatus;
     runSummary.failureCategory = failureCategory;
+    runSummary.failureDetail = failureDetail;
     runSummary.terminationReason = terminationReason;
     if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
     {
@@ -690,6 +696,7 @@ int main(int argc, char** argv)
         manifest.frameCount = runSummary.frameCount;
         manifest.runStatus = runStatus;
         manifest.failureCategory = failureCategory;
+        manifest.failureDetail = failureDetail;
         manifest.terminationReason = terminationReason;
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);
