@@ -279,6 +279,83 @@ namespace simlab
                                     "batch_index_write_failed");
     }
 
+    HeadlessStartupFailureArtifactsResult WriteHeadlessStartupFailureArtifacts(const std::filesystem::path& summaryPath,
+                                                                               const std::filesystem::path& manifestPath,
+                                                                               const std::string_view scenarioKey,
+                                                                               const HeadlessRunReportContext& context,
+                                                                               const HeadlessRunOutcomeTracker& outcome,
+                                                                               const std::string_view failureCategory,
+                                                                               const std::string_view timestampUtc,
+                                                                               const std::string_view gitCommit,
+                                                                               const bool gitDirty,
+                                                                               const std::string_view buildType)
+    {
+        HeadlessStartupFailureArtifactsResult result{};
+
+        HeadlessRunSummary failureSummaryAggregate{};
+        failureSummaryAggregate.scenarioKey = std::string(scenarioKey);
+        failureSummaryAggregate.frameCount = 0;
+        result.summary = BuildHeadlessRunSummaryReport(failureSummaryAggregate, context, outcome);
+        result.summary.failureCategory = std::string(failureCategory);
+
+        std::ofstream failureSummaryOut(summaryPath);
+        if (failureSummaryOut.is_open())
+        {
+            result.summaryOpened = true;
+            MarkHeadlessArtifactOpened(result.manifest.startupFailureSummaryWriteStatus);
+            WriteHeadlessRunSummaryCsvHeader(failureSummaryOut);
+            WriteHeadlessRunSummaryCsvRow(failureSummaryOut, result.summary);
+            FinalizeHeadlessArtifactWrite(failureSummaryOut,
+                                          result.manifest.startupFailureSummaryWriteStatus,
+                                          result.manifest.startupFailureSummaryFailureCategory,
+                                          "startup_failure_summary_write_failed");
+        }
+
+        HeadlessRunArtifactReport failureArtifacts{};
+        failureArtifacts.outputPath = "";
+        failureArtifacts.metricsPath = "";
+        failureArtifacts.summaryPath = summaryPath.empty() ? std::string{} : std::filesystem::absolute(summaryPath).string();
+        failureArtifacts.batchIndexPath = "";
+        failureArtifacts.batchIndexAppendStatus = "not_requested";
+        failureArtifacts.batchIndexFailureCategory = "";
+        failureArtifacts.outputWriteStatus = "";
+        failureArtifacts.outputFailureCategory = "";
+        failureArtifacts.metricsWriteStatus = "";
+        failureArtifacts.metricsFailureCategory = "";
+        failureArtifacts.summaryWriteStatus = "";
+        failureArtifacts.summaryFailureCategory = "";
+        failureArtifacts.manifestWriteStatus = "written";
+        failureArtifacts.manifestFailureCategory = "";
+        failureArtifacts.startupFailureSummaryWriteStatus = result.summaryOpened
+            ? result.manifest.startupFailureSummaryWriteStatus
+            : "not_applicable";
+        failureArtifacts.startupFailureSummaryFailureCategory = result.manifest.startupFailureSummaryFailureCategory;
+        failureArtifacts.startupFailureManifestWriteStatus = "pending";
+        failureArtifacts.startupFailureManifestFailureCategory = "";
+        failureArtifacts.timestampUtc = std::string(timestampUtc);
+        failureArtifacts.gitCommit = std::string(gitCommit);
+        failureArtifacts.gitDirty = gitDirty;
+        failureArtifacts.buildType = std::string(buildType);
+
+        result.manifest = BuildHeadlessRunManifestReport(0u, context, failureArtifacts, outcome);
+        result.manifest.failureCategory = std::string(failureCategory);
+
+        std::ofstream failureManifestOut(manifestPath);
+        if (failureManifestOut.is_open())
+        {
+            result.manifestOpened = true;
+            MarkHeadlessArtifactOpened(result.manifest.startupFailureManifestWriteStatus);
+            WriteHeadlessRunManifestCsvHeader(failureManifestOut);
+            WriteHeadlessRunManifestCsvRow(failureManifestOut, result.manifest);
+            FinalizeHeadlessArtifactWrite(failureManifestOut,
+                                          result.manifest.startupFailureManifestWriteStatus,
+                                          result.manifest.startupFailureManifestFailureCategory,
+                                          "startup_failure_manifest_write_failed");
+        }
+
+        return result;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;

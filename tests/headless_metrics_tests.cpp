@@ -473,6 +473,98 @@ namespace
         assert(failureCategory == "batch_index_write_failed");
     }
 
+    void VerifyHeadlessStartupFailureArtifactCoordinatorWritesSummaryAndManifest()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_startup_failure_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "fail_setup";
+        context.resolvedScenarioKey = "fail_setup";
+        context.fixedDtSeconds = 1.0 / 120.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 2;
+        context.headless = true;
+        context.runConfigHash = 1234;
+        context.terminationReason = "startup_failure";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        outcome.MarkStartupFailure("setup", "Test scenario setup failure");
+
+        const auto result = simlab::WriteHeadlessStartupFailureArtifacts(tempRoot / "failure_summary.csv",
+                                                                         tempRoot / "failure_manifest.csv",
+                                                                         "fail_setup",
+                                                                         context,
+                                                                         outcome,
+                                                                         "scenario_setup_failed",
+                                                                         "2026-04-09T06:00:00Z",
+                                                                         "feedfacefeedfacefeedfacefeedfacefeedface",
+                                                                         false,
+                                                                         "Debug");
+
+        assert(result.summaryOpened);
+        assert(result.manifestOpened);
+        assert(result.summary.failureCategory == "scenario_setup_failed");
+        assert(result.manifest.failureCategory == "scenario_setup_failed");
+        assert(result.manifest.startupFailureSummaryWriteStatus == "written");
+        assert(result.manifest.startupFailureManifestWriteStatus == "written");
+
+        std::ifstream summaryIn(tempRoot / "failure_summary.csv");
+        assert(summaryIn.is_open());
+        const std::string summaryCsv((std::istreambuf_iterator<char>(summaryIn)), std::istreambuf_iterator<char>());
+        assert(!summaryCsv.empty());
+
+        std::ifstream manifestIn(tempRoot / "failure_manifest.csv");
+        assert(manifestIn.is_open());
+        const std::string manifestCsv((std::istreambuf_iterator<char>(manifestIn)), std::istreambuf_iterator<char>());
+        assert(!manifestCsv.empty());
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessStartupFailureArtifactCoordinatorReportsSummaryOpenFailure()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_startup_failure_open_fail";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "fail_setup";
+        context.resolvedScenarioKey = "fail_setup";
+        context.fixedDtSeconds = 1.0 / 120.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 2;
+        context.headless = true;
+        context.runConfigHash = 1234;
+        context.terminationReason = "startup_failure";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        outcome.MarkStartupFailure("setup", "Test scenario setup failure");
+
+        const auto result = simlab::WriteHeadlessStartupFailureArtifacts("/proc/atlascore_startup_failure_summary.csv",
+                                                                         tempRoot / "failure_manifest.csv",
+                                                                         "fail_setup",
+                                                                         context,
+                                                                         outcome,
+                                                                         "scenario_setup_failed",
+                                                                         "2026-04-09T06:00:00Z",
+                                                                         "feedfacefeedfacefeedfacefeedfacefeedface",
+                                                                         false,
+                                                                         "Debug");
+
+        assert(!result.summaryOpened);
+        assert(result.manifestOpened);
+        assert(result.manifest.startupFailureSummaryWriteStatus == "not_applicable");
+        assert(result.manifest.startupFailureManifestWriteStatus == "written");
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -662,6 +754,8 @@ int main()
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesWriteFailure();
+    VerifyHeadlessStartupFailureArtifactCoordinatorWritesSummaryAndManifest();
+    VerifyHeadlessStartupFailureArtifactCoordinatorReportsSummaryOpenFailure();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();

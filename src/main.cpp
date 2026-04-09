@@ -298,72 +298,27 @@ int main(int argc, char** argv)
                                                                           false,
                                                                           false);
 
-        simlab::HeadlessRunSummary failureSummaryAggregate{};
-        failureSummaryAggregate.scenarioKey = selectedScenarioKey;
-        failureSummaryAggregate.frameCount = 0;
-        auto failureSummary = simlab::BuildHeadlessRunSummaryReport(failureSummaryAggregate,
-                                                                    reportContext,
-                                                                    outcome);
-        failureSummary.failureCategory = category;
+        const auto startupFailureArtifacts = simlab::WriteHeadlessStartupFailureArtifacts(startupFailureSummaryPath,
+                                                                                          startupFailureManifestPath,
+                                                                                          selectedScenarioKey,
+                                                                                          reportContext,
+                                                                                          outcome,
+                                                                                          category,
+                                                                                          formatTimestampUtc(),
+                                                                                          ATLASCORE_BUILD_GIT_COMMIT,
+                                                                                          ATLASCORE_BUILD_GIT_DIRTY != 0,
+                                                                                          ATLASCORE_BUILD_TYPE);
 
-        std::ofstream failureSummaryOut(startupFailureSummaryPath);
-        if (failureSummaryOut.is_open())
-        {
-            simlab::MarkHeadlessArtifactOpened(startupFailureSummaryWriteStatus);
-            simlab::WriteHeadlessRunSummaryCsvHeader(failureSummaryOut);
-            simlab::WriteHeadlessRunSummaryCsvRow(failureSummaryOut, failureSummary);
-            simlab::FinalizeHeadlessArtifactWrite(failureSummaryOut,
-                                                 startupFailureSummaryWriteStatus,
-                                                 startupFailureSummaryFailureCategory,
-                                                 "startup_failure_summary_write_failed");
-        }
-        else
+        startupFailureSummaryWriteStatus = startupFailureArtifacts.manifest.startupFailureSummaryWriteStatus;
+        startupFailureSummaryFailureCategory = startupFailureArtifacts.manifest.startupFailureSummaryFailureCategory;
+        startupFailureManifestWriteStatus = startupFailureArtifacts.manifest.startupFailureManifestWriteStatus;
+        startupFailureManifestFailureCategory = startupFailureArtifacts.manifest.startupFailureManifestFailureCategory;
+
+        if (!startupFailureArtifacts.summaryOpened)
         {
             logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
         }
-
-        simlab::HeadlessRunArtifactReport failureArtifacts{};
-        failureArtifacts.outputPath = "";
-        failureArtifacts.metricsPath = "";
-        failureArtifacts.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
-        failureArtifacts.batchIndexPath = "";
-        failureArtifacts.batchIndexAppendStatus = "not_requested";
-        failureArtifacts.batchIndexFailureCategory = "";
-        failureArtifacts.outputWriteStatus = "";
-        failureArtifacts.outputFailureCategory = "";
-        failureArtifacts.metricsWriteStatus = "";
-        failureArtifacts.metricsFailureCategory = "";
-        failureArtifacts.summaryWriteStatus = "";
-        failureArtifacts.summaryFailureCategory = "";
-        failureArtifacts.manifestWriteStatus = "written";
-        failureArtifacts.manifestFailureCategory = "";
-        failureArtifacts.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
-        failureArtifacts.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
-        failureArtifacts.startupFailureManifestWriteStatus = "pending";
-        failureArtifacts.startupFailureManifestFailureCategory = "";
-        failureArtifacts.timestampUtc = formatTimestampUtc();
-        failureArtifacts.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
-        failureArtifacts.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
-        failureArtifacts.buildType = ATLASCORE_BUILD_TYPE;
-
-        auto failureManifest = simlab::BuildHeadlessRunManifestReport(0u,
-                                                                      reportContext,
-                                                                      failureArtifacts,
-                                                                      outcome);
-        failureManifest.failureCategory = category;
-
-        std::ofstream failureManifestOut(startupFailureManifestPath);
-        if (failureManifestOut.is_open())
-        {
-            simlab::MarkHeadlessArtifactOpened(failureManifest.startupFailureManifestWriteStatus);
-            simlab::WriteHeadlessRunManifestCsvHeader(failureManifestOut);
-            simlab::WriteHeadlessRunManifestCsvRow(failureManifestOut, failureManifest);
-            simlab::FinalizeHeadlessArtifactWrite(failureManifestOut,
-                                                 failureManifest.startupFailureManifestWriteStatus,
-                                                 failureManifest.startupFailureManifestFailureCategory,
-                                                 "startup_failure_manifest_write_failed");
-        }
-        else
+        if (!startupFailureArtifacts.manifestOpened)
         {
             logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
         }

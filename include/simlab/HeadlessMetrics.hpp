@@ -172,6 +172,14 @@ namespace simlab
         std::string buildType;
     };
 
+    struct HeadlessStartupFailureArtifactsResult
+    {
+        HeadlessRunSummary summary;
+        HeadlessRunManifest manifest;
+        bool summaryOpened{false};
+        bool manifestOpened{false};
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -192,6 +200,16 @@ namespace simlab
                                             const HeadlessRunManifest& manifest,
                                             std::string& appendStatus,
                                             std::string& failureCategory);
+    HeadlessStartupFailureArtifactsResult WriteHeadlessStartupFailureArtifacts(const std::filesystem::path& summaryPath,
+                                                                               const std::filesystem::path& manifestPath,
+                                                                               std::string_view scenarioKey,
+                                                                               const HeadlessRunReportContext& context,
+                                                                               const HeadlessRunOutcomeTracker& outcome,
+                                                                               std::string_view failureCategory,
+                                                                               std::string_view timestampUtc,
+                                                                               std::string_view gitCommit,
+                                                                               bool gitDirty,
+                                                                               std::string_view buildType);
 
     class HeadlessRunSummaryAccumulator
     {
