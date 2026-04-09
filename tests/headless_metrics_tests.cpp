@@ -449,6 +449,40 @@ namespace
         assert(built.buildType == "RelWithDebInfo");
     }
 
+    void VerifyRuntimeFramePreparationBuildsConfigAndArtifacts()
+    {
+        std::ofstream outputStream{"/dev/null"};
+        std::ofstream metricsStream{"/dev/null"};
+        assert(outputStream.is_open());
+        assert(metricsStream.is_open());
+
+        std::string outputWriteStatus{"written"};
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus{"written"};
+        std::string metricsFailureCategory;
+
+        const auto prepared = simlab::PrepareHeadlessRuntimeFrame(
+            true,
+            true,
+            12,
+            outputStream,
+            metricsStream,
+            outputWriteStatus,
+            outputFailureCategory,
+            metricsWriteStatus,
+            metricsFailureCategory);
+
+        assert(prepared.config.headless);
+        assert(prepared.config.boundedFrames);
+        assert(prepared.config.maxFrames == 12);
+        assert(prepared.artifacts.outputStream == static_cast<std::ostream*>(&outputStream));
+        assert(prepared.artifacts.metricsStream == static_cast<std::ostream*>(&metricsStream));
+        assert(prepared.artifacts.outputWriteStatus == &outputWriteStatus);
+        assert(prepared.artifacts.outputFailureCategory == &outputFailureCategory);
+        assert(prepared.artifacts.metricsWriteStatus == &metricsWriteStatus);
+        assert(prepared.artifacts.metricsFailureCategory == &metricsFailureCategory);
+    }
+
     void VerifyHeadlessRuntimeFrameCoordinatorAdvancesAndCapturesMetrics()
     {
         const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_runtime_frame_unit";
@@ -1535,6 +1569,7 @@ int main()
     VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
     VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
     VerifyNormalHeadlessArtifactReportBuilderAppliesRuntimeFacts();
+    VerifyRuntimeFramePreparationBuildsConfigAndArtifacts();
     VerifyHeadlessRuntimeFrameCoordinatorAdvancesAndCapturesMetrics();
     VerifyHeadlessRuntimeFrameCoordinatorPreservesWorldUpdateFailurePhase();
     VerifyHeadlessRunFinalizationCoordinatorWritesSummaryManifestAndBatchIndex();

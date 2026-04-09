@@ -225,6 +225,12 @@ namespace simlab
         std::string* metricsFailureCategory{nullptr};
     };
 
+    struct HeadlessRuntimeFramePreparation
+    {
+        HeadlessRuntimeFrameConfig config;
+        HeadlessRuntimeFrameArtifacts artifacts;
+    };
+
     struct HeadlessStartupFailureArtifactsResult
     {
         HeadlessRunSummary summary;
@@ -335,6 +341,15 @@ namespace simlab
                                             std::string& failureCategory);
     HeadlessArtifactBootstrapResult BootstrapHeadlessArtifacts(const std::filesystem::path& outputBasePath,
                                                                const std::filesystem::path& batchIndexPath);
+    HeadlessRuntimeFramePreparation PrepareHeadlessRuntimeFrame(bool headless,
+                                                                bool boundedFrames,
+                                                                int maxFrames,
+                                                                std::ostream& outputStream,
+                                                                std::ostream& metricsStream,
+                                                                std::string& outputWriteStatus,
+                                                                std::string& outputFailureCategory,
+                                                                std::string& metricsWriteStatus,
+                                                                std::string& metricsFailureCategory);
     bool RunHeadlessRuntimeFrame(ecs::World& world,
                                  IScenario& scenario,
                                  float dt,

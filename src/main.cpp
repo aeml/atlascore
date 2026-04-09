@@ -345,17 +345,15 @@ int main(int argc, char** argv)
     }
 
     simlab::HeadlessRuntimeFrameState runtimeFrameState{};
-    simlab::HeadlessRuntimeFrameConfig runtimeFrameConfig{};
-    runtimeFrameConfig.headless = headless;
-    runtimeFrameConfig.boundedFrames = boundedFrames;
-    runtimeFrameConfig.maxFrames = maxFrames;
-    simlab::HeadlessRuntimeFrameArtifacts runtimeFrameArtifacts{};
-    runtimeFrameArtifacts.outputStream = headless && headlessOut.is_open() ? static_cast<std::ostream*>(&headlessOut) : nullptr;
-    runtimeFrameArtifacts.metricsStream = headless && headlessMetricsOut.is_open() ? static_cast<std::ostream*>(&headlessMetricsOut) : nullptr;
-    runtimeFrameArtifacts.outputWriteStatus = &outputWriteStatus;
-    runtimeFrameArtifacts.outputFailureCategory = &outputFailureCategory;
-    runtimeFrameArtifacts.metricsWriteStatus = &metricsWriteStatus;
-    runtimeFrameArtifacts.metricsFailureCategory = &metricsFailureCategory;
+    const auto runtimeFramePreparation = simlab::PrepareHeadlessRuntimeFrame(headless,
+                                                                             boundedFrames,
+                                                                             maxFrames,
+                                                                             headlessOut,
+                                                                             headlessMetricsOut,
+                                                                             outputWriteStatus,
+                                                                             outputFailureCategory,
+                                                                             metricsWriteStatus,
+                                                                             metricsFailureCategory);
     try
     {
         loop.Run(
@@ -365,10 +363,10 @@ int main(int argc, char** argv)
                                                                         *scenario,
                                                                         dt,
                                                                         runtimeFrameState,
-                                                                        runtimeFrameConfig,
+                                                                        runtimeFramePreparation.config,
                                                                         headlessSummaryAccumulator,
                                                                         std::cout,
-                                                                        runtimeFrameArtifacts,
+                                                                        runtimeFramePreparation.artifacts,
                                                                         maybeFailPhase);
                 if (shouldStop)
                 {

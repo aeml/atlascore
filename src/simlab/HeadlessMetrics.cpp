@@ -374,6 +374,29 @@ namespace simlab
         return result;
     }
 
+    HeadlessRuntimeFramePreparation PrepareHeadlessRuntimeFrame(const bool headless,
+                                                                const bool boundedFrames,
+                                                                const int maxFrames,
+                                                                std::ostream& outputStream,
+                                                                std::ostream& metricsStream,
+                                                                std::string& outputWriteStatus,
+                                                                std::string& outputFailureCategory,
+                                                                std::string& metricsWriteStatus,
+                                                                std::string& metricsFailureCategory)
+    {
+        HeadlessRuntimeFramePreparation prepared{};
+        prepared.config.headless = headless;
+        prepared.config.boundedFrames = boundedFrames;
+        prepared.config.maxFrames = maxFrames;
+        prepared.artifacts.outputStream = &outputStream;
+        prepared.artifacts.metricsStream = &metricsStream;
+        prepared.artifacts.outputWriteStatus = &outputWriteStatus;
+        prepared.artifacts.outputFailureCategory = &outputFailureCategory;
+        prepared.artifacts.metricsWriteStatus = &metricsWriteStatus;
+        prepared.artifacts.metricsFailureCategory = &metricsFailureCategory;
+        return prepared;
+    }
+
     bool RunHeadlessRuntimeFrame(ecs::World& world,
                                  IScenario& scenario,
                                  const float dt,
