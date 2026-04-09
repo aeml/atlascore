@@ -279,23 +279,23 @@ int main(int argc, char** argv)
     std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
-    simlab::HeadlessStartupCoordinatorConfig startupConfig{};
-    startupConfig.headless = headless;
-    startupConfig.outputPrefix = outputPrefix;
-    startupConfig.batchIndexPath = batchIndexPath;
-    startupConfig.requestedScenarioKey = requestedScenarioKey;
-    startupConfig.resolvedScenarioKey = selectedScenarioKey;
-    startupConfig.fallbackUsed = fallbackUsed;
-    startupConfig.fixedDtSeconds = fixedDtSeconds;
-    startupConfig.boundedFrames = boundedFrames;
-    startupConfig.requestedFrames = requestedFrames;
-    startupConfig.runConfigHash = runConfigHash;
-    startupConfig.startupFailureSummaryPath = startupFailureSummaryPath;
-    startupConfig.startupFailureManifestPath = startupFailureManifestPath;
-    startupConfig.timestampUtc = formatTimestampUtc();
-    startupConfig.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
-    startupConfig.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
-    startupConfig.buildType = ATLASCORE_BUILD_TYPE;
+    const auto startupConfig = simlab::BuildHeadlessStartupCoordinatorConfig(
+        headless,
+        outputPrefix,
+        batchIndexPath,
+        requestedScenarioKey,
+        selectedScenarioKey,
+        fallbackUsed,
+        fixedDtSeconds,
+        boundedFrames,
+        requestedFrames,
+        runConfigHash,
+        startupFailureSummaryPath,
+        startupFailureManifestPath,
+        formatTimestampUtc(),
+        ATLASCORE_BUILD_GIT_COMMIT,
+        ATLASCORE_BUILD_GIT_DIRTY != 0,
+        ATLASCORE_BUILD_TYPE);
 
     auto startup = simlab::CoordinateHeadlessStartup(world,
                                                      *scenario,

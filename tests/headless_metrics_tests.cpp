@@ -836,6 +836,44 @@ namespace
         std::filesystem::remove_all(tempRoot, ec);
     }
 
+    void VerifyStartupCoordinatorConfigBuilderAppliesRuntimeFacts()
+    {
+        const auto config = simlab::BuildHeadlessStartupCoordinatorConfig(
+            true,
+            "artifacts/gravity_run",
+            "artifacts/batch/index.csv",
+            "requested_gravity",
+            "gravity",
+            true,
+            1.0 / 60.0,
+            true,
+            240,
+            987654,
+            "headless_startup_failure_summary.csv",
+            "headless_startup_failure_manifest.csv",
+            "2026-04-09T11:00:00Z",
+            "abcdef0123456789abcdef0123456789abcdef01",
+            false,
+            "RelWithDebInfo");
+
+        assert(config.headless);
+        assert(config.outputPrefix == "artifacts/gravity_run");
+        assert(config.batchIndexPath == "artifacts/batch/index.csv");
+        assert(config.requestedScenarioKey == "requested_gravity");
+        assert(config.resolvedScenarioKey == "gravity");
+        assert(config.fallbackUsed);
+        assert(config.fixedDtSeconds == 1.0 / 60.0);
+        assert(config.boundedFrames);
+        assert(config.requestedFrames == 240u);
+        assert(config.runConfigHash == 987654u);
+        assert(config.startupFailureSummaryPath == "headless_startup_failure_summary.csv");
+        assert(config.startupFailureManifestPath == "headless_startup_failure_manifest.csv");
+        assert(config.timestampUtc == "2026-04-09T11:00:00Z");
+        assert(config.gitCommit == "abcdef0123456789abcdef0123456789abcdef01");
+        assert(!config.gitDirty);
+        assert(config.buildType == "RelWithDebInfo");
+    }
+
     void VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures()
     {
         core::Logger logger;
@@ -1435,6 +1473,7 @@ int main()
     VerifyHeadlessRunFinalizationCoordinatorRecordsBatchIndexOpenFailure();
     VerifyHeadlessStartupCoordinatorBootstrapsHealthyHeadlessRun();
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
+    VerifyStartupCoordinatorConfigBuilderAppliesRuntimeFacts();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();

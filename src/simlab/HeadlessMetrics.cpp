@@ -635,6 +635,43 @@ namespace simlab
         return result;
     }
 
+    HeadlessStartupCoordinatorConfig BuildHeadlessStartupCoordinatorConfig(const bool headless,
+                                                                           const std::string_view outputPrefix,
+                                                                           const std::string_view batchIndexPath,
+                                                                           const std::string_view requestedScenarioKey,
+                                                                           const std::string_view resolvedScenarioKey,
+                                                                           const bool fallbackUsed,
+                                                                           const double fixedDtSeconds,
+                                                                           const bool boundedFrames,
+                                                                           const std::size_t requestedFrames,
+                                                                           const std::uint64_t runConfigHash,
+                                                                           const std::string_view startupFailureSummaryPath,
+                                                                           const std::string_view startupFailureManifestPath,
+                                                                           const std::string_view timestampUtc,
+                                                                           const std::string_view gitCommit,
+                                                                           const bool gitDirty,
+                                                                           const std::string_view buildType)
+    {
+        HeadlessStartupCoordinatorConfig config{};
+        config.headless = headless;
+        config.outputPrefix = std::string(outputPrefix);
+        config.batchIndexPath = std::string(batchIndexPath);
+        config.requestedScenarioKey = std::string(requestedScenarioKey);
+        config.resolvedScenarioKey = std::string(resolvedScenarioKey);
+        config.fallbackUsed = fallbackUsed;
+        config.fixedDtSeconds = fixedDtSeconds;
+        config.boundedFrames = boundedFrames;
+        config.requestedFrames = requestedFrames;
+        config.runConfigHash = runConfigHash;
+        config.startupFailureSummaryPath = std::string(startupFailureSummaryPath);
+        config.startupFailureManifestPath = std::string(startupFailureManifestPath);
+        config.timestampUtc = std::string(timestampUtc);
+        config.gitCommit = std::string(gitCommit);
+        config.gitDirty = gitDirty;
+        config.buildType = std::string(buildType);
+        return config;
+    }
+
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,
