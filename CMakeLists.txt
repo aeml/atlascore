@@ -57,6 +57,7 @@ add_library(atlascore
     src/simlab/WreckingBallScenario.cpp
     src/simlab/ParticleFluidScenario.cpp
     src/simlab/FullDemoScenario.cpp
+    src/simlab/TestFailureScenarios.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

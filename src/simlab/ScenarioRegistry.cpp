@@ -48,6 +48,9 @@ namespace simlab
             ScenarioRegistry::Register("wrecking", "Wrecking Ball (Joints & Collisions)", &CreateWreckingBallScenario);
             ScenarioRegistry::Register("fluid", "Particle Fluid (High Entity Count)", &CreateParticleFluidScenario);
             ScenarioRegistry::Register("demo", "Full Demo (All Systems Active)", &CreateFullDemoScenario);
+            ScenarioRegistry::Register("fail_setup", "Fail Setup (Test Scenario)", &CreateFailSetupScenario);
+            ScenarioRegistry::Register("fail_update", "Fail Update (Test Scenario)", &CreateFailUpdateScenario);
+            ScenarioRegistry::Register("fail_render", "Fail Render (Test Scenario)", &CreateFailRenderScenario);
         }
     }
 

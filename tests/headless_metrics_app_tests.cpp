@@ -574,20 +574,20 @@ namespace
         std::filesystem::remove(fallbackSummaryPath);
         std::filesystem::remove(fallbackManifestPath);
 
-        const int rc = std::system("ATLASCORE_FAIL_PHASE=setup ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_setup > /tmp/atlascore_headless_setup_failure.log 2>&1");
+        const int rc = std::system("./atlascore_app fail_setup --headless --frames=2 --output-prefix=artifacts/fail_setup > /tmp/atlascore_headless_setup_failure.log 2>&1");
         assert(rc != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
         assert(summaryColumns[10] == "scenario_setup_failed");
-        assert(summaryColumns[11] == "Injected failure for phase: setup");
+        assert(summaryColumns[11] == "Test scenario setup failure");
         assert(summaryColumns[12] == "startup_failure");
 
         const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
         assert(manifestColumns.size() == 37u);
         assert(manifestColumns[9] == "startup_failure");
         assert(manifestColumns[10] == "scenario_setup_failed");
-        assert(manifestColumns[11] == "Injected failure for phase: setup");
+        assert(manifestColumns[11] == "Test scenario setup failure");
         assert(manifestColumns[12] == "startup_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "startup_failure_exit");
@@ -602,14 +602,14 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("ATLASCORE_FAIL_PHASE=update ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_update > /tmp/atlascore_headless_update_failure.log 2>&1");
+        const int rc = std::system("./atlascore_app fail_update --headless --frames=2 --output-prefix=artifacts/fail_update > /tmp/atlascore_headless_update_failure.log 2>&1");
         assert(rc != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
         assert(summaryColumns[9] == "runtime_failure");
         assert(summaryColumns[10] == "scenario_update_failed");
-        assert(summaryColumns[11] == "Injected failure for phase: update");
+        assert(summaryColumns[11] == "Test scenario update failure");
         assert(summaryColumns[12] == "runtime_failure");
         assert(summaryColumns[13] == "0");
 
@@ -618,7 +618,7 @@ namespace
         assert(manifestColumns[8] == "0");
         assert(manifestColumns[9] == "runtime_failure");
         assert(manifestColumns[10] == "scenario_update_failed");
-        assert(manifestColumns[11] == "Injected failure for phase: update");
+        assert(manifestColumns[11] == "Test scenario update failure");
         assert(manifestColumns[12] == "runtime_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "runtime_failure_exit");
@@ -664,14 +664,14 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("ATLASCORE_FAIL_PHASE=render ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_render > /tmp/atlascore_headless_render_failure.log 2>&1");
+        const int rc = std::system("./atlascore_app fail_render --headless --frames=2 --output-prefix=artifacts/fail_render > /tmp/atlascore_headless_render_failure.log 2>&1");
         assert(rc != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
         assert(summaryColumns[9] == "runtime_failure");
         assert(summaryColumns[10] == "scenario_render_failed");
-        assert(summaryColumns[11] == "Injected failure for phase: render");
+        assert(summaryColumns[11] == "Test scenario render failure");
         assert(summaryColumns[12] == "runtime_failure");
         assert(summaryColumns[13] == "0");
 
@@ -680,7 +680,7 @@ namespace
         assert(manifestColumns[8] == "0");
         assert(manifestColumns[9] == "runtime_failure");
         assert(manifestColumns[10] == "scenario_render_failed");
-        assert(manifestColumns[11] == "Injected failure for phase: render");
+        assert(manifestColumns[11] == "Test scenario render failure");
         assert(manifestColumns[12] == "runtime_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "runtime_failure_exit");

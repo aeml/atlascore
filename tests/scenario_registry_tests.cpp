@@ -38,8 +38,14 @@ int main()
     // Create by key
     auto s1 = simlab::ScenarioRegistry::Create("gravity");
     auto s2 = simlab::ScenarioRegistry::Create("fluid");
+    auto failSetup = simlab::ScenarioRegistry::Create("fail_setup");
+    auto failUpdate = simlab::ScenarioRegistry::Create("fail_update");
+    auto failRender = simlab::ScenarioRegistry::Create("fail_render");
     assert(s1 != nullptr);
     assert(s2 != nullptr);
+    assert(failSetup != nullptr);
+    assert(failUpdate != nullptr);
+    assert(failRender != nullptr);
 
     std::cout << "Scenario registry tests passed\n";
     return 0;

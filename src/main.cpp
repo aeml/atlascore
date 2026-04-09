@@ -553,6 +553,7 @@ int main(int argc, char** argv)
 
     int frameCounter = 0;
     double simTimeSeconds = 0.0;
+    std::string currentRuntimeFailurePhase;
     try
     {
         loop.Run(
@@ -561,8 +562,10 @@ int main(int argc, char** argv)
                 using steady_clock = std::chrono::steady_clock;
                 const auto frameStart = steady_clock::now();
                 const auto updateStart = frameStart;
+                currentRuntimeFailurePhase = "update";
                 maybeFailPhase("update");
                 scenario->Update(world, dt);
+                currentRuntimeFailurePhase = "world_update";
                 maybeFailPhase("world_update");
                 world.Update(dt);
                 const auto updateEnd = steady_clock::now();
@@ -576,8 +579,10 @@ int main(int argc, char** argv)
                 }
 
                 const auto renderStart = steady_clock::now();
+                currentRuntimeFailurePhase = "render";
                 maybeFailPhase("render");
                 scenario->Render(world, *renderStream);
+                currentRuntimeFailurePhase.clear();
                 if (headless && headlessOut.is_open())
                 {
                     headlessOut.flush();
@@ -626,7 +631,10 @@ int main(int argc, char** argv)
     {
         failureDetail = std::string(ex.what());
         runStatus = "runtime_failure";
-        failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(failPhase, false));
+        const std::string_view failurePhase = currentRuntimeFailurePhase.empty()
+            ? std::string_view{failPhase}
+            : std::string_view{currentRuntimeFailurePhase};
+        failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(failurePhase, false));
         exitCode = 1;
         exitClassification = "runtime_failure_exit";
         running.store(false);
