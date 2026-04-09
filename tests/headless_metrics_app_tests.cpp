@@ -580,14 +580,14 @@ namespace
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
         assert(summaryColumns[10] == "scenario_setup_failed");
-        assert(summaryColumns[11].empty());
+        assert(summaryColumns[11] == "Injected failure for phase: setup");
         assert(summaryColumns[12] == "startup_failure");
 
         const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
         assert(manifestColumns.size() == 37u);
         assert(manifestColumns[9] == "startup_failure");
         assert(manifestColumns[10] == "scenario_setup_failed");
-        assert(manifestColumns[11].empty());
+        assert(manifestColumns[11] == "Injected failure for phase: setup");
         assert(manifestColumns[12] == "startup_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "startup_failure_exit");

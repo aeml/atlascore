@@ -148,6 +148,32 @@ namespace simlab
         return metrics;
     }
 
+    std::string_view ClassifyHeadlessFailurePhase(const std::string_view phase, const bool startupPhase) noexcept
+    {
+        if (startupPhase)
+        {
+            if (phase == "setup")
+            {
+                return "scenario_setup_failed";
+            }
+            return phase;
+        }
+
+        if (phase == "update")
+        {
+            return "scenario_update_failed";
+        }
+        if (phase == "world_update")
+        {
+            return "world_update_failed";
+        }
+        if (phase == "render")
+        {
+            return "scenario_render_failed";
+        }
+        return "runtime_exception";
+    }
+
     std::uint64_t HashHeadlessRunConfig(const std::string& scenarioKey,
                                         const double fixedDtSeconds,
                                         const std::size_t requestedFrames,

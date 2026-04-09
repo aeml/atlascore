@@ -283,11 +283,11 @@ int main(int argc, char** argv)
     std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
-    auto classifyStartupFailure = [&](const std::string& category, const std::string& detail = std::string{}) {
+    auto classifyStartupFailure = [&](std::string_view phase, const std::string& detail = std::string{}) {
         if (runStatus != "startup_failure")
         {
             runStatus = "startup_failure";
-            failureCategory = category;
+            failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(phase, true));
             failureDetail = detail;
         }
     };
@@ -390,9 +390,13 @@ int main(int argc, char** argv)
         maybeFailPhase("setup");
         scenario->Setup(world);
     }
+    catch (const std::exception& ex)
+    {
+        classifyStartupFailure("setup", ex.what());
+    }
     catch (...)
     {
-        classifyStartupFailure("scenario_setup_failed");
+        classifyStartupFailure("setup");
     }
 
     if (headless)
@@ -435,7 +439,11 @@ int main(int argc, char** argv)
         headlessOut.open(outputPath);
         if (!headlessOut.is_open())
         {
-            classifyStartupFailure("output_file_open_failed");
+            if (runStatus != "startup_failure")
+            {
+                runStatus = "startup_failure";
+                failureCategory = "output_file_open_failed";
+            }
             logger.Error(std::string("Failed to open ") + outputPath);
         }
         else
@@ -452,7 +460,11 @@ int main(int argc, char** argv)
         headlessMetricsOut.open(metricsPath);
         if (!headlessMetricsOut.is_open())
         {
-            classifyStartupFailure("metrics_file_open_failed");
+            if (runStatus != "startup_failure")
+            {
+                runStatus = "startup_failure";
+                failureCategory = "metrics_file_open_failed";
+            }
             logger.Error(std::string("Failed to open ") + metricsPath);
         }
         else
@@ -476,7 +488,11 @@ int main(int argc, char** argv)
         headlessSummaryOut.open(summaryPath);
         if (!headlessSummaryOut.is_open())
         {
-            classifyStartupFailure("summary_file_open_failed");
+            if (runStatus != "startup_failure")
+            {
+                runStatus = "startup_failure";
+                failureCategory = "summary_file_open_failed";
+            }
             logger.Error(std::string("Failed to open ") + summaryPath);
         }
         else
@@ -500,7 +516,11 @@ int main(int argc, char** argv)
         headlessManifestOut.open(manifestPath);
         if (!headlessManifestOut.is_open())
         {
-            classifyStartupFailure("manifest_file_open_failed");
+            if (runStatus != "startup_failure")
+            {
+                runStatus = "startup_failure";
+                failureCategory = "manifest_file_open_failed";
+            }
             logger.Error(std::string("Failed to open ") + manifestPath);
         }
         else
@@ -605,26 +625,8 @@ int main(int argc, char** argv)
     catch (const std::exception& ex)
     {
         failureDetail = std::string(ex.what());
-        if (failPhase == "update")
-        {
-            runStatus = "runtime_failure";
-            failureCategory = "scenario_update_failed";
-        }
-        else if (failPhase == "world_update")
-        {
-            runStatus = "runtime_failure";
-            failureCategory = "world_update_failed";
-        }
-        else if (failPhase == "render")
-        {
-            runStatus = "runtime_failure";
-            failureCategory = "scenario_render_failed";
-        }
-        else
-        {
-            runStatus = "runtime_failure";
-            failureCategory = "runtime_exception";
-        }
+        runStatus = "runtime_failure";
+        failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(failPhase, false));
         exitCode = 1;
         exitClassification = "runtime_failure_exit";
         running.store(false);

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iosfwd>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ecs { class World; }
@@ -140,6 +141,8 @@ namespace simlab
                                      const physics::PhysicsSystem& physicsSystem,
                                      std::size_t frameIndex,
                                      double simTimeSeconds) noexcept;
+
+    std::string_view ClassifyHeadlessFailurePhase(std::string_view phase, bool startupPhase) noexcept;
 
     std::uint64_t HashHeadlessRunConfig(const std::string& scenarioKey,
                                         double fixedDtSeconds,

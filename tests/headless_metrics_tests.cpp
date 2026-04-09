@@ -207,6 +207,16 @@ namespace
         assert(csv.find("fluid,fluid,0,0.008333,1,300,1,777,300,success,,,frame_cap,123456,900,17,250,240,260,0.010000,0.020000,0.003000,0.004000,0.013500,0.024500\n") != std::string::npos);
     }
 
+    void VerifyHeadlessFailurePhaseClassification()
+    {
+        assert(simlab::ClassifyHeadlessFailurePhase("setup", true) == "scenario_setup_failed");
+        assert(simlab::ClassifyHeadlessFailurePhase("output_directory_create_failed", true) == "output_directory_create_failed");
+        assert(simlab::ClassifyHeadlessFailurePhase("update", false) == "scenario_update_failed");
+        assert(simlab::ClassifyHeadlessFailurePhase("world_update", false) == "world_update_failed");
+        assert(simlab::ClassifyHeadlessFailurePhase("render", false) == "scenario_render_failed");
+        assert(simlab::ClassifyHeadlessFailurePhase("mystery", false) == "runtime_exception");
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -388,6 +398,7 @@ int main()
     VerifySummaryAccumulatorUsesTrueNearestRankPercentiles();
     VerifySummaryCsvWriterProducesStableHeaderAndRow();
     VerifyManifestCsvWriterProducesStableHeaderAndRow();
+    VerifyHeadlessFailurePhaseClassification();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();
