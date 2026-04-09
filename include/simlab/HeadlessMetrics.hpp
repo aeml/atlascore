@@ -231,6 +231,13 @@ namespace simlab
         bool manifestOpened{false};
     };
 
+    struct HeadlessRunFinalizationResult
+    {
+        HeadlessRunSummary summary;
+        HeadlessRunManifest manifest;
+        HeadlessRunArtifactReport artifacts;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -295,6 +302,13 @@ namespace simlab
                                                                                std::string_view gitCommit,
                                                                                bool gitDirty,
                                                                                std::string_view buildType);
+    HeadlessRunFinalizationResult FinalizeHeadlessRunReports(std::string_view scenarioKey,
+                                                             const HeadlessRunSummaryAccumulator& accumulator,
+                                                             const HeadlessRunReportContext& context,
+                                                             const HeadlessRunOutcomeTracker& outcome,
+                                                             HeadlessRunArtifactReport artifacts,
+                                                             std::ostream* summaryStream,
+                                                             std::ostream* manifestStream);
 
     class HeadlessRunSummaryAccumulator
     {

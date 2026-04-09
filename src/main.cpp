@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <ctime>
 #include <stdexcept>
+#include <utility>
 
 int main(int argc, char** argv)
 {
@@ -491,72 +492,48 @@ int main(int argc, char** argv)
     reportContext.runConfigHash = runConfigHash;
     reportContext.terminationReason = terminationReason;
 
-    auto runSummary = simlab::BuildHeadlessRunSummaryReport(headlessSummaryAccumulator.Build(selectedScenarioKey),
-                                                            reportContext,
-                                                            outcome);
-    if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
+    auto artifacts = simlab::BuildNormalHeadlessArtifactReport(simlab::HeadlessRunArtifactReport{},
+                                                               toAbsolutePathString(outputPath),
+                                                               toAbsolutePathString(metricsPath),
+                                                               toAbsolutePathString(summaryPath),
+                                                               batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),
+                                                               batchIndexAppendStatus,
+                                                               batchIndexFailureCategory,
+                                                               outputWriteStatus,
+                                                               outputFailureCategory,
+                                                               metricsWriteStatus,
+                                                               metricsFailureCategory,
+                                                               summaryWriteStatus,
+                                                               summaryFailureCategory,
+                                                               manifestWriteStatus,
+                                                               manifestFailureCategory,
+                                                               startupFailureSummaryWriteStatus,
+                                                               startupFailureSummaryFailureCategory,
+                                                               startupFailureManifestWriteStatus,
+                                                               startupFailureManifestFailureCategory,
+                                                               formatTimestampUtc(),
+                                                               ATLASCORE_BUILD_GIT_COMMIT,
+                                                               ATLASCORE_BUILD_GIT_DIRTY != 0,
+                                                               ATLASCORE_BUILD_TYPE);
+
+    const auto finalization = simlab::FinalizeHeadlessRunReports(selectedScenarioKey,
+                                                                 headlessSummaryAccumulator,
+                                                                 reportContext,
+                                                                 outcome,
+                                                                 std::move(artifacts),
+                                                                 headlessSummaryOut.is_open() ? static_cast<std::ostream*>(&headlessSummaryOut) : nullptr,
+                                                                 headlessManifestOut.is_open() ? static_cast<std::ostream*>(&headlessManifestOut) : nullptr);
+
+    summaryWriteStatus = finalization.artifacts.summaryWriteStatus;
+    summaryFailureCategory = finalization.artifacts.summaryFailureCategory;
+    manifestWriteStatus = finalization.artifacts.manifestWriteStatus;
+    manifestFailureCategory = finalization.artifacts.manifestFailureCategory;
+    batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
+    batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
+
+    if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
     {
-        simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
-        simlab::FinalizeHeadlessArtifactWrite(headlessSummaryOut,
-                                             summaryWriteStatus,
-                                             summaryFailureCategory,
-                                             "summary_write_failed");
-    }
-
-    if (headlessManifestOut.is_open())
-    {
-        auto artifacts = simlab::BuildNormalHeadlessArtifactReport(simlab::HeadlessRunArtifactReport{},
-                                                                   toAbsolutePathString(outputPath),
-                                                                   toAbsolutePathString(metricsPath),
-                                                                   toAbsolutePathString(summaryPath),
-                                                                   batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),
-                                                                   batchIndexAppendStatus,
-                                                                   batchIndexFailureCategory,
-                                                                   outputWriteStatus,
-                                                                   outputFailureCategory,
-                                                                   metricsWriteStatus,
-                                                                   metricsFailureCategory,
-                                                                   summaryWriteStatus,
-                                                                   summaryFailureCategory,
-                                                                   manifestWriteStatus,
-                                                                   manifestFailureCategory,
-                                                                   startupFailureSummaryWriteStatus,
-                                                                   startupFailureSummaryFailureCategory,
-                                                                   startupFailureManifestWriteStatus,
-                                                                   startupFailureManifestFailureCategory,
-                                                                   formatTimestampUtc(),
-                                                                   ATLASCORE_BUILD_GIT_COMMIT,
-                                                                   ATLASCORE_BUILD_GIT_DIRTY != 0,
-                                                                   ATLASCORE_BUILD_TYPE);
-
-        auto manifest = simlab::BuildHeadlessRunManifestReport(runSummary.frameCount,
-                                                               reportContext,
-                                                               artifacts,
-                                                               outcome);
-
-        if (!batchIndexPath.empty())
-        {
-            const auto absoluteBatchIndexPath = toAbsolutePathString(batchIndexPath);
-            simlab::AppendHeadlessManifestToBatchIndex(absoluteBatchIndexPath,
-                                                       manifest,
-                                                       batchIndexAppendStatus,
-                                                       batchIndexFailureCategory);
-            manifest.batchIndexAppendStatus = batchIndexAppendStatus;
-            manifest.batchIndexFailureCategory = batchIndexFailureCategory;
-            if (batchIndexFailureCategory == "batch_index_open_failed")
-            {
-                logger.Error(std::string("Failed to open batch index: ") + absoluteBatchIndexPath);
-            }
-        }
-
-        if (manifestFailureCategory.empty())
-        {
-            simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
-            simlab::FinalizeHeadlessArtifactWrite(headlessManifestOut,
-                                                 manifestWriteStatus,
-                                                 manifestFailureCategory,
-                                                 "manifest_write_failed");
-        }
+        logger.Error(std::string("Failed to open batch index: ") + toAbsolutePathString(batchIndexPath));
     }
 
     logger.Info("AtlasCore shutting down.");

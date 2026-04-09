@@ -563,6 +563,173 @@ namespace
         assert(accumulator.Build("gravity").frameCount == 0u);
     }
 
+    void VerifyHeadlessRunFinalizationCoordinatorWritesSummaryManifestAndBatchIndex()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_finalize_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        simlab::HeadlessRunSummaryAccumulator accumulator;
+        accumulator.AddFrame(simlab::FrameMetrics{.frameIndex = 1,
+                                                  .simTimeSeconds = 1.0 / 60.0,
+                                                  .worldHash = 77,
+                                                  .collisionCount = 2,
+                                                  .rigidBodyCount = 4,
+                                                  .dynamicBodyCount = 4,
+                                                  .transformCount = 4,
+                                                  .updateWallSeconds = 0.001000,
+                                                  .renderWallSeconds = 0.000500,
+                                                  .frameWallSeconds = 0.001600});
+
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "gravity";
+        context.resolvedScenarioKey = "gravity";
+        context.fixedDtSeconds = 1.0 / 60.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 1;
+        context.headless = true;
+        context.runConfigHash = 42;
+        context.terminationReason = "frame_cap";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+
+        simlab::HeadlessRunArtifactReport artifacts{};
+        artifacts.outputPath = (tempRoot / "gravity_output.txt").string();
+        artifacts.metricsPath = (tempRoot / "gravity_metrics.csv").string();
+        artifacts.summaryPath = (tempRoot / "gravity_summary.csv").string();
+        artifacts.batchIndexPath = (tempRoot / "batch_index.csv").string();
+        artifacts.batchIndexAppendStatus = "appended";
+        artifacts.outputWriteStatus = "written";
+        artifacts.metricsWriteStatus = "written";
+        artifacts.summaryWriteStatus = "written";
+        artifacts.manifestWriteStatus = "written";
+        artifacts.startupFailureSummaryWriteStatus = "not_applicable";
+        artifacts.startupFailureManifestWriteStatus = "not_applicable";
+        artifacts.timestampUtc = "2026-04-09T08:00:00Z";
+        artifacts.gitCommit = "abcdef0123456789abcdef0123456789abcdef01";
+        artifacts.gitDirty = false;
+        artifacts.buildType = "Debug";
+
+        std::ofstream summaryOut(tempRoot / "gravity_summary.csv", std::ios::app);
+        std::ofstream manifestOut(tempRoot / "gravity_manifest.csv", std::ios::app);
+        assert(summaryOut.is_open());
+        assert(manifestOut.is_open());
+        simlab::WriteHeadlessRunSummaryCsvHeader(summaryOut);
+        simlab::WriteHeadlessRunManifestCsvHeader(manifestOut);
+        summaryOut.flush();
+        manifestOut.flush();
+
+        const auto result = simlab::FinalizeHeadlessRunReports("gravity",
+                                                               accumulator,
+                                                               context,
+                                                               outcome,
+                                                               artifacts,
+                                                               &summaryOut,
+                                                               &manifestOut);
+
+        assert(result.summary.frameCount == 1u);
+        assert(result.summary.finalWorldHash == 77u);
+        assert(result.manifest.frameCount == 1u);
+        assert(result.manifest.batchIndexAppendStatus == "appended");
+        assert(result.manifest.batchIndexFailureCategory.empty());
+        assert(result.artifacts.summaryWriteStatus == "written");
+        assert(result.artifacts.manifestWriteStatus == "written");
+
+        summaryOut.close();
+        manifestOut.close();
+        std::ifstream summaryIn(tempRoot / "gravity_summary.csv");
+        const std::string summaryCsv((std::istreambuf_iterator<char>(summaryIn)), std::istreambuf_iterator<char>());
+        assert(summaryCsv.find("gravity,gravity,0,0.016667,1,1,1,42,1,success") != std::string::npos);
+
+        std::ifstream manifestIn(tempRoot / "gravity_manifest.csv");
+        const std::string manifestCsv((std::istreambuf_iterator<char>(manifestIn)), std::istreambuf_iterator<char>());
+        assert(manifestCsv.find("gravity,gravity,0,0.016667,1,1,1,42,1,success") != std::string::npos);
+
+        std::ifstream batchIndexIn(tempRoot / "batch_index.csv");
+        const std::string batchIndexCsv((std::istreambuf_iterator<char>(batchIndexIn)), std::istreambuf_iterator<char>());
+        assert(batchIndexCsv.find("requested_scenario_key,resolved_scenario_key") == 0);
+        assert(batchIndexCsv.find("gravity,gravity,0,0.016667,1,1,1,42,1,success") != std::string::npos);
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessRunFinalizationCoordinatorRecordsBatchIndexOpenFailure()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_finalize_batch_fail_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        simlab::HeadlessRunSummaryAccumulator accumulator;
+        accumulator.AddFrame(simlab::FrameMetrics{.frameIndex = 1,
+                                                  .simTimeSeconds = 1.0 / 60.0,
+                                                  .worldHash = 88,
+                                                  .collisionCount = 1,
+                                                  .rigidBodyCount = 2,
+                                                  .dynamicBodyCount = 2,
+                                                  .transformCount = 2,
+                                                  .updateWallSeconds = 0.001000,
+                                                  .renderWallSeconds = 0.000500,
+                                                  .frameWallSeconds = 0.001600});
+
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "gravity";
+        context.resolvedScenarioKey = "gravity";
+        context.fixedDtSeconds = 1.0 / 60.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 1;
+        context.headless = true;
+        context.runConfigHash = 43;
+        context.terminationReason = "frame_cap";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+
+        simlab::HeadlessRunArtifactReport artifacts{};
+        artifacts.outputPath = (tempRoot / "gravity_output.txt").string();
+        artifacts.metricsPath = (tempRoot / "gravity_metrics.csv").string();
+        artifacts.summaryPath = (tempRoot / "gravity_summary.csv").string();
+        artifacts.batchIndexPath = "/proc/atlascore_finalize_batch_fail.csv";
+        artifacts.batchIndexAppendStatus = "appended";
+        artifacts.outputWriteStatus = "written";
+        artifacts.metricsWriteStatus = "written";
+        artifacts.summaryWriteStatus = "written";
+        artifacts.manifestWriteStatus = "written";
+        artifacts.startupFailureSummaryWriteStatus = "not_applicable";
+        artifacts.startupFailureManifestWriteStatus = "not_applicable";
+        artifacts.timestampUtc = "2026-04-09T08:05:00Z";
+        artifacts.gitCommit = "abcdef0123456789abcdef0123456789abcdef01";
+        artifacts.gitDirty = false;
+        artifacts.buildType = "Debug";
+
+        std::ofstream summaryOut(tempRoot / "gravity_summary.csv", std::ios::app);
+        std::ofstream manifestOut(tempRoot / "gravity_manifest.csv", std::ios::app);
+        assert(summaryOut.is_open());
+        assert(manifestOut.is_open());
+        simlab::WriteHeadlessRunSummaryCsvHeader(summaryOut);
+        simlab::WriteHeadlessRunManifestCsvHeader(manifestOut);
+        summaryOut.flush();
+        manifestOut.flush();
+
+        const auto result = simlab::FinalizeHeadlessRunReports("gravity",
+                                                               accumulator,
+                                                               context,
+                                                               outcome,
+                                                               artifacts,
+                                                               &summaryOut,
+                                                               &manifestOut);
+
+        assert(result.summary.frameCount == 1u);
+        assert(result.artifacts.batchIndexAppendStatus == "append_failed");
+        assert(result.artifacts.batchIndexFailureCategory == "batch_index_open_failed");
+        assert(result.manifest.batchIndexAppendStatus == "append_failed");
+        assert(result.manifest.batchIndexFailureCategory == "batch_index_open_failed");
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -1037,6 +1204,8 @@ int main()
     VerifyNormalHeadlessArtifactReportBuilderAppliesRuntimeFacts();
     VerifyHeadlessRuntimeFrameCoordinatorAdvancesAndCapturesMetrics();
     VerifyHeadlessRuntimeFrameCoordinatorPreservesWorldUpdateFailurePhase();
+    VerifyHeadlessRunFinalizationCoordinatorWritesSummaryManifestAndBatchIndex();
+    VerifyHeadlessRunFinalizationCoordinatorRecordsBatchIndexOpenFailure();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();

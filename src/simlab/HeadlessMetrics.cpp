@@ -583,6 +583,58 @@ namespace simlab
         return result;
     }
 
+    HeadlessRunFinalizationResult FinalizeHeadlessRunReports(const std::string_view scenarioKey,
+                                                             const HeadlessRunSummaryAccumulator& accumulator,
+                                                             const HeadlessRunReportContext& context,
+                                                             const HeadlessRunOutcomeTracker& outcome,
+                                                             HeadlessRunArtifactReport artifacts,
+                                                             std::ostream* summaryStream,
+                                                             std::ostream* manifestStream)
+    {
+        HeadlessRunFinalizationResult result{};
+        result.summary = BuildHeadlessRunSummaryReport(accumulator.Build(std::string(scenarioKey)), context, outcome);
+        result.artifacts = std::move(artifacts);
+
+        if (summaryStream != nullptr && result.artifacts.summaryFailureCategory.empty())
+        {
+            WriteHeadlessRunSummaryCsvRow(*summaryStream, result.summary);
+            FinalizeHeadlessArtifactWrite(*summaryStream,
+                                          result.artifacts.summaryWriteStatus,
+                                          result.artifacts.summaryFailureCategory,
+                                          "summary_write_failed");
+        }
+
+        result.manifest = BuildHeadlessRunManifestReport(result.summary.frameCount,
+                                                         context,
+                                                         result.artifacts,
+                                                         outcome);
+
+        if (!result.artifacts.batchIndexPath.empty())
+        {
+            AppendHeadlessManifestToBatchIndex(result.artifacts.batchIndexPath,
+                                               result.manifest,
+                                               result.artifacts.batchIndexAppendStatus,
+                                               result.artifacts.batchIndexFailureCategory);
+            result.manifest.batchIndexAppendStatus = result.artifacts.batchIndexAppendStatus;
+            result.manifest.batchIndexFailureCategory = result.artifacts.batchIndexFailureCategory;
+        }
+
+        if (manifestStream != nullptr && result.artifacts.manifestFailureCategory.empty())
+        {
+            WriteHeadlessRunManifestCsvRow(*manifestStream, result.manifest);
+            FinalizeHeadlessArtifactWrite(*manifestStream,
+                                          result.artifacts.manifestWriteStatus,
+                                          result.artifacts.manifestFailureCategory,
+                                          "manifest_write_failed");
+        }
+
+        result.manifest.summaryWriteStatus = result.artifacts.summaryWriteStatus;
+        result.manifest.summaryFailureCategory = result.artifacts.summaryFailureCategory;
+        result.manifest.manifestWriteStatus = result.artifacts.manifestWriteStatus;
+        result.manifest.manifestFailureCategory = result.artifacts.manifestFailureCategory;
+        return result;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;
