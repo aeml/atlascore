@@ -956,6 +956,30 @@ namespace
         assert(applied.manifestStream.is_open());
     }
 
+    void VerifyHeadlessLocalStateBuilderSeedsDefaults()
+    {
+        const auto state = simlab::BuildHeadlessLocalState("artifacts/batch/index.csv");
+        assert(state.batchIndexAppendStatus == "appended");
+        assert(state.batchIndexFailureCategory.empty());
+        assert(state.outputPath.empty());
+        assert(state.metricsPath.empty());
+        assert(state.summaryPath.empty());
+        assert(state.manifestPath.empty());
+        assert(state.outputWriteStatus.empty());
+        assert(state.metricsWriteStatus.empty());
+        assert(state.summaryWriteStatus.empty());
+        assert(state.manifestWriteStatus.empty());
+        assert(state.startupFailureSummaryWriteStatus == "not_applicable");
+        assert(state.startupFailureManifestWriteStatus == "not_applicable");
+        assert(state.startupFailureSummaryPath == "headless_startup_failure_summary.csv");
+        assert(state.startupFailureManifestPath == "headless_startup_failure_manifest.csv");
+        assert(state.outcome.runStatus == "success");
+        assert(state.outcome.exitCode == 0);
+
+        const auto noBatchState = simlab::BuildHeadlessLocalState("");
+        assert(noBatchState.batchIndexAppendStatus == "not_requested");
+    }
+
     void VerifyStartupLoggingPreparationBuildsResolvedPaths()
     {
         simlab::HeadlessStartupCoordinatorResult startup{};
@@ -1617,6 +1641,7 @@ int main()
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
     VerifyStartupCoordinatorConfigBuilderAppliesRuntimeFacts();
     VerifyStartupResultApplicationMovesBootstrapState();
+    VerifyHeadlessLocalStateBuilderSeedsDefaults();
     VerifyStartupLoggingPreparationBuildsResolvedPaths();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyFinalizationLoggingPreparationResolvesBatchIndexPath();

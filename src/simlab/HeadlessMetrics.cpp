@@ -746,6 +746,13 @@ namespace simlab
         return prepared;
     }
 
+    HeadlessLocalState BuildHeadlessLocalState(const std::string_view batchIndexPath)
+    {
+        HeadlessLocalState state{};
+        state.batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
+        return state;
+    }
+
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

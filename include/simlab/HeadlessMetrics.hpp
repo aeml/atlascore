@@ -335,6 +335,35 @@ namespace simlab
         std::string batchIndexPath;
     };
 
+    struct HeadlessLocalState
+    {
+        std::ofstream outputStream;
+        std::ofstream metricsStream;
+        std::ofstream summaryStream;
+        std::ofstream manifestStream;
+        HeadlessRunOutcomeTracker outcome;
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string manifestPath;
+        std::string batchIndexAppendStatus;
+        std::string batchIndexFailureCategory;
+        std::string outputWriteStatus;
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus;
+        std::string metricsFailureCategory;
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+        std::string startupFailureSummaryWriteStatus{"not_applicable"};
+        std::string startupFailureSummaryFailureCategory;
+        std::string startupFailureManifestWriteStatus{"not_applicable"};
+        std::string startupFailureManifestFailureCategory;
+        std::string startupFailureSummaryPath{"headless_startup_failure_summary.csv"};
+        std::string startupFailureManifestPath{"headless_startup_failure_manifest.csv"};
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -437,6 +466,7 @@ namespace simlab
                                                                    std::string_view startupFailureSummaryPath,
                                                                    std::string_view startupFailureManifestPath);
     HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(std::string_view batchIndexPath);
+    HeadlessLocalState BuildHeadlessLocalState(std::string_view batchIndexPath);
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,
