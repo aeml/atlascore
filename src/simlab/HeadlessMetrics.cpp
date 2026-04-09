@@ -672,6 +672,34 @@ namespace simlab
         return config;
     }
 
+    AppliedHeadlessStartupResult ApplyHeadlessStartupResult(HeadlessStartupCoordinatorResult startup)
+    {
+        AppliedHeadlessStartupResult applied{};
+        applied.outputPath = std::move(startup.bootstrap.outputPath);
+        applied.metricsPath = std::move(startup.bootstrap.metricsPath);
+        applied.summaryPath = std::move(startup.bootstrap.summaryPath);
+        applied.manifestPath = std::move(startup.bootstrap.manifestPath);
+        applied.batchIndexAppendStatus = std::move(startup.bootstrap.batchIndexAppendStatus);
+        applied.batchIndexFailureCategory = std::move(startup.bootstrap.batchIndexFailureCategory);
+        applied.outputWriteStatus = std::move(startup.bootstrap.outputWriteStatus);
+        applied.outputFailureCategory = std::move(startup.bootstrap.outputFailureCategory);
+        applied.metricsWriteStatus = std::move(startup.bootstrap.metricsWriteStatus);
+        applied.metricsFailureCategory = std::move(startup.bootstrap.metricsFailureCategory);
+        applied.summaryWriteStatus = std::move(startup.bootstrap.summaryWriteStatus);
+        applied.summaryFailureCategory = std::move(startup.bootstrap.summaryFailureCategory);
+        applied.manifestWriteStatus = std::move(startup.bootstrap.manifestWriteStatus);
+        applied.manifestFailureCategory = std::move(startup.bootstrap.manifestFailureCategory);
+        applied.startupFailureSummaryWriteStatus = std::move(startup.startupFailureSummaryWriteStatus);
+        applied.startupFailureSummaryFailureCategory = std::move(startup.startupFailureSummaryFailureCategory);
+        applied.startupFailureManifestWriteStatus = std::move(startup.startupFailureManifestWriteStatus);
+        applied.startupFailureManifestFailureCategory = std::move(startup.startupFailureManifestFailureCategory);
+        applied.outputStream = std::move(startup.bootstrap.outputStream);
+        applied.metricsStream = std::move(startup.bootstrap.metricsStream);
+        applied.summaryStream = std::move(startup.bootstrap.summaryStream);
+        applied.manifestStream = std::move(startup.bootstrap.manifestStream);
+        return applied;
+    }
+
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

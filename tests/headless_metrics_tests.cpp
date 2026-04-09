@@ -874,6 +874,54 @@ namespace
         assert(config.buildType == "RelWithDebInfo");
     }
 
+    void VerifyStartupResultApplicationMovesBootstrapState()
+    {
+        simlab::HeadlessStartupCoordinatorResult startup{};
+        startup.bootstrap.outputPath = "artifacts/run_output.txt";
+        startup.bootstrap.metricsPath = "artifacts/run_metrics.csv";
+        startup.bootstrap.summaryPath = "artifacts/run_summary.csv";
+        startup.bootstrap.manifestPath = "artifacts/run_manifest.csv";
+        startup.bootstrap.batchIndexAppendStatus = "append_failed";
+        startup.bootstrap.batchIndexFailureCategory = "batch_index_open_failed";
+        startup.bootstrap.outputWriteStatus = "written";
+        startup.bootstrap.outputFailureCategory = "";
+        startup.bootstrap.metricsWriteStatus = "write_failed";
+        startup.bootstrap.metricsFailureCategory = "metrics_write_failed";
+        startup.bootstrap.summaryWriteStatus = "written";
+        startup.bootstrap.summaryFailureCategory = "";
+        startup.bootstrap.manifestWriteStatus = "written";
+        startup.bootstrap.manifestFailureCategory = "";
+        startup.startupFailureSummaryWriteStatus = "written";
+        startup.startupFailureSummaryFailureCategory = "";
+        startup.startupFailureManifestWriteStatus = "write_failed";
+        startup.startupFailureManifestFailureCategory = "startup_failure_manifest_write_failed";
+        startup.bootstrap.outputStream.open("/dev/null");
+        startup.bootstrap.metricsStream.open("/dev/null");
+        startup.bootstrap.summaryStream.open("/dev/null");
+        startup.bootstrap.manifestStream.open("/dev/null");
+
+        auto applied = simlab::ApplyHeadlessStartupResult(std::move(startup));
+
+        assert(applied.outputPath == "artifacts/run_output.txt");
+        assert(applied.metricsPath == "artifacts/run_metrics.csv");
+        assert(applied.summaryPath == "artifacts/run_summary.csv");
+        assert(applied.manifestPath == "artifacts/run_manifest.csv");
+        assert(applied.batchIndexAppendStatus == "append_failed");
+        assert(applied.batchIndexFailureCategory == "batch_index_open_failed");
+        assert(applied.outputWriteStatus == "written");
+        assert(applied.metricsWriteStatus == "write_failed");
+        assert(applied.metricsFailureCategory == "metrics_write_failed");
+        assert(applied.summaryWriteStatus == "written");
+        assert(applied.manifestWriteStatus == "written");
+        assert(applied.startupFailureSummaryWriteStatus == "written");
+        assert(applied.startupFailureManifestWriteStatus == "write_failed");
+        assert(applied.startupFailureManifestFailureCategory == "startup_failure_manifest_write_failed");
+        assert(applied.outputStream.is_open());
+        assert(applied.metricsStream.is_open());
+        assert(applied.summaryStream.is_open());
+        assert(applied.manifestStream.is_open());
+    }
+
     void VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures()
     {
         core::Logger logger;
@@ -1474,6 +1522,7 @@ int main()
     VerifyHeadlessStartupCoordinatorBootstrapsHealthyHeadlessRun();
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
     VerifyStartupCoordinatorConfigBuilderAppliesRuntimeFacts();
+    VerifyStartupResultApplicationMovesBootstrapState();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();

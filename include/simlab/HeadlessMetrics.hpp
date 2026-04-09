@@ -277,6 +277,32 @@ namespace simlab
         HeadlessRunArtifactReport artifacts;
     };
 
+    struct AppliedHeadlessStartupResult
+    {
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string manifestPath;
+        std::string batchIndexAppendStatus;
+        std::string batchIndexFailureCategory;
+        std::string outputWriteStatus;
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus;
+        std::string metricsFailureCategory;
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+        std::string startupFailureSummaryWriteStatus;
+        std::string startupFailureSummaryFailureCategory;
+        std::string startupFailureManifestWriteStatus;
+        std::string startupFailureManifestFailureCategory;
+        std::ofstream outputStream;
+        std::ofstream metricsStream;
+        std::ofstream summaryStream;
+        std::ofstream manifestStream;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -364,6 +390,7 @@ namespace simlab
                                                                            std::string_view gitCommit,
                                                                            bool gitDirty,
                                                                            std::string_view buildType);
+    AppliedHeadlessStartupResult ApplyHeadlessStartupResult(HeadlessStartupCoordinatorResult startup);
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

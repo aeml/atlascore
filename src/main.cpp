@@ -303,28 +303,29 @@ int main(int argc, char** argv)
                                                      startupConfig,
                                                      maybeFailPhase);
 
-    outputPath = startup.bootstrap.outputPath;
-    metricsPath = startup.bootstrap.metricsPath;
-    summaryPath = startup.bootstrap.summaryPath;
-    manifestPath = startup.bootstrap.manifestPath;
-    batchIndexAppendStatus = startup.bootstrap.batchIndexAppendStatus;
-    batchIndexFailureCategory = startup.bootstrap.batchIndexFailureCategory;
-    outputWriteStatus = startup.bootstrap.outputWriteStatus;
-    outputFailureCategory = startup.bootstrap.outputFailureCategory;
-    metricsWriteStatus = startup.bootstrap.metricsWriteStatus;
-    metricsFailureCategory = startup.bootstrap.metricsFailureCategory;
-    summaryWriteStatus = startup.bootstrap.summaryWriteStatus;
-    summaryFailureCategory = startup.bootstrap.summaryFailureCategory;
-    manifestWriteStatus = startup.bootstrap.manifestWriteStatus;
-    manifestFailureCategory = startup.bootstrap.manifestFailureCategory;
-    startupFailureSummaryWriteStatus = startup.startupFailureSummaryWriteStatus;
-    startupFailureSummaryFailureCategory = startup.startupFailureSummaryFailureCategory;
-    startupFailureManifestWriteStatus = startup.startupFailureManifestWriteStatus;
-    startupFailureManifestFailureCategory = startup.startupFailureManifestFailureCategory;
-    headlessOut = std::move(startup.bootstrap.outputStream);
-    headlessMetricsOut = std::move(startup.bootstrap.metricsStream);
-    headlessSummaryOut = std::move(startup.bootstrap.summaryStream);
-    headlessManifestOut = std::move(startup.bootstrap.manifestStream);
+    auto appliedStartup = simlab::ApplyHeadlessStartupResult(std::move(startup));
+    outputPath = appliedStartup.outputPath;
+    metricsPath = appliedStartup.metricsPath;
+    summaryPath = appliedStartup.summaryPath;
+    manifestPath = appliedStartup.manifestPath;
+    batchIndexAppendStatus = appliedStartup.batchIndexAppendStatus;
+    batchIndexFailureCategory = appliedStartup.batchIndexFailureCategory;
+    outputWriteStatus = appliedStartup.outputWriteStatus;
+    outputFailureCategory = appliedStartup.outputFailureCategory;
+    metricsWriteStatus = appliedStartup.metricsWriteStatus;
+    metricsFailureCategory = appliedStartup.metricsFailureCategory;
+    summaryWriteStatus = appliedStartup.summaryWriteStatus;
+    summaryFailureCategory = appliedStartup.summaryFailureCategory;
+    manifestWriteStatus = appliedStartup.manifestWriteStatus;
+    manifestFailureCategory = appliedStartup.manifestFailureCategory;
+    startupFailureSummaryWriteStatus = appliedStartup.startupFailureSummaryWriteStatus;
+    startupFailureSummaryFailureCategory = appliedStartup.startupFailureSummaryFailureCategory;
+    startupFailureManifestWriteStatus = appliedStartup.startupFailureManifestWriteStatus;
+    startupFailureManifestFailureCategory = appliedStartup.startupFailureManifestFailureCategory;
+    headlessOut = std::move(appliedStartup.outputStream);
+    headlessMetricsOut = std::move(appliedStartup.metricsStream);
+    headlessSummaryOut = std::move(appliedStartup.summaryStream);
+    headlessManifestOut = std::move(appliedStartup.manifestStream);
 
     simlab::LogHeadlessStartupMessages(logger,
                                       startup,
