@@ -550,6 +550,89 @@ namespace
         assert(manifestColumns[31] == "startup_failure_exit");
     }
 
+    void VerifyScenarioSetupFailureIsExported()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+
+        const int rc = std::system("ATLASCORE_FAIL_PHASE=setup ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_setup > /tmp/atlascore_headless_setup_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "scenario_setup_failed");
+        assert(summaryColumns[11] == "startup_failure");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "scenario_setup_failed");
+        assert(manifestColumns[11] == "startup_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "startup_failure_exit");
+    }
+
+    void VerifyScenarioUpdateFailureIsExported()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "fail_update";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("ATLASCORE_FAIL_PHASE=update ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_update > /tmp/atlascore_headless_update_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
+        assert(summaryColumns[8] == "0");
+        assert(summaryColumns[9] == "runtime_failure");
+        assert(summaryColumns[10] == "scenario_update_failed");
+        assert(summaryColumns[11] == "runtime_failure");
+        assert(summaryColumns[12] == "0");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(prefix.string() + "_manifest.csv")[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[8] == "0");
+        assert(manifestColumns[9] == "runtime_failure");
+        assert(manifestColumns[10] == "scenario_update_failed");
+        assert(manifestColumns[11] == "runtime_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "runtime_failure_exit");
+    }
+
+    void VerifyScenarioRenderFailureIsExported()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "fail_render";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("ATLASCORE_FAIL_PHASE=render ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_render > /tmp/atlascore_headless_render_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
+        assert(summaryColumns[8] == "0");
+        assert(summaryColumns[9] == "runtime_failure");
+        assert(summaryColumns[10] == "scenario_render_failed");
+        assert(summaryColumns[11] == "runtime_failure");
+        assert(summaryColumns[12] == "0");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(prefix.string() + "_manifest.csv")[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[8] == "0");
+        assert(manifestColumns[9] == "runtime_failure");
+        assert(manifestColumns[10] == "scenario_render_failed");
+        assert(manifestColumns[11] == "runtime_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "runtime_failure_exit");
+    }
+
     void VerifyBatchIndexAppendFailureIsRecordedInManifest()
     {
         const auto cwd = std::filesystem::current_path();
@@ -676,6 +759,9 @@ int main()
     VerifyMetricsOpenFailureIsClassified();
     VerifySummaryOpenFailureIsClassified();
     VerifyManifestOpenFailureIsClassified();
+    VerifyScenarioSetupFailureIsExported();
+    VerifyScenarioUpdateFailureIsExported();
+    VerifyScenarioRenderFailureIsExported();
     VerifyBatchIndexAppendFailureIsRecordedInManifest();
     VerifyBatchIndexWriteFailureIsRecordedInManifest();
     VerifySummaryWriteFailureIsRecordedInManifest();

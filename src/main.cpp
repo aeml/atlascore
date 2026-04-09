@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <stdexcept>
 
 int main(int argc, char** argv)
 {
@@ -75,6 +76,13 @@ int main(int argc, char** argv)
     };
 
     std::string headlessEnvValue = getEnvValue("ATLASCORE_HEADLESS");
+    const std::string failPhase = getEnvValue("ATLASCORE_FAIL_PHASE");
+    auto maybeFailPhase = [&](std::string_view phase) {
+        if (failPhase == phase)
+        {
+            throw std::runtime_error(std::string("Injected failure for phase: ") + std::string(phase));
+        }
+    };
     bool headless = envTruthy(headlessEnvValue.c_str());
     std::string scenarioArg;
     std::string outputPrefix;
@@ -187,8 +195,6 @@ int main(int argc, char** argv)
         logger.Error("No scenario available to run.");
         return 1;
     }
-
-    scenario->Setup(world);
 
     std::atomic<bool> running{true};
     std::atomic<bool> quitRequestedByInput{false};
@@ -375,6 +381,16 @@ int main(int argc, char** argv)
             logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
         }
     };
+    try
+    {
+        maybeFailPhase("setup");
+        scenario->Setup(world);
+    }
+    catch (...)
+    {
+        classifyStartupFailure("scenario_setup_failed");
+    }
+
     if (headless)
     {
         auto ensureParentDirectoryExists = [&](const std::filesystem::path& path, const std::string& label) {
@@ -513,69 +529,95 @@ int main(int argc, char** argv)
 
     int frameCounter = 0;
     double simTimeSeconds = 0.0;
-    loop.Run(
-        [&](float dt)
-        {
-            using steady_clock = std::chrono::steady_clock;
-            const auto frameStart = steady_clock::now();
-            const auto updateStart = frameStart;
-            scenario->Update(world, dt);
-            world.Update(dt);
-            const auto updateEnd = steady_clock::now();
-            simTimeSeconds += static_cast<double>(dt);
-            ++frameCounter;
-
-            std::ostream* renderStream = &std::cout;
-            if (headless && headlessOut.is_open())
+    try
+    {
+        loop.Run(
+            [&](float dt)
             {
-                renderStream = &headlessOut;
-            }
+                using steady_clock = std::chrono::steady_clock;
+                const auto frameStart = steady_clock::now();
+                const auto updateStart = frameStart;
+                maybeFailPhase("update");
+                scenario->Update(world, dt);
+                world.Update(dt);
+                const auto updateEnd = steady_clock::now();
+                simTimeSeconds += static_cast<double>(dt);
+                ++frameCounter;
 
-            const auto renderStart = steady_clock::now();
-            scenario->Render(world, *renderStream);
-            if (headless && headlessOut.is_open())
-            {
-                headlessOut.flush();
-                if (!headlessOut.good())
+                std::ostream* renderStream = &std::cout;
+                if (headless && headlessOut.is_open())
                 {
-                    outputWriteStatus = "write_failed";
-                    outputFailureCategory = "output_write_failed";
+                    renderStream = &headlessOut;
                 }
-            }
-            const auto renderEnd = steady_clock::now();
 
-            if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
-            {
-                auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
-                metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
-                metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
-                metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
-                metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
-                                                    metrics.updateWallSeconds + metrics.renderWallSeconds);
-                headlessSummaryAccumulator.AddFrame(metrics);
-                if (headlessMetricsOut.is_open() && metricsFailureCategory.empty())
+                const auto renderStart = steady_clock::now();
+                maybeFailPhase("render");
+                scenario->Render(world, *renderStream);
+                if (headless && headlessOut.is_open())
                 {
-                    simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
-                    headlessMetricsOut.flush();
-                    if (!headlessMetricsOut.good())
+                    headlessOut.flush();
+                    if (!headlessOut.good())
                     {
-                        metricsWriteStatus = "write_failed";
-                        metricsFailureCategory = "metrics_write_failed";
+                        outputWriteStatus = "write_failed";
+                        outputFailureCategory = "output_write_failed";
                     }
                 }
-            }
+                const auto renderEnd = steady_clock::now();
 
-            if (maxFrames > 0 && frameCounter >= maxFrames)
-            {
-                running.store(false);
-            }
-            else if (headless && !boundedFrames)
-            {
-                running.store(false);
-            }
-            // Otherwise runs until Enter is pressed.
-        },
-        running);
+                if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
+                {
+                    auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
+                    metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
+                    metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
+                    metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
+                    metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
+                                                        metrics.updateWallSeconds + metrics.renderWallSeconds);
+                    headlessSummaryAccumulator.AddFrame(metrics);
+                    if (headlessMetricsOut.is_open() && metricsFailureCategory.empty())
+                    {
+                        simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
+                        headlessMetricsOut.flush();
+                        if (!headlessMetricsOut.good())
+                        {
+                            metricsWriteStatus = "write_failed";
+                            metricsFailureCategory = "metrics_write_failed";
+                        }
+                    }
+                }
+
+                if (maxFrames > 0 && frameCounter >= maxFrames)
+                {
+                    running.store(false);
+                }
+                else if (headless && !boundedFrames)
+                {
+                    running.store(false);
+                }
+                // Otherwise runs until Enter is pressed.
+            },
+            running);
+    }
+    catch (const std::exception&)
+    {
+        if (failPhase == "update")
+        {
+            runStatus = "runtime_failure";
+            failureCategory = "scenario_update_failed";
+        }
+        else if (failPhase == "render")
+        {
+            runStatus = "runtime_failure";
+            failureCategory = "scenario_render_failed";
+        }
+        else
+        {
+            runStatus = "runtime_failure";
+            failureCategory = "runtime_exception";
+        }
+        exitCode = 1;
+        exitClassification = "runtime_failure_exit";
+        running.store(false);
+    }
 
     if (quitThread.joinable())
     {
@@ -583,7 +625,11 @@ int main(int argc, char** argv)
     }
 
     std::string terminationReason;
-    if (boundedFrames)
+    if (runStatus == "runtime_failure")
+    {
+        terminationReason = "runtime_failure";
+    }
+    else if (boundedFrames)
     {
         terminationReason = "frame_cap";
     }
@@ -722,5 +768,5 @@ int main(int argc, char** argv)
     }
 
     logger.Info("AtlasCore shutting down.");
-    return 0;
+    return exitCode;
 }
