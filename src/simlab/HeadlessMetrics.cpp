@@ -19,6 +19,7 @@
 
 #include "ecs/World.hpp"
 #include "physics/Systems.hpp"
+#include "simlab/Scenario.hpp"
 #include "simlab/WorldHasher.hpp"
 
 #include <algorithm>
@@ -371,6 +372,88 @@ namespace simlab
                                       "manifest_write_failed");
 
         return result;
+    }
+
+    bool RunHeadlessRuntimeFrame(ecs::World& world,
+                                 IScenario& scenario,
+                                 const float dt,
+                                 HeadlessRuntimeFrameState& state,
+                                 const HeadlessRuntimeFrameConfig& config,
+                                 HeadlessRunSummaryAccumulator& accumulator,
+                                 std::ostream& interactiveOut,
+                                 const HeadlessRuntimeFrameArtifacts& artifacts,
+                                 const std::function<void(std::string_view)>& maybeFailPhase)
+    {
+        using steady_clock = std::chrono::steady_clock;
+
+        const auto frameStart = steady_clock::now();
+        const auto updateStart = frameStart;
+        state.currentFailurePhase = "update";
+        maybeFailPhase("update");
+        scenario.Update(world, dt);
+        state.currentFailurePhase = "world_update";
+        maybeFailPhase("world_update");
+        world.Update(dt);
+        const auto updateEnd = steady_clock::now();
+        state.simTimeSeconds += static_cast<double>(dt);
+        ++state.frameCounter;
+
+        std::ostream* renderStream = &interactiveOut;
+        if (config.headless && artifacts.outputStream != nullptr)
+        {
+            renderStream = artifacts.outputStream;
+        }
+
+        const auto renderStart = steady_clock::now();
+        state.currentFailurePhase = "render";
+        maybeFailPhase("render");
+        scenario.Render(world, *renderStream);
+        state.currentFailurePhase.clear();
+        if (config.headless && artifacts.outputStream != nullptr
+            && artifacts.outputWriteStatus != nullptr
+            && artifacts.outputFailureCategory != nullptr)
+        {
+            FinalizeHeadlessArtifactWrite(*artifacts.outputStream,
+                                          *artifacts.outputWriteStatus,
+                                          *artifacts.outputFailureCategory,
+                                          "output_write_failed");
+        }
+        const auto renderEnd = steady_clock::now();
+
+        if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
+        {
+            auto metrics = CaptureFrameMetrics(world,
+                                               *physicsSystem,
+                                               static_cast<std::size_t>(state.frameCounter),
+                                               state.simTimeSeconds);
+            metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
+            metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
+            metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
+            metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
+                                                metrics.updateWallSeconds + metrics.renderWallSeconds);
+            accumulator.AddFrame(metrics);
+            if (artifacts.metricsStream != nullptr
+                && artifacts.metricsWriteStatus != nullptr
+                && artifacts.metricsFailureCategory != nullptr
+                && artifacts.metricsFailureCategory->empty())
+            {
+                WriteFrameMetricsCsvRow(*artifacts.metricsStream, metrics);
+                FinalizeHeadlessArtifactWrite(*artifacts.metricsStream,
+                                              *artifacts.metricsWriteStatus,
+                                              *artifacts.metricsFailureCategory,
+                                              "metrics_write_failed");
+            }
+        }
+
+        if (config.maxFrames > 0 && state.frameCounter >= config.maxFrames)
+        {
+            return true;
+        }
+        if (config.headless && !config.boundedFrames)
+        {
+            return true;
+        }
+        return false;
     }
 
     HeadlessRunArtifactReport BuildNormalHeadlessArtifactReport(const HeadlessRunArtifactReport& base,

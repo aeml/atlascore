@@ -33,7 +33,6 @@
 #include <thread>
 #include <filesystem>
 #include <algorithm>
-#include <chrono>
 #include <ctime>
 #include <stdexcept>
 
@@ -428,71 +427,33 @@ int main(int argc, char** argv)
         return outcome.exitCode;
     }
 
-    int frameCounter = 0;
-    double simTimeSeconds = 0.0;
-    std::string currentRuntimeFailurePhase;
+    simlab::HeadlessRuntimeFrameState runtimeFrameState{};
+    simlab::HeadlessRuntimeFrameConfig runtimeFrameConfig{};
+    runtimeFrameConfig.headless = headless;
+    runtimeFrameConfig.boundedFrames = boundedFrames;
+    runtimeFrameConfig.maxFrames = maxFrames;
+    simlab::HeadlessRuntimeFrameArtifacts runtimeFrameArtifacts{};
+    runtimeFrameArtifacts.outputStream = headless && headlessOut.is_open() ? static_cast<std::ostream*>(&headlessOut) : nullptr;
+    runtimeFrameArtifacts.metricsStream = headless && headlessMetricsOut.is_open() ? static_cast<std::ostream*>(&headlessMetricsOut) : nullptr;
+    runtimeFrameArtifacts.outputWriteStatus = &outputWriteStatus;
+    runtimeFrameArtifacts.outputFailureCategory = &outputFailureCategory;
+    runtimeFrameArtifacts.metricsWriteStatus = &metricsWriteStatus;
+    runtimeFrameArtifacts.metricsFailureCategory = &metricsFailureCategory;
     try
     {
         loop.Run(
             [&](float dt)
             {
-                using steady_clock = std::chrono::steady_clock;
-                const auto frameStart = steady_clock::now();
-                const auto updateStart = frameStart;
-                currentRuntimeFailurePhase = "update";
-                maybeFailPhase("update");
-                scenario->Update(world, dt);
-                currentRuntimeFailurePhase = "world_update";
-                maybeFailPhase("world_update");
-                world.Update(dt);
-                const auto updateEnd = steady_clock::now();
-                simTimeSeconds += static_cast<double>(dt);
-                ++frameCounter;
-
-                std::ostream* renderStream = &std::cout;
-                if (headless && headlessOut.is_open())
-                {
-                    renderStream = &headlessOut;
-                }
-
-                const auto renderStart = steady_clock::now();
-                currentRuntimeFailurePhase = "render";
-                maybeFailPhase("render");
-                scenario->Render(world, *renderStream);
-                currentRuntimeFailurePhase.clear();
-                if (headless && headlessOut.is_open())
-                {
-                    simlab::FinalizeHeadlessArtifactWrite(headlessOut,
-                                                         outputWriteStatus,
-                                                         outputFailureCategory,
-                                                         "output_write_failed");
-                }
-                const auto renderEnd = steady_clock::now();
-
-                if (const auto* physicsSystem = world.FindSystem<physics::PhysicsSystem>())
-                {
-                    auto metrics = simlab::CaptureFrameMetrics(world, *physicsSystem, static_cast<std::size_t>(frameCounter), simTimeSeconds);
-                    metrics.updateWallSeconds = std::chrono::duration<double>(updateEnd - updateStart).count();
-                    metrics.renderWallSeconds = std::chrono::duration<double>(renderEnd - renderStart).count();
-                    metrics.frameWallSeconds = std::chrono::duration<double>(renderEnd - frameStart).count();
-                    metrics.frameWallSeconds = std::max(metrics.frameWallSeconds,
-                                                        metrics.updateWallSeconds + metrics.renderWallSeconds);
-                    headlessSummaryAccumulator.AddFrame(metrics);
-                    if (headlessMetricsOut.is_open() && metricsFailureCategory.empty())
-                    {
-                        simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
-                        simlab::FinalizeHeadlessArtifactWrite(headlessMetricsOut,
-                                                             metricsWriteStatus,
-                                                             metricsFailureCategory,
-                                                             "metrics_write_failed");
-                    }
-                }
-
-                if (maxFrames > 0 && frameCounter >= maxFrames)
-                {
-                    running.store(false);
-                }
-                else if (headless && !boundedFrames)
+                const bool shouldStop = simlab::RunHeadlessRuntimeFrame(world,
+                                                                        *scenario,
+                                                                        dt,
+                                                                        runtimeFrameState,
+                                                                        runtimeFrameConfig,
+                                                                        headlessSummaryAccumulator,
+                                                                        std::cout,
+                                                                        runtimeFrameArtifacts,
+                                                                        maybeFailPhase);
+                if (shouldStop)
                 {
                     running.store(false);
                 }
@@ -502,9 +463,9 @@ int main(int argc, char** argv)
     }
     catch (const std::exception& ex)
     {
-        const std::string_view failurePhase = currentRuntimeFailurePhase.empty()
+        const std::string_view failurePhase = runtimeFrameState.currentFailurePhase.empty()
             ? std::string_view{failPhase}
-            : std::string_view{currentRuntimeFailurePhase};
+            : std::string_view{runtimeFrameState.currentFailurePhase};
         outcome.MarkRuntimeFailure(failurePhase, ex.what());
         running.store(false);
     }

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -31,6 +32,8 @@ namespace physics { class PhysicsSystem; }
 
 namespace simlab
 {
+    class IScenario;
+    class HeadlessRunSummaryAccumulator;
     struct FrameMetrics
     {
         std::size_t frameIndex{0};
@@ -196,6 +199,30 @@ namespace simlab
         std::string manifestFailureCategory;
     };
 
+    struct HeadlessRuntimeFrameState
+    {
+        int frameCounter{0};
+        double simTimeSeconds{0.0};
+        std::string currentFailurePhase;
+    };
+
+    struct HeadlessRuntimeFrameConfig
+    {
+        bool headless{false};
+        bool boundedFrames{false};
+        int maxFrames{-1};
+    };
+
+    struct HeadlessRuntimeFrameArtifacts
+    {
+        std::ostream* outputStream{nullptr};
+        std::ostream* metricsStream{nullptr};
+        std::string* outputWriteStatus{nullptr};
+        std::string* outputFailureCategory{nullptr};
+        std::string* metricsWriteStatus{nullptr};
+        std::string* metricsFailureCategory{nullptr};
+    };
+
     struct HeadlessStartupFailureArtifactsResult
     {
         HeadlessRunSummary summary;
@@ -226,6 +253,15 @@ namespace simlab
                                             std::string& failureCategory);
     HeadlessArtifactBootstrapResult BootstrapHeadlessArtifacts(const std::filesystem::path& outputBasePath,
                                                                const std::filesystem::path& batchIndexPath);
+    bool RunHeadlessRuntimeFrame(ecs::World& world,
+                                 IScenario& scenario,
+                                 float dt,
+                                 HeadlessRuntimeFrameState& state,
+                                 const HeadlessRuntimeFrameConfig& config,
+                                 HeadlessRunSummaryAccumulator& accumulator,
+                                 std::ostream& interactiveOut,
+                                 const HeadlessRuntimeFrameArtifacts& artifacts,
+                                 const std::function<void(std::string_view)>& maybeFailPhase);
     HeadlessRunArtifactReport BuildNormalHeadlessArtifactReport(const HeadlessRunArtifactReport& base,
                                                                 std::string_view outputPath,
                                                                 std::string_view metricsPath,

@@ -19,6 +19,7 @@
 #include "physics/Components.hpp"
 #include "physics/Systems.hpp"
 #include "simlab/HeadlessMetrics.hpp"
+#include "simlab/Scenario.hpp"
 
 #include <cassert>
 #include <filesystem>
@@ -29,9 +30,23 @@
 
 namespace
 {
-    void VerifyFrameMetricsCapturePhysicsState()
+    class RecordingScenario final : public simlab::IScenario
     {
-        ecs::World world;
+    public:
+        void Setup(ecs::World&) override {}
+        void Update(ecs::World&, float) override { ++updateCalls; }
+        void Render(ecs::World&, std::ostream& out) override
+        {
+            ++renderCalls;
+            out << "rendered\n";
+        }
+
+        int updateCalls{0};
+        int renderCalls{0};
+    };
+
+    physics::PhysicsSystem* SeedPhysicsWorld(ecs::World& world)
+    {
         auto physicsSystem = std::make_unique<physics::PhysicsSystem>();
         auto* physicsPtr = physicsSystem.get();
         physics::PhysicsSettings settings;
@@ -54,6 +69,13 @@ namespace
         rbB.mass = 1.0f;
         rbB.invMass = 1.0f;
         world.AddComponent<physics::AABBComponent>(b, physics::AABBComponent{-0.25f, -0.5f, 0.75f, 0.5f});
+        return physicsPtr;
+    }
+
+    void VerifyFrameMetricsCapturePhysicsState()
+    {
+        ecs::World world;
+        auto* physicsPtr = SeedPhysicsWorld(world);
 
         world.Update(1.0f / 60.0f);
 
@@ -424,6 +446,121 @@ namespace
         assert(built.gitCommit == "9999999999999999999999999999999999999999");
         assert(built.gitDirty);
         assert(built.buildType == "RelWithDebInfo");
+    }
+
+    void VerifyHeadlessRuntimeFrameCoordinatorAdvancesAndCapturesMetrics()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_runtime_frame_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        ecs::World world;
+        SeedPhysicsWorld(world);
+        RecordingScenario scenario;
+        simlab::HeadlessRunSummaryAccumulator accumulator;
+        simlab::HeadlessRuntimeFrameState frameState{};
+        simlab::HeadlessRuntimeFrameConfig frameConfig{};
+        frameConfig.headless = true;
+        frameConfig.boundedFrames = true;
+        frameConfig.maxFrames = 1;
+
+        std::ofstream headlessOut(tempRoot / "frame_output.txt");
+        std::ofstream metricsOut(tempRoot / "frame_metrics.csv");
+        assert(headlessOut.is_open());
+        assert(metricsOut.is_open());
+
+        std::string outputWriteStatus{"written"};
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus{"written"};
+        std::string metricsFailureCategory;
+        simlab::HeadlessRuntimeFrameArtifacts artifacts{};
+        artifacts.outputStream = &headlessOut;
+        artifacts.metricsStream = &metricsOut;
+        artifacts.outputWriteStatus = &outputWriteStatus;
+        artifacts.outputFailureCategory = &outputFailureCategory;
+        artifacts.metricsWriteStatus = &metricsWriteStatus;
+        artifacts.metricsFailureCategory = &metricsFailureCategory;
+
+        std::ostringstream interactiveOut;
+        const bool shouldStop = simlab::RunHeadlessRuntimeFrame(world,
+                                                                scenario,
+                                                                1.0f / 60.0f,
+                                                                frameState,
+                                                                frameConfig,
+                                                                accumulator,
+                                                                interactiveOut,
+                                                                artifacts,
+                                                                [](std::string_view) {});
+
+        assert(shouldStop);
+        assert(frameState.frameCounter == 1);
+        assert(frameState.simTimeSeconds > 0.0);
+        assert(frameState.currentFailurePhase.empty());
+        assert(scenario.updateCalls == 1);
+        assert(scenario.renderCalls == 1);
+        assert(outputWriteStatus == "written");
+        assert(outputFailureCategory.empty());
+        assert(metricsWriteStatus == "written");
+        assert(metricsFailureCategory.empty());
+        assert(accumulator.Build("gravity").frameCount == 1u);
+
+        headlessOut.close();
+        metricsOut.close();
+        std::ifstream renderedIn(tempRoot / "frame_output.txt");
+        const std::string rendered((std::istreambuf_iterator<char>(renderedIn)), std::istreambuf_iterator<char>());
+        assert(rendered.find("rendered") != std::string::npos);
+
+        std::ifstream metricsIn(tempRoot / "frame_metrics.csv");
+        const std::string metricsCsv((std::istreambuf_iterator<char>(metricsIn)), std::istreambuf_iterator<char>());
+        assert(!metricsCsv.empty());
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessRuntimeFrameCoordinatorPreservesWorldUpdateFailurePhase()
+    {
+        ecs::World world;
+        SeedPhysicsWorld(world);
+        RecordingScenario scenario;
+        simlab::HeadlessRunSummaryAccumulator accumulator;
+        simlab::HeadlessRuntimeFrameState frameState{};
+        simlab::HeadlessRuntimeFrameConfig frameConfig{};
+        std::ostringstream interactiveOut;
+        simlab::HeadlessRuntimeFrameArtifacts artifacts{};
+
+        bool threw = false;
+        try
+        {
+            static_cast<void>(simlab::RunHeadlessRuntimeFrame(world,
+                                                              scenario,
+                                                              1.0f / 60.0f,
+                                                              frameState,
+                                                              frameConfig,
+                                                              accumulator,
+                                                              interactiveOut,
+                                                              artifacts,
+                                                              [](std::string_view phase) {
+                                                                  if (phase == "world_update")
+                                                                  {
+                                                                      throw std::runtime_error("Injected world update failure");
+                                                                  }
+                                                              }));
+        }
+        catch (const std::runtime_error& ex)
+        {
+            threw = true;
+            assert(std::string(ex.what()) == "Injected world update failure");
+        }
+
+        assert(threw);
+        assert(frameState.currentFailurePhase == "world_update");
+        assert(frameState.frameCounter == 0);
+        assert(frameState.simTimeSeconds == 0.0);
+        assert(scenario.updateCalls == 1);
+        assert(scenario.renderCalls == 0);
+        assert(accumulator.Build("gravity").frameCount == 0u);
     }
 
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
@@ -898,6 +1035,8 @@ int main()
     VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
     VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
     VerifyNormalHeadlessArtifactReportBuilderAppliesRuntimeFacts();
+    VerifyHeadlessRuntimeFrameCoordinatorAdvancesAndCapturesMetrics();
+    VerifyHeadlessRuntimeFrameCoordinatorPreservesWorldUpdateFailurePhase();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();
