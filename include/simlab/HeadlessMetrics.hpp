@@ -319,6 +319,17 @@ namespace simlab
         std::string batchIndexFailureCategory;
     };
 
+    struct HeadlessStartupLoggingPreparation
+    {
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string manifestPath;
+        std::string batchIndexPath;
+        std::string startupFailureSummaryPath;
+        std::string startupFailureManifestPath;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -416,6 +427,10 @@ namespace simlab
                                                                            bool gitDirty,
                                                                            std::string_view buildType);
     AppliedHeadlessStartupResult ApplyHeadlessStartupResult(HeadlessStartupCoordinatorResult startup);
+    HeadlessStartupLoggingPreparation PrepareHeadlessStartupLogging(const HeadlessStartupCoordinatorResult& startup,
+                                                                   std::string_view batchIndexPath,
+                                                                   std::string_view startupFailureSummaryPath,
+                                                                   std::string_view startupFailureManifestPath);
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,

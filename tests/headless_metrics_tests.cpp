@@ -956,6 +956,29 @@ namespace
         assert(applied.manifestStream.is_open());
     }
 
+    void VerifyStartupLoggingPreparationBuildsResolvedPaths()
+    {
+        simlab::HeadlessStartupCoordinatorResult startup{};
+        startup.bootstrap.outputPath = "artifacts/run_output.txt";
+        startup.bootstrap.metricsPath = "artifacts/run_metrics.csv";
+        startup.bootstrap.summaryPath = "artifacts/run_summary.csv";
+        startup.bootstrap.manifestPath = "artifacts/run_manifest.csv";
+
+        const auto prepared = simlab::PrepareHeadlessStartupLogging(
+            startup,
+            "artifacts/batch/index.csv",
+            "headless_startup_failure_summary.csv",
+            "headless_startup_failure_manifest.csv");
+
+        assert(prepared.outputPath == "artifacts/run_output.txt");
+        assert(prepared.metricsPath == "artifacts/run_metrics.csv");
+        assert(prepared.summaryPath == "artifacts/run_summary.csv");
+        assert(prepared.manifestPath == "artifacts/run_manifest.csv");
+        assert(prepared.batchIndexPath == "artifacts/batch/index.csv");
+        assert(prepared.startupFailureSummaryPath == "headless_startup_failure_summary.csv");
+        assert(prepared.startupFailureManifestPath == "headless_startup_failure_manifest.csv");
+    }
+
     void VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures()
     {
         core::Logger logger;
@@ -979,16 +1002,22 @@ namespace
         simlab::HeadlessRunOutcomeTracker outcome{};
         outcome.MarkStartupFailure("setup", "Test scenario setup failure");
 
+        const auto prepared = simlab::PrepareHeadlessStartupLogging(
+            startup,
+            "artifacts/batch/index.csv",
+            "headless_startup_failure_summary.csv",
+            "headless_startup_failure_manifest.csv");
+
         simlab::LogHeadlessStartupMessages(logger,
                                           startup,
                                           outcome,
-                                          startup.bootstrap.outputPath,
-                                          startup.bootstrap.metricsPath,
-                                          startup.bootstrap.summaryPath,
-                                          startup.bootstrap.manifestPath,
-                                          "artifacts/batch/index.csv",
-                                          "headless_startup_failure_summary.csv",
-                                          "headless_startup_failure_manifest.csv");
+                                          prepared.outputPath,
+                                          prepared.metricsPath,
+                                          prepared.summaryPath,
+                                          prepared.manifestPath,
+                                          prepared.batchIndexPath,
+                                          prepared.startupFailureSummaryPath,
+                                          prepared.startupFailureManifestPath);
 
         const auto log = sink->str();
         assert(log.find("Failed to open artifacts/run_metrics.csv") != std::string::npos);
@@ -1578,6 +1607,7 @@ int main()
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
     VerifyStartupCoordinatorConfigBuilderAppliesRuntimeFacts();
     VerifyStartupResultApplicationMovesBootstrapState();
+    VerifyStartupLoggingPreparationBuildsResolvedPaths();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();

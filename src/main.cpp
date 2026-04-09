@@ -327,16 +327,20 @@ int main(int argc, char** argv)
     headlessSummaryOut = std::move(appliedStartup.summaryStream);
     headlessManifestOut = std::move(appliedStartup.manifestStream);
 
+    const auto startupLogging = simlab::PrepareHeadlessStartupLogging(startup,
+                                                                      batchIndexPath,
+                                                                      startupFailureSummaryPath,
+                                                                      startupFailureManifestPath);
     simlab::LogHeadlessStartupMessages(logger,
                                       startup,
                                       outcome,
-                                      outputPath,
-                                      metricsPath,
-                                      summaryPath,
-                                      manifestPath,
-                                      batchIndexPath,
-                                      startupFailureSummaryPath,
-                                      startupFailureManifestPath);
+                                      startupLogging.outputPath,
+                                      startupLogging.metricsPath,
+                                      startupLogging.summaryPath,
+                                      startupLogging.manifestPath,
+                                      startupLogging.batchIndexPath,
+                                      startupLogging.startupFailureSummaryPath,
+                                      startupLogging.startupFailureManifestPath);
 
     if (outcome.runStatus == "startup_failure")
     {

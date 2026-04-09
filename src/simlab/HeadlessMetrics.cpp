@@ -723,6 +723,22 @@ namespace simlab
         return applied;
     }
 
+    HeadlessStartupLoggingPreparation PrepareHeadlessStartupLogging(const HeadlessStartupCoordinatorResult& startup,
+                                                                   const std::string_view batchIndexPath,
+                                                                   const std::string_view startupFailureSummaryPath,
+                                                                   const std::string_view startupFailureManifestPath)
+    {
+        HeadlessStartupLoggingPreparation prepared{};
+        prepared.outputPath = startup.bootstrap.outputPath;
+        prepared.metricsPath = startup.bootstrap.metricsPath;
+        prepared.summaryPath = startup.bootstrap.summaryPath;
+        prepared.manifestPath = startup.bootstrap.manifestPath;
+        prepared.batchIndexPath = std::string(batchIndexPath);
+        prepared.startupFailureSummaryPath = std::string(startupFailureSummaryPath);
+        prepared.startupFailureManifestPath = std::string(startupFailureManifestPath);
+        return prepared;
+    }
+
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
                                                                HeadlessRunOutcomeTracker& outcome,
