@@ -21,6 +21,8 @@
 #include "simlab/HeadlessMetrics.hpp"
 
 #include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -385,6 +387,92 @@ namespace
         assert(appendFailureCategory == "batch_index_write_failed");
     }
 
+    void VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_batch_index_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        const auto batchIndexPath = tempRoot / "batch.csv";
+
+        simlab::HeadlessRunManifest manifest{};
+        manifest.requestedScenarioKey = "gravity";
+        manifest.resolvedScenarioKey = "gravity";
+        manifest.fallbackUsed = false;
+        manifest.fixedDtSeconds = 1.0 / 60.0;
+        manifest.boundedFrames = true;
+        manifest.requestedFrames = 3;
+        manifest.headless = true;
+        manifest.runConfigHash = 777;
+        manifest.frameCount = 3;
+        manifest.runStatus = "success";
+        manifest.terminationReason = "frame_cap";
+        manifest.outputPath = "out1";
+        manifest.metricsPath = "metrics1";
+        manifest.summaryPath = "summary1";
+        manifest.batchIndexPath = batchIndexPath.string();
+        manifest.batchIndexAppendStatus = "appended";
+        manifest.outputWriteStatus = "written";
+        manifest.metricsWriteStatus = "written";
+        manifest.summaryWriteStatus = "written";
+        manifest.manifestWriteStatus = "written";
+        manifest.startupFailureSummaryWriteStatus = "not_applicable";
+        manifest.startupFailureManifestWriteStatus = "not_applicable";
+        manifest.exitCode = 0;
+        manifest.exitClassification = "success_exit";
+        manifest.timestampUtc = "2026-04-09T05:00:00Z";
+        manifest.gitCommit = "1111111111111111111111111111111111111111";
+        manifest.buildType = "Debug";
+
+        std::string appendStatus{"appended"};
+        std::string failureCategory;
+        simlab::AppendHeadlessManifestToBatchIndex(batchIndexPath, manifest, appendStatus, failureCategory);
+        assert(appendStatus == "appended");
+        assert(failureCategory.empty());
+
+        manifest.outputPath = "out2";
+        manifest.metricsPath = "metrics2";
+        manifest.summaryPath = "summary2";
+        manifest.timestampUtc = "2026-04-09T05:01:00Z";
+        appendStatus = "appended";
+        failureCategory.clear();
+        simlab::AppendHeadlessManifestToBatchIndex(batchIndexPath, manifest, appendStatus, failureCategory);
+        assert(appendStatus == "appended");
+        assert(failureCategory.empty());
+
+        std::ifstream in(batchIndexPath);
+        assert(in.is_open());
+        const std::string csv((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        assert(csv.find("requested_scenario_key,resolved_scenario_key") == 0);
+        assert(csv.find("out1") != std::string::npos);
+        assert(csv.find("out2") != std::string::npos);
+        assert(csv.find("requested_scenario_key,resolved_scenario_key", 1) == std::string::npos);
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure()
+    {
+        simlab::HeadlessRunManifest manifest{};
+        std::string appendStatus{"appended"};
+        std::string failureCategory;
+        simlab::AppendHeadlessManifestToBatchIndex("/proc/atlascore_batch_index.csv", manifest, appendStatus, failureCategory);
+        assert(appendStatus == "append_failed");
+        assert(failureCategory == "batch_index_open_failed");
+    }
+
+    void VerifyHeadlessBatchIndexAppendCoordinatorClassifiesWriteFailure()
+    {
+        simlab::HeadlessRunManifest manifest{};
+        std::string appendStatus{"appended"};
+        std::string failureCategory;
+        simlab::AppendHeadlessManifestToBatchIndex("/dev/full", manifest, appendStatus, failureCategory);
+        assert(appendStatus == "append_failed");
+        assert(failureCategory == "batch_index_write_failed");
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -571,6 +659,9 @@ int main()
     VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
     VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
+    VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
+    VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();
+    VerifyHeadlessBatchIndexAppendCoordinatorClassifiesWriteFailure();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();

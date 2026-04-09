@@ -658,47 +658,15 @@ int main(int argc, char** argv)
         if (!batchIndexPath.empty())
         {
             const auto absoluteBatchIndexPath = toAbsolutePathString(batchIndexPath);
-            std::error_code ec;
-            const bool needsHeader = !std::filesystem::exists(absoluteBatchIndexPath, ec)
-                                  || (!ec && std::filesystem::is_regular_file(absoluteBatchIndexPath, ec)
-                                      && std::filesystem::file_size(absoluteBatchIndexPath, ec) == 0);
-            std::ofstream batchIndexOut(absoluteBatchIndexPath, std::ios::app);
-            if (!batchIndexOut.is_open())
+            simlab::AppendHeadlessManifestToBatchIndex(absoluteBatchIndexPath,
+                                                       manifest,
+                                                       batchIndexAppendStatus,
+                                                       batchIndexFailureCategory);
+            manifest.batchIndexAppendStatus = batchIndexAppendStatus;
+            manifest.batchIndexFailureCategory = batchIndexFailureCategory;
+            if (batchIndexFailureCategory == "batch_index_open_failed")
             {
-                batchIndexAppendStatus = "append_failed";
-                batchIndexFailureCategory = "batch_index_open_failed";
-                manifest.batchIndexAppendStatus = batchIndexAppendStatus;
-                manifest.batchIndexFailureCategory = batchIndexFailureCategory;
                 logger.Error(std::string("Failed to open batch index: ") + absoluteBatchIndexPath);
-            }
-            else
-            {
-                if (needsHeader)
-                {
-                    simlab::WriteHeadlessRunManifestCsvHeader(batchIndexOut);
-                    simlab::FinalizeHeadlessBatchAppend(batchIndexOut,
-                                                       batchIndexAppendStatus,
-                                                       batchIndexFailureCategory,
-                                                       "batch_index_write_failed");
-                    if (!batchIndexFailureCategory.empty())
-                    {
-                        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
-                        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
-                    }
-                }
-                if (batchIndexFailureCategory.empty())
-                {
-                    simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
-                    simlab::FinalizeHeadlessBatchAppend(batchIndexOut,
-                                                       batchIndexAppendStatus,
-                                                       batchIndexFailureCategory,
-                                                       "batch_index_write_failed");
-                    if (!batchIndexFailureCategory.empty())
-                    {
-                        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
-                        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
-                    }
-                }
             }
         }
 

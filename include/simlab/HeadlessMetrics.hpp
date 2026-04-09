@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -187,6 +188,10 @@ namespace simlab
                                      std::string& appendStatus,
                                      std::string& failureCategory,
                                      std::string_view writeFailureCategory);
+    void AppendHeadlessManifestToBatchIndex(const std::filesystem::path& batchIndexPath,
+                                            const HeadlessRunManifest& manifest,
+                                            std::string& appendStatus,
+                                            std::string& failureCategory);
 
     class HeadlessRunSummaryAccumulator
     {

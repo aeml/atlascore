@@ -24,8 +24,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <ostream>
+#include <system_error>
 #include <vector>
 
 namespace
@@ -237,6 +239,44 @@ namespace simlab
             appendStatus = "append_failed";
             failureCategory = std::string(writeFailureCategory);
         }
+    }
+
+    void AppendHeadlessManifestToBatchIndex(const std::filesystem::path& batchIndexPath,
+                                            const HeadlessRunManifest& manifest,
+                                            std::string& appendStatus,
+                                            std::string& failureCategory)
+    {
+        std::error_code ec;
+        const bool needsHeader = !std::filesystem::exists(batchIndexPath, ec)
+                              || (!ec && std::filesystem::is_regular_file(batchIndexPath, ec)
+                                  && std::filesystem::file_size(batchIndexPath, ec) == 0);
+
+        std::ofstream batchIndexOut(batchIndexPath, std::ios::app);
+        if (!batchIndexOut.is_open())
+        {
+            appendStatus = "append_failed";
+            failureCategory = "batch_index_open_failed";
+            return;
+        }
+
+        if (needsHeader)
+        {
+            WriteHeadlessRunManifestCsvHeader(batchIndexOut);
+            FinalizeHeadlessBatchAppend(batchIndexOut,
+                                        appendStatus,
+                                        failureCategory,
+                                        "batch_index_write_failed");
+        }
+        if (!failureCategory.empty())
+        {
+            return;
+        }
+
+        WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
+        FinalizeHeadlessBatchAppend(batchIndexOut,
+                                    appendStatus,
+                                    failureCategory,
+                                    "batch_index_write_failed");
     }
 
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
