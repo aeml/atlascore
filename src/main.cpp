@@ -539,6 +539,7 @@ int main(int argc, char** argv)
                 const auto updateStart = frameStart;
                 maybeFailPhase("update");
                 scenario->Update(world, dt);
+                maybeFailPhase("world_update");
                 world.Update(dt);
                 const auto updateEnd = steady_clock::now();
                 simTimeSeconds += static_cast<double>(dt);
@@ -603,6 +604,11 @@ int main(int argc, char** argv)
         {
             runStatus = "runtime_failure";
             failureCategory = "scenario_update_failed";
+        }
+        else if (failPhase == "world_update")
+        {
+            runStatus = "runtime_failure";
+            failureCategory = "world_update_failed";
         }
         else if (failPhase == "render")
         {

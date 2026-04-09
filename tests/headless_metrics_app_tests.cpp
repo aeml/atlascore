@@ -604,6 +604,35 @@ namespace
         assert(manifestColumns[31] == "runtime_failure_exit");
     }
 
+    void VerifyWorldUpdateFailureIsExported()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "fail_world_update";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("ATLASCORE_FAIL_PHASE=world_update ./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/fail_world_update > /tmp/atlascore_headless_world_update_failure.log 2>&1");
+        assert(rc != 0);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
+        assert(summaryColumns[8] == "0");
+        assert(summaryColumns[9] == "runtime_failure");
+        assert(summaryColumns[10] == "world_update_failed");
+        assert(summaryColumns[11] == "runtime_failure");
+        assert(summaryColumns[12] == "0");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(prefix.string() + "_manifest.csv")[1]);
+        assert(manifestColumns.size() == 36u);
+        assert(manifestColumns[8] == "0");
+        assert(manifestColumns[9] == "runtime_failure");
+        assert(manifestColumns[10] == "world_update_failed");
+        assert(manifestColumns[11] == "runtime_failure");
+        assert(manifestColumns[30] == "1");
+        assert(manifestColumns[31] == "runtime_failure_exit");
+    }
+
     void VerifyScenarioRenderFailureIsExported()
     {
         const auto cwd = std::filesystem::current_path();
@@ -761,6 +790,7 @@ int main()
     VerifyManifestOpenFailureIsClassified();
     VerifyScenarioSetupFailureIsExported();
     VerifyScenarioUpdateFailureIsExported();
+    VerifyWorldUpdateFailureIsExported();
     VerifyScenarioRenderFailureIsExported();
     VerifyBatchIndexAppendFailureIsRecordedInManifest();
     VerifyBatchIndexWriteFailureIsRecordedInManifest();
