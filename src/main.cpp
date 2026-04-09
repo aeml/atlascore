@@ -326,74 +326,19 @@ int main(int argc, char** argv)
     headlessSummaryOut = std::move(startup.bootstrap.summaryStream);
     headlessManifestOut = std::move(startup.bootstrap.manifestStream);
 
-    if (!startup.bootstrap.startupFailureCategory.empty())
-    {
-        const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
-        const std::filesystem::path outputBasePath(outputBase);
-        if (startup.bootstrap.startupFailureCategory == "output_directory_create_failed")
-        {
-            logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
-        }
-        else if (startup.bootstrap.startupFailureCategory == "output_file_open_failed")
-        {
-            logger.Error(std::string("Failed to open ") + outputPath);
-        }
-        else if (startup.bootstrap.startupFailureCategory == "metrics_file_open_failed")
-        {
-            logger.Error(std::string("Failed to open ") + metricsPath);
-        }
-        else if (startup.bootstrap.startupFailureCategory == "summary_file_open_failed")
-        {
-            logger.Error(std::string("Failed to open ") + summaryPath);
-        }
-        else if (startup.bootstrap.startupFailureCategory == "manifest_file_open_failed")
-        {
-            logger.Error(std::string("Failed to open ") + manifestPath);
-        }
-    }
-
-    if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
-    {
-        logger.Error(std::string("Failed to create batch index directory: ")
-                     + std::filesystem::path(batchIndexPath).parent_path().string());
-    }
-
-    auto logHeadlessArtifactPath = [&](const std::string& label, const std::string& path) {
-        try {
-            auto cwd = std::filesystem::current_path();
-            logger.Info(std::string("Headless ") + label + " path: " + (cwd / path).string());
-        } catch(...) {
-            logger.Warn(std::string("Could not determine current working directory for headless ") + label);
-        }
-    };
-
-    if (headlessOut.is_open())
-    {
-        logHeadlessArtifactPath("output", outputPath);
-    }
-    if (headlessMetricsOut.is_open())
-    {
-        logHeadlessArtifactPath("metrics", metricsPath);
-    }
-    if (headlessSummaryOut.is_open())
-    {
-        logHeadlessArtifactPath("summary", summaryPath);
-    }
-    if (headlessManifestOut.is_open())
-    {
-        logHeadlessArtifactPath("manifest", manifestPath);
-    }
+    simlab::LogHeadlessStartupMessages(logger,
+                                      startup,
+                                      outcome,
+                                      outputPath,
+                                      metricsPath,
+                                      summaryPath,
+                                      manifestPath,
+                                      batchIndexPath,
+                                      startupFailureSummaryPath,
+                                      startupFailureManifestPath);
 
     if (outcome.runStatus == "startup_failure")
     {
-        if (!startup.startupFailureSummaryOpened)
-        {
-            logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
-        }
-        if (!startup.startupFailureManifestOpened)
-        {
-            logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
-        }
         logger.Info("AtlasCore shutting down.");
         return outcome.exitCode;
     }
@@ -501,10 +446,9 @@ int main(int argc, char** argv)
     batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
     batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
 
-    if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
-    {
-        logger.Error(std::string("Failed to open batch index: ") + toAbsolutePathString(batchIndexPath));
-    }
+    simlab::LogHeadlessFinalizationMessages(logger,
+                                            batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),
+                                            batchIndexFailureCategory);
 
     logger.Info("AtlasCore shutting down.");
     return outcome.exitCode;

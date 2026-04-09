@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core/Logger.hpp"
 #include "ecs/World.hpp"
 #include "physics/Components.hpp"
 #include "physics/Systems.hpp"
@@ -835,6 +836,65 @@ namespace
         std::filesystem::remove_all(tempRoot, ec);
     }
 
+    void VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures()
+    {
+        core::Logger logger;
+        auto sink = std::make_shared<std::ostringstream>();
+        logger.SetOutput(sink);
+
+        simlab::HeadlessStartupCoordinatorResult startup{};
+        startup.bootstrap.outputPath = "artifacts/run_output.txt";
+        startup.bootstrap.metricsPath = "artifacts/run_metrics.csv";
+        startup.bootstrap.summaryPath = "artifacts/run_summary.csv";
+        startup.bootstrap.manifestPath = "artifacts/run_manifest.csv";
+        startup.bootstrap.outputStream.open("/dev/null");
+        startup.bootstrap.metricsStream.open("/dev/null");
+        startup.bootstrap.summaryStream.open("/dev/null");
+        startup.bootstrap.manifestStream.open("/dev/null");
+        startup.bootstrap.startupFailureCategory = "metrics_file_open_failed";
+        startup.bootstrap.batchIndexFailureCategory = "batch_index_open_failed";
+        startup.startupFailureSummaryOpened = false;
+        startup.startupFailureManifestOpened = false;
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        outcome.MarkStartupFailure("setup", "Test scenario setup failure");
+
+        simlab::LogHeadlessStartupMessages(logger,
+                                          startup,
+                                          outcome,
+                                          startup.bootstrap.outputPath,
+                                          startup.bootstrap.metricsPath,
+                                          startup.bootstrap.summaryPath,
+                                          startup.bootstrap.manifestPath,
+                                          "artifacts/batch/index.csv",
+                                          "headless_startup_failure_summary.csv",
+                                          "headless_startup_failure_manifest.csv");
+
+        const auto log = sink->str();
+        assert(log.find("Failed to open artifacts/run_metrics.csv") != std::string::npos);
+        assert(log.find("Failed to create batch index directory: artifacts/batch") != std::string::npos);
+        assert(log.find("Headless output path:") != std::string::npos);
+        assert(log.find("Headless metrics path:") != std::string::npos);
+        assert(log.find("Headless summary path:") != std::string::npos);
+        assert(log.find("Headless manifest path:") != std::string::npos);
+        assert(log.find("Failed to open startup failure summary: headless_startup_failure_summary.csv") != std::string::npos);
+        assert(log.find("Failed to open startup failure manifest: headless_startup_failure_manifest.csv") != std::string::npos);
+    }
+
+    void VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure()
+    {
+        core::Logger logger;
+        auto sink = std::make_shared<std::ostringstream>();
+        logger.SetOutput(sink);
+
+        simlab::LogHeadlessFinalizationMessages(logger,
+                                               "/tmp/atlascore_batch/index.csv",
+                                               "batch_index_open_failed");
+
+        const auto log = sink->str();
+        assert(log.find("Failed to open batch index: /tmp/atlascore_batch/index.csv") != std::string::npos);
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -1313,6 +1373,8 @@ int main()
     VerifyHeadlessRunFinalizationCoordinatorRecordsBatchIndexOpenFailure();
     VerifyHeadlessStartupCoordinatorBootstrapsHealthyHeadlessRun();
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
+    VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
+    VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();

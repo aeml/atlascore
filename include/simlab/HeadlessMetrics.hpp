@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "core/Logger.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -345,6 +347,19 @@ namespace simlab
                                                                HeadlessRunOutcomeTracker& outcome,
                                                                const HeadlessStartupCoordinatorConfig& config,
                                                                const std::function<void(std::string_view)>& maybeFailPhase);
+    void LogHeadlessStartupMessages(const core::Logger& logger,
+                                    const HeadlessStartupCoordinatorResult& startup,
+                                    const HeadlessRunOutcomeTracker& outcome,
+                                    std::string_view outputPath,
+                                    std::string_view metricsPath,
+                                    std::string_view summaryPath,
+                                    std::string_view manifestPath,
+                                    std::string_view batchIndexPath,
+                                    std::string_view startupFailureSummaryPath,
+                                    std::string_view startupFailureManifestPath);
+    void LogHeadlessFinalizationMessages(const core::Logger& logger,
+                                         std::string_view batchIndexPath,
+                                         std::string_view batchIndexFailureCategory);
 
     class HeadlessRunSummaryAccumulator
     {
