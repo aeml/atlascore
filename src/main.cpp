@@ -279,151 +279,121 @@ int main(int argc, char** argv)
     std::string startupFailureManifestFailureCategory;
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
-    auto classifyStartupFailure = [&](std::string_view phase, const std::string& detail = std::string{}) {
-        outcome.MarkStartupFailure(phase, detail);
-    };
+    simlab::HeadlessStartupCoordinatorConfig startupConfig{};
+    startupConfig.headless = headless;
+    startupConfig.outputPrefix = outputPrefix;
+    startupConfig.batchIndexPath = batchIndexPath;
+    startupConfig.requestedScenarioKey = requestedScenarioKey;
+    startupConfig.resolvedScenarioKey = selectedScenarioKey;
+    startupConfig.fallbackUsed = fallbackUsed;
+    startupConfig.fixedDtSeconds = fixedDtSeconds;
+    startupConfig.boundedFrames = boundedFrames;
+    startupConfig.requestedFrames = requestedFrames;
+    startupConfig.runConfigHash = runConfigHash;
+    startupConfig.startupFailureSummaryPath = startupFailureSummaryPath;
+    startupConfig.startupFailureManifestPath = startupFailureManifestPath;
+    startupConfig.timestampUtc = formatTimestampUtc();
+    startupConfig.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
+    startupConfig.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
+    startupConfig.buildType = ATLASCORE_BUILD_TYPE;
 
-    auto writeStartupFailureArtifacts = [&](const std::string& category) {
-        simlab::HeadlessRunReportContext reportContext{};
-        reportContext.requestedScenarioKey = requestedScenarioKey;
-        reportContext.resolvedScenarioKey = selectedScenarioKey;
-        reportContext.fallbackUsed = fallbackUsed;
-        reportContext.fixedDtSeconds = fixedDtSeconds;
-        reportContext.boundedFrames = boundedFrames;
-        reportContext.requestedFrames = requestedFrames;
-        reportContext.headless = headless;
-        reportContext.runConfigHash = runConfigHash;
-        reportContext.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
-                                                                          headless,
-                                                                          false,
-                                                                          false);
+    auto startup = simlab::CoordinateHeadlessStartup(world,
+                                                     *scenario,
+                                                     outcome,
+                                                     startupConfig,
+                                                     maybeFailPhase);
 
-        const auto startupFailureArtifacts = simlab::WriteHeadlessStartupFailureArtifacts(startupFailureSummaryPath,
-                                                                                          startupFailureManifestPath,
-                                                                                          selectedScenarioKey,
-                                                                                          reportContext,
-                                                                                          outcome,
-                                                                                          category,
-                                                                                          formatTimestampUtc(),
-                                                                                          ATLASCORE_BUILD_GIT_COMMIT,
-                                                                                          ATLASCORE_BUILD_GIT_DIRTY != 0,
-                                                                                          ATLASCORE_BUILD_TYPE);
+    outputPath = startup.bootstrap.outputPath;
+    metricsPath = startup.bootstrap.metricsPath;
+    summaryPath = startup.bootstrap.summaryPath;
+    manifestPath = startup.bootstrap.manifestPath;
+    batchIndexAppendStatus = startup.bootstrap.batchIndexAppendStatus;
+    batchIndexFailureCategory = startup.bootstrap.batchIndexFailureCategory;
+    outputWriteStatus = startup.bootstrap.outputWriteStatus;
+    outputFailureCategory = startup.bootstrap.outputFailureCategory;
+    metricsWriteStatus = startup.bootstrap.metricsWriteStatus;
+    metricsFailureCategory = startup.bootstrap.metricsFailureCategory;
+    summaryWriteStatus = startup.bootstrap.summaryWriteStatus;
+    summaryFailureCategory = startup.bootstrap.summaryFailureCategory;
+    manifestWriteStatus = startup.bootstrap.manifestWriteStatus;
+    manifestFailureCategory = startup.bootstrap.manifestFailureCategory;
+    startupFailureSummaryWriteStatus = startup.startupFailureSummaryWriteStatus;
+    startupFailureSummaryFailureCategory = startup.startupFailureSummaryFailureCategory;
+    startupFailureManifestWriteStatus = startup.startupFailureManifestWriteStatus;
+    startupFailureManifestFailureCategory = startup.startupFailureManifestFailureCategory;
+    headlessOut = std::move(startup.bootstrap.outputStream);
+    headlessMetricsOut = std::move(startup.bootstrap.metricsStream);
+    headlessSummaryOut = std::move(startup.bootstrap.summaryStream);
+    headlessManifestOut = std::move(startup.bootstrap.manifestStream);
 
-        startupFailureSummaryWriteStatus = startupFailureArtifacts.manifest.startupFailureSummaryWriteStatus;
-        startupFailureSummaryFailureCategory = startupFailureArtifacts.manifest.startupFailureSummaryFailureCategory;
-        startupFailureManifestWriteStatus = startupFailureArtifacts.manifest.startupFailureManifestWriteStatus;
-        startupFailureManifestFailureCategory = startupFailureArtifacts.manifest.startupFailureManifestFailureCategory;
-
-        if (!startupFailureArtifacts.summaryOpened)
-        {
-            logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
-        }
-        if (!startupFailureArtifacts.manifestOpened)
-        {
-            logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
-        }
-    };
-    try
-    {
-        maybeFailPhase("setup");
-        scenario->Setup(world);
-    }
-    catch (const std::exception& ex)
-    {
-        classifyStartupFailure("setup", ex.what());
-    }
-    catch (...)
-    {
-        classifyStartupFailure("setup");
-    }
-
-    if (headless)
+    if (!startup.bootstrap.startupFailureCategory.empty())
     {
         const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
         const std::filesystem::path outputBasePath(outputBase);
-        auto bootstrap = simlab::BootstrapHeadlessArtifacts(outputBasePath,
-                                                            batchIndexPath.empty() ? std::filesystem::path{} : std::filesystem::path(batchIndexPath));
+        if (startup.bootstrap.startupFailureCategory == "output_directory_create_failed")
+        {
+            logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
+        }
+        else if (startup.bootstrap.startupFailureCategory == "output_file_open_failed")
+        {
+            logger.Error(std::string("Failed to open ") + outputPath);
+        }
+        else if (startup.bootstrap.startupFailureCategory == "metrics_file_open_failed")
+        {
+            logger.Error(std::string("Failed to open ") + metricsPath);
+        }
+        else if (startup.bootstrap.startupFailureCategory == "summary_file_open_failed")
+        {
+            logger.Error(std::string("Failed to open ") + summaryPath);
+        }
+        else if (startup.bootstrap.startupFailureCategory == "manifest_file_open_failed")
+        {
+            logger.Error(std::string("Failed to open ") + manifestPath);
+        }
+    }
 
-        outputPath = bootstrap.outputPath;
-        metricsPath = bootstrap.metricsPath;
-        summaryPath = bootstrap.summaryPath;
-        manifestPath = bootstrap.manifestPath;
-        batchIndexAppendStatus = bootstrap.batchIndexAppendStatus;
-        batchIndexFailureCategory = bootstrap.batchIndexFailureCategory;
-        outputWriteStatus = bootstrap.outputWriteStatus;
-        outputFailureCategory = bootstrap.outputFailureCategory;
-        metricsWriteStatus = bootstrap.metricsWriteStatus;
-        metricsFailureCategory = bootstrap.metricsFailureCategory;
-        summaryWriteStatus = bootstrap.summaryWriteStatus;
-        summaryFailureCategory = bootstrap.summaryFailureCategory;
-        manifestWriteStatus = bootstrap.manifestWriteStatus;
-        manifestFailureCategory = bootstrap.manifestFailureCategory;
-        headlessOut = std::move(bootstrap.outputStream);
-        headlessMetricsOut = std::move(bootstrap.metricsStream);
-        headlessSummaryOut = std::move(bootstrap.summaryStream);
-        headlessManifestOut = std::move(bootstrap.manifestStream);
+    if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
+    {
+        logger.Error(std::string("Failed to create batch index directory: ")
+                     + std::filesystem::path(batchIndexPath).parent_path().string());
+    }
 
-        if (!bootstrap.startupFailureCategory.empty())
-        {
-            outcome.MarkStartupFailureCategory(bootstrap.startupFailureCategory);
-            if (bootstrap.startupFailureCategory == "output_directory_create_failed")
-            {
-                logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
-            }
-            else if (bootstrap.startupFailureCategory == "output_file_open_failed")
-            {
-                logger.Error(std::string("Failed to open ") + outputPath);
-            }
-            else if (bootstrap.startupFailureCategory == "metrics_file_open_failed")
-            {
-                logger.Error(std::string("Failed to open ") + metricsPath);
-            }
-            else if (bootstrap.startupFailureCategory == "summary_file_open_failed")
-            {
-                logger.Error(std::string("Failed to open ") + summaryPath);
-            }
-            else if (bootstrap.startupFailureCategory == "manifest_file_open_failed")
-            {
-                logger.Error(std::string("Failed to open ") + manifestPath);
-            }
+    auto logHeadlessArtifactPath = [&](const std::string& label, const std::string& path) {
+        try {
+            auto cwd = std::filesystem::current_path();
+            logger.Info(std::string("Headless ") + label + " path: " + (cwd / path).string());
+        } catch(...) {
+            logger.Warn(std::string("Could not determine current working directory for headless ") + label);
         }
+    };
 
-        if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
-        {
-            logger.Error(std::string("Failed to create batch index directory: ")
-                         + std::filesystem::path(batchIndexPath).parent_path().string());
-        }
-
-        auto logHeadlessArtifactPath = [&](const std::string& label, const std::string& path) {
-            try {
-                auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless ") + label + " path: " + (cwd / path).string());
-            } catch(...) {
-                logger.Warn(std::string("Could not determine current working directory for headless ") + label);
-            }
-        };
-
-        if (headlessOut.is_open())
-        {
-            logHeadlessArtifactPath("output", outputPath);
-        }
-        if (headlessMetricsOut.is_open())
-        {
-            logHeadlessArtifactPath("metrics", metricsPath);
-        }
-        if (headlessSummaryOut.is_open())
-        {
-            logHeadlessArtifactPath("summary", summaryPath);
-        }
-        if (headlessManifestOut.is_open())
-        {
-            logHeadlessArtifactPath("manifest", manifestPath);
-        }
+    if (headlessOut.is_open())
+    {
+        logHeadlessArtifactPath("output", outputPath);
+    }
+    if (headlessMetricsOut.is_open())
+    {
+        logHeadlessArtifactPath("metrics", metricsPath);
+    }
+    if (headlessSummaryOut.is_open())
+    {
+        logHeadlessArtifactPath("summary", summaryPath);
+    }
+    if (headlessManifestOut.is_open())
+    {
+        logHeadlessArtifactPath("manifest", manifestPath);
     }
 
     if (outcome.runStatus == "startup_failure")
     {
-        writeStartupFailureArtifacts(outcome.failureCategory);
+        if (!startup.startupFailureSummaryOpened)
+        {
+            logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
+        }
+        if (!startup.startupFailureManifestOpened)
+        {
+            logger.Error(std::string("Failed to open startup failure manifest: ") + startupFailureManifestPath);
+        }
         logger.Info("AtlasCore shutting down.");
         return outcome.exitCode;
     }

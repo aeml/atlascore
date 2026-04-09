@@ -635,6 +635,80 @@ namespace simlab
         return result;
     }
 
+    HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
+                                                               IScenario& scenario,
+                                                               HeadlessRunOutcomeTracker& outcome,
+                                                               const HeadlessStartupCoordinatorConfig& config,
+                                                               const std::function<void(std::string_view)>& maybeFailPhase)
+    {
+        HeadlessStartupCoordinatorResult result{};
+
+        auto classifyStartupFailure = [&](const std::string_view phase, const std::string& detail = std::string{}) {
+            outcome.MarkStartupFailure(phase, detail);
+        };
+
+        try
+        {
+            maybeFailPhase("setup");
+            scenario.Setup(world);
+        }
+        catch (const std::exception& ex)
+        {
+            classifyStartupFailure("setup", ex.what());
+        }
+        catch (...)
+        {
+            classifyStartupFailure("setup");
+        }
+
+        if (config.headless)
+        {
+            const std::string outputBase = config.outputPrefix.empty() ? "headless" : config.outputPrefix;
+            result.bootstrap = BootstrapHeadlessArtifacts(std::filesystem::path(outputBase),
+                                                          config.batchIndexPath.empty() ? std::filesystem::path{} : std::filesystem::path(config.batchIndexPath));
+            if (!result.bootstrap.startupFailureCategory.empty())
+            {
+                outcome.MarkStartupFailureCategory(result.bootstrap.startupFailureCategory);
+            }
+        }
+
+        if (outcome.runStatus == "startup_failure")
+        {
+            HeadlessRunReportContext reportContext{};
+            reportContext.requestedScenarioKey = config.requestedScenarioKey;
+            reportContext.resolvedScenarioKey = config.resolvedScenarioKey;
+            reportContext.fallbackUsed = config.fallbackUsed;
+            reportContext.fixedDtSeconds = config.fixedDtSeconds;
+            reportContext.boundedFrames = config.boundedFrames;
+            reportContext.requestedFrames = config.requestedFrames;
+            reportContext.headless = config.headless;
+            reportContext.runConfigHash = config.runConfigHash;
+            reportContext.terminationReason = outcome.DeriveTerminationReason(config.boundedFrames,
+                                                                              config.headless,
+                                                                              false,
+                                                                              false);
+
+            const auto startupFailureArtifacts = WriteHeadlessStartupFailureArtifacts(config.startupFailureSummaryPath,
+                                                                                      config.startupFailureManifestPath,
+                                                                                      config.resolvedScenarioKey,
+                                                                                      reportContext,
+                                                                                      outcome,
+                                                                                      outcome.failureCategory,
+                                                                                      config.timestampUtc,
+                                                                                      config.gitCommit,
+                                                                                      config.gitDirty,
+                                                                                      config.buildType);
+            result.startupFailureSummaryWriteStatus = startupFailureArtifacts.manifest.startupFailureSummaryWriteStatus;
+            result.startupFailureSummaryFailureCategory = startupFailureArtifacts.manifest.startupFailureSummaryFailureCategory;
+            result.startupFailureManifestWriteStatus = startupFailureArtifacts.manifest.startupFailureManifestWriteStatus;
+            result.startupFailureManifestFailureCategory = startupFailureArtifacts.manifest.startupFailureManifestFailureCategory;
+            result.startupFailureSummaryOpened = startupFailureArtifacts.summaryOpened;
+            result.startupFailureManifestOpened = startupFailureArtifacts.manifestOpened;
+        }
+
+        return result;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;

@@ -238,6 +238,37 @@ namespace simlab
         HeadlessRunArtifactReport artifacts;
     };
 
+    struct HeadlessStartupCoordinatorConfig
+    {
+        bool headless{false};
+        std::string outputPrefix;
+        std::string batchIndexPath;
+        std::string requestedScenarioKey;
+        std::string resolvedScenarioKey;
+        bool fallbackUsed{false};
+        double fixedDtSeconds{0.0};
+        bool boundedFrames{false};
+        std::size_t requestedFrames{0};
+        std::uint64_t runConfigHash{0};
+        std::string startupFailureSummaryPath;
+        std::string startupFailureManifestPath;
+        std::string timestampUtc;
+        std::string gitCommit;
+        bool gitDirty{false};
+        std::string buildType;
+    };
+
+    struct HeadlessStartupCoordinatorResult
+    {
+        HeadlessArtifactBootstrapResult bootstrap;
+        std::string startupFailureSummaryWriteStatus{"not_applicable"};
+        std::string startupFailureSummaryFailureCategory;
+        std::string startupFailureManifestWriteStatus{"not_applicable"};
+        std::string startupFailureManifestFailureCategory;
+        bool startupFailureSummaryOpened{false};
+        bool startupFailureManifestOpened{false};
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -309,6 +340,11 @@ namespace simlab
                                                              HeadlessRunArtifactReport artifacts,
                                                              std::ostream* summaryStream,
                                                              std::ostream* manifestStream);
+    HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
+                                                               IScenario& scenario,
+                                                               HeadlessRunOutcomeTracker& outcome,
+                                                               const HeadlessStartupCoordinatorConfig& config,
+                                                               const std::function<void(std::string_view)>& maybeFailPhase);
 
     class HeadlessRunSummaryAccumulator
     {

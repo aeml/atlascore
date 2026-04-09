@@ -730,6 +730,111 @@ namespace
         std::filesystem::remove_all(tempRoot, ec);
     }
 
+    void VerifyHeadlessStartupCoordinatorBootstrapsHealthyHeadlessRun()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_startup_coord_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        ecs::World world;
+        RecordingScenario scenario;
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        simlab::HeadlessStartupCoordinatorConfig config{};
+        config.headless = true;
+        config.outputPrefix = (tempRoot / "gravity_run").string();
+        config.batchIndexPath = (tempRoot / "batch" / "index.csv").string();
+        config.requestedScenarioKey = "gravity";
+        config.resolvedScenarioKey = "gravity";
+        config.fixedDtSeconds = 1.0 / 60.0;
+        config.boundedFrames = true;
+        config.requestedFrames = 2;
+        config.runConfigHash = 55;
+        config.startupFailureSummaryPath = (tempRoot / "startup_failure_summary.csv").string();
+        config.startupFailureManifestPath = (tempRoot / "startup_failure_manifest.csv").string();
+        config.timestampUtc = "2026-04-09T09:00:00Z";
+        config.gitCommit = "abcdef0123456789abcdef0123456789abcdef01";
+        config.buildType = "Debug";
+
+        auto result = simlab::CoordinateHeadlessStartup(world,
+                                                        scenario,
+                                                        outcome,
+                                                        config,
+                                                        [](std::string_view) {});
+
+        assert(outcome.runStatus == "success");
+        assert(result.bootstrap.startupFailureCategory.empty());
+        assert(result.bootstrap.outputStream.is_open());
+        assert(result.bootstrap.metricsStream.is_open());
+        assert(result.bootstrap.summaryStream.is_open());
+        assert(result.bootstrap.manifestStream.is_open());
+        assert(result.bootstrap.batchIndexAppendStatus == "appended");
+        assert(result.startupFailureSummaryWriteStatus == "not_applicable");
+        assert(result.startupFailureManifestWriteStatus == "not_applicable");
+        assert(!result.startupFailureSummaryOpened);
+        assert(!result.startupFailureManifestOpened);
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_startup_coord_fail_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        ecs::World world;
+        RecordingScenario scenario;
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        simlab::HeadlessStartupCoordinatorConfig config{};
+        config.headless = true;
+        config.outputPrefix = (tempRoot / "gravity_run").string();
+        config.requestedScenarioKey = "fail_setup";
+        config.resolvedScenarioKey = "fail_setup";
+        config.fixedDtSeconds = 1.0 / 60.0;
+        config.boundedFrames = true;
+        config.requestedFrames = 2;
+        config.runConfigHash = 56;
+        config.startupFailureSummaryPath = (tempRoot / "startup_failure_summary.csv").string();
+        config.startupFailureManifestPath = (tempRoot / "startup_failure_manifest.csv").string();
+        config.timestampUtc = "2026-04-09T09:05:00Z";
+        config.gitCommit = "abcdef0123456789abcdef0123456789abcdef01";
+        config.buildType = "Debug";
+
+        auto result = simlab::CoordinateHeadlessStartup(world,
+                                                        scenario,
+                                                        outcome,
+                                                        config,
+                                                        [](std::string_view phase) {
+                                                            if (phase == "setup")
+                                                            {
+                                                                throw std::runtime_error("Injected setup failure");
+                                                            }
+                                                        });
+
+        assert(outcome.runStatus == "startup_failure");
+        assert(outcome.failureCategory == "scenario_setup_failed");
+        assert(outcome.failureDetail == "Injected setup failure");
+        assert(result.bootstrap.outputStream.is_open());
+        assert(result.startupFailureSummaryWriteStatus == "written");
+        assert(result.startupFailureManifestWriteStatus == "written");
+        assert(result.startupFailureSummaryOpened);
+        assert(result.startupFailureManifestOpened);
+
+        std::ifstream summaryIn(tempRoot / "startup_failure_summary.csv");
+        const std::string summaryCsv((std::istreambuf_iterator<char>(summaryIn)), std::istreambuf_iterator<char>());
+        assert(summaryCsv.find("startup_failure") != std::string::npos);
+
+        std::ifstream manifestIn(tempRoot / "startup_failure_manifest.csv");
+        const std::string manifestCsv((std::istreambuf_iterator<char>(manifestIn)), std::istreambuf_iterator<char>());
+        assert(manifestCsv.find("scenario_setup_failed") != std::string::npos);
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -1206,6 +1311,8 @@ int main()
     VerifyHeadlessRuntimeFrameCoordinatorPreservesWorldUpdateFailurePhase();
     VerifyHeadlessRunFinalizationCoordinatorWritesSummaryManifestAndBatchIndex();
     VerifyHeadlessRunFinalizationCoordinatorRecordsBatchIndexOpenFailure();
+    VerifyHeadlessStartupCoordinatorBootstrapsHealthyHeadlessRun();
+    VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();
