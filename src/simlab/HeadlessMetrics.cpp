@@ -208,6 +208,37 @@ namespace simlab
         return manifest;
     }
 
+    void MarkHeadlessArtifactOpened(std::string& writeStatus)
+    {
+        writeStatus = "written";
+    }
+
+    void FinalizeHeadlessArtifactWrite(std::ostream& out,
+                                       std::string& writeStatus,
+                                       std::string& failureCategory,
+                                       const std::string_view writeFailureCategory)
+    {
+        out.flush();
+        if (!out.good())
+        {
+            writeStatus = "write_failed";
+            failureCategory = std::string(writeFailureCategory);
+        }
+    }
+
+    void FinalizeHeadlessBatchAppend(std::ostream& out,
+                                     std::string& appendStatus,
+                                     std::string& failureCategory,
+                                     const std::string_view writeFailureCategory)
+    {
+        out.flush();
+        if (!out.good())
+        {
+            appendStatus = "append_failed";
+            failureCategory = std::string(writeFailureCategory);
+        }
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;

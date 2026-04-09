@@ -309,15 +309,13 @@ int main(int argc, char** argv)
         std::ofstream failureSummaryOut(startupFailureSummaryPath);
         if (failureSummaryOut.is_open())
         {
-            startupFailureSummaryWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(startupFailureSummaryWriteStatus);
             simlab::WriteHeadlessRunSummaryCsvHeader(failureSummaryOut);
             simlab::WriteHeadlessRunSummaryCsvRow(failureSummaryOut, failureSummary);
-            failureSummaryOut.flush();
-            if (!failureSummaryOut.good())
-            {
-                startupFailureSummaryWriteStatus = "write_failed";
-                startupFailureSummaryFailureCategory = "startup_failure_summary_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(failureSummaryOut,
+                                                 startupFailureSummaryWriteStatus,
+                                                 startupFailureSummaryFailureCategory,
+                                                 "startup_failure_summary_write_failed");
         }
         else
         {
@@ -357,15 +355,13 @@ int main(int argc, char** argv)
         std::ofstream failureManifestOut(startupFailureManifestPath);
         if (failureManifestOut.is_open())
         {
-            failureManifest.startupFailureManifestWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(failureManifest.startupFailureManifestWriteStatus);
             simlab::WriteHeadlessRunManifestCsvHeader(failureManifestOut);
             simlab::WriteHeadlessRunManifestCsvRow(failureManifestOut, failureManifest);
-            failureManifestOut.flush();
-            if (!failureManifestOut.good())
-            {
-                failureManifest.startupFailureManifestWriteStatus = "write_failed";
-                failureManifest.startupFailureManifestFailureCategory = "startup_failure_manifest_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(failureManifestOut,
+                                                 failureManifest.startupFailureManifestWriteStatus,
+                                                 failureManifest.startupFailureManifestFailureCategory,
+                                                 "startup_failure_manifest_write_failed");
         }
         else
         {
@@ -431,7 +427,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            outputWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(outputWriteStatus);
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless output path: ") + (cwd / outputPath).string());
@@ -448,14 +444,12 @@ int main(int argc, char** argv)
         }
         else
         {
-            metricsWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(metricsWriteStatus);
             simlab::WriteFrameMetricsCsvHeader(headlessMetricsOut);
-            headlessMetricsOut.flush();
-            if (!headlessMetricsOut.good())
-            {
-                metricsWriteStatus = "write_failed";
-                metricsFailureCategory = "metrics_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(headlessMetricsOut,
+                                                 metricsWriteStatus,
+                                                 metricsFailureCategory,
+                                                 "metrics_write_failed");
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless metrics path: ") + (cwd / metricsPath).string());
@@ -472,14 +466,12 @@ int main(int argc, char** argv)
         }
         else
         {
-            summaryWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(summaryWriteStatus);
             simlab::WriteHeadlessRunSummaryCsvHeader(headlessSummaryOut);
-            headlessSummaryOut.flush();
-            if (!headlessSummaryOut.good())
-            {
-                summaryWriteStatus = "write_failed";
-                summaryFailureCategory = "summary_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(headlessSummaryOut,
+                                                 summaryWriteStatus,
+                                                 summaryFailureCategory,
+                                                 "summary_write_failed");
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless summary path: ") + (cwd / summaryPath).string());
@@ -496,14 +488,12 @@ int main(int argc, char** argv)
         }
         else
         {
-            manifestWriteStatus = "written";
+            simlab::MarkHeadlessArtifactOpened(manifestWriteStatus);
             simlab::WriteHeadlessRunManifestCsvHeader(headlessManifestOut);
-            headlessManifestOut.flush();
-            if (!headlessManifestOut.good())
-            {
-                manifestWriteStatus = "write_failed";
-                manifestFailureCategory = "manifest_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(headlessManifestOut,
+                                                 manifestWriteStatus,
+                                                 manifestFailureCategory,
+                                                 "manifest_write_failed");
             try {
                 auto cwd = std::filesystem::current_path();
                 logger.Info(std::string("Headless manifest path: ") + (cwd / manifestPath).string());
@@ -554,12 +544,10 @@ int main(int argc, char** argv)
                 currentRuntimeFailurePhase.clear();
                 if (headless && headlessOut.is_open())
                 {
-                    headlessOut.flush();
-                    if (!headlessOut.good())
-                    {
-                        outputWriteStatus = "write_failed";
-                        outputFailureCategory = "output_write_failed";
-                    }
+                    simlab::FinalizeHeadlessArtifactWrite(headlessOut,
+                                                         outputWriteStatus,
+                                                         outputFailureCategory,
+                                                         "output_write_failed");
                 }
                 const auto renderEnd = steady_clock::now();
 
@@ -575,12 +563,10 @@ int main(int argc, char** argv)
                     if (headlessMetricsOut.is_open() && metricsFailureCategory.empty())
                     {
                         simlab::WriteFrameMetricsCsvRow(headlessMetricsOut, metrics);
-                        headlessMetricsOut.flush();
-                        if (!headlessMetricsOut.good())
-                        {
-                            metricsWriteStatus = "write_failed";
-                            metricsFailureCategory = "metrics_write_failed";
-                        }
+                        simlab::FinalizeHeadlessArtifactWrite(headlessMetricsOut,
+                                                             metricsWriteStatus,
+                                                             metricsFailureCategory,
+                                                             "metrics_write_failed");
                     }
                 }
 
@@ -632,12 +618,10 @@ int main(int argc, char** argv)
     if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
     {
         simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
-        headlessSummaryOut.flush();
-        if (!headlessSummaryOut.good())
-        {
-            summaryWriteStatus = "write_failed";
-            summaryFailureCategory = "summary_write_failed";
-        }
+        simlab::FinalizeHeadlessArtifactWrite(headlessSummaryOut,
+                                             summaryWriteStatus,
+                                             summaryFailureCategory,
+                                             "summary_write_failed");
     }
 
     if (headlessManifestOut.is_open())
@@ -692,11 +676,12 @@ int main(int argc, char** argv)
                 if (needsHeader)
                 {
                     simlab::WriteHeadlessRunManifestCsvHeader(batchIndexOut);
-                    batchIndexOut.flush();
-                    if (!batchIndexOut.good())
+                    simlab::FinalizeHeadlessBatchAppend(batchIndexOut,
+                                                       batchIndexAppendStatus,
+                                                       batchIndexFailureCategory,
+                                                       "batch_index_write_failed");
+                    if (!batchIndexFailureCategory.empty())
                     {
-                        batchIndexAppendStatus = "append_failed";
-                        batchIndexFailureCategory = "batch_index_write_failed";
                         manifest.batchIndexAppendStatus = batchIndexAppendStatus;
                         manifest.batchIndexFailureCategory = batchIndexFailureCategory;
                     }
@@ -704,11 +689,12 @@ int main(int argc, char** argv)
                 if (batchIndexFailureCategory.empty())
                 {
                     simlab::WriteHeadlessRunManifestCsvRow(batchIndexOut, manifest);
-                    batchIndexOut.flush();
-                    if (!batchIndexOut.good())
+                    simlab::FinalizeHeadlessBatchAppend(batchIndexOut,
+                                                       batchIndexAppendStatus,
+                                                       batchIndexFailureCategory,
+                                                       "batch_index_write_failed");
+                    if (!batchIndexFailureCategory.empty())
                     {
-                        batchIndexAppendStatus = "append_failed";
-                        batchIndexFailureCategory = "batch_index_write_failed";
                         manifest.batchIndexAppendStatus = batchIndexAppendStatus;
                         manifest.batchIndexFailureCategory = batchIndexFailureCategory;
                     }
@@ -719,12 +705,10 @@ int main(int argc, char** argv)
         if (manifestFailureCategory.empty())
         {
             simlab::WriteHeadlessRunManifestCsvRow(headlessManifestOut, manifest);
-            headlessManifestOut.flush();
-            if (!headlessManifestOut.good())
-            {
-                manifestWriteStatus = "write_failed";
-                manifestFailureCategory = "manifest_write_failed";
-            }
+            simlab::FinalizeHeadlessArtifactWrite(headlessManifestOut,
+                                                 manifestWriteStatus,
+                                                 manifestFailureCategory,
+                                                 "manifest_write_failed");
         }
     }
 

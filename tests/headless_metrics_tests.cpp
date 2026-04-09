@@ -357,6 +357,34 @@ namespace
         assert(manifest.buildType == "Debug");
     }
 
+    void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
+    {
+        std::string writeStatus;
+        std::string failureCategory;
+        simlab::MarkHeadlessArtifactOpened(writeStatus);
+        assert(writeStatus == "written");
+
+        std::ostringstream goodOut;
+        goodOut << "ok";
+        simlab::FinalizeHeadlessArtifactWrite(goodOut, writeStatus, failureCategory, "summary_write_failed");
+        assert(writeStatus == "written");
+        assert(failureCategory.empty());
+
+        std::ostringstream badOut;
+        badOut.setstate(std::ios::badbit);
+        simlab::FinalizeHeadlessArtifactWrite(badOut, writeStatus, failureCategory, "summary_write_failed");
+        assert(writeStatus == "write_failed");
+        assert(failureCategory == "summary_write_failed");
+
+        std::string appendStatus{"appended"};
+        std::string appendFailureCategory;
+        std::ostringstream badAppendOut;
+        badAppendOut.setstate(std::ios::badbit);
+        simlab::FinalizeHeadlessBatchAppend(badAppendOut, appendStatus, appendFailureCategory, "batch_index_write_failed");
+        assert(appendStatus == "append_failed");
+        assert(appendFailureCategory == "batch_index_write_failed");
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -542,6 +570,7 @@ int main()
     VerifyHeadlessRunOutcomeTrackerDerivesTerminationAndExitMetadata();
     VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
     VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
+    VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();

@@ -178,6 +178,15 @@ namespace simlab
                                                        const HeadlessRunReportContext& context,
                                                        const HeadlessRunArtifactReport& artifacts,
                                                        const HeadlessRunOutcomeTracker& outcome);
+    void MarkHeadlessArtifactOpened(std::string& writeStatus);
+    void FinalizeHeadlessArtifactWrite(std::ostream& out,
+                                       std::string& writeStatus,
+                                       std::string& failureCategory,
+                                       std::string_view writeFailureCategory);
+    void FinalizeHeadlessBatchAppend(std::ostream& out,
+                                     std::string& appendStatus,
+                                     std::string& failureCategory,
+                                     std::string_view writeFailureCategory);
 
     class HeadlessRunSummaryAccumulator
     {
