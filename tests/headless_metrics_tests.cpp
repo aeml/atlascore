@@ -359,6 +359,73 @@ namespace
         assert(manifest.buildType == "Debug");
     }
 
+    void VerifyNormalHeadlessArtifactReportBuilderAppliesRuntimeFacts()
+    {
+        simlab::HeadlessRunArtifactReport artifacts{};
+        artifacts.outputPath = "/tmp/headless_output.txt";
+        artifacts.metricsPath = "/tmp/headless_metrics.csv";
+        artifacts.summaryPath = "/tmp/headless_summary.csv";
+        artifacts.batchIndexPath = "/tmp/batch.csv";
+        artifacts.batchIndexAppendStatus = "appended";
+        artifacts.batchIndexFailureCategory = "";
+        artifacts.outputWriteStatus = "written";
+        artifacts.outputFailureCategory = "";
+        artifacts.metricsWriteStatus = "write_failed";
+        artifacts.metricsFailureCategory = "metrics_write_failed";
+        artifacts.summaryWriteStatus = "written";
+        artifacts.summaryFailureCategory = "";
+        artifacts.manifestWriteStatus = "written";
+        artifacts.manifestFailureCategory = "";
+        artifacts.startupFailureSummaryWriteStatus = "not_applicable";
+        artifacts.startupFailureSummaryFailureCategory = "";
+        artifacts.startupFailureManifestWriteStatus = "not_applicable";
+        artifacts.startupFailureManifestFailureCategory = "";
+        artifacts.timestampUtc = "2026-04-09T07:00:00Z";
+        artifacts.gitCommit = "9999999999999999999999999999999999999999";
+        artifacts.gitDirty = true;
+        artifacts.buildType = "RelWithDebInfo";
+
+        const auto built = simlab::BuildNormalHeadlessArtifactReport(artifacts,
+                                                                     "/tmp/headless_output.txt",
+                                                                     "/tmp/headless_metrics.csv",
+                                                                     "/tmp/headless_summary.csv",
+                                                                     "/tmp/batch.csv",
+                                                                     "appended",
+                                                                     "",
+                                                                     "written",
+                                                                     "",
+                                                                     "write_failed",
+                                                                     "metrics_write_failed",
+                                                                     "written",
+                                                                     "",
+                                                                     "written",
+                                                                     "",
+                                                                     "not_applicable",
+                                                                     "",
+                                                                     "not_applicable",
+                                                                     "",
+                                                                     "2026-04-09T07:00:00Z",
+                                                                     "9999999999999999999999999999999999999999",
+                                                                     true,
+                                                                     "RelWithDebInfo");
+
+        assert(built.outputPath == "/tmp/headless_output.txt");
+        assert(built.metricsPath == "/tmp/headless_metrics.csv");
+        assert(built.summaryPath == "/tmp/headless_summary.csv");
+        assert(built.batchIndexPath == "/tmp/batch.csv");
+        assert(built.batchIndexAppendStatus == "appended");
+        assert(built.outputWriteStatus == "written");
+        assert(built.metricsWriteStatus == "write_failed");
+        assert(built.metricsFailureCategory == "metrics_write_failed");
+        assert(built.manifestWriteStatus == "written");
+        assert(built.startupFailureSummaryWriteStatus == "not_applicable");
+        assert(built.startupFailureManifestWriteStatus == "not_applicable");
+        assert(built.timestampUtc == "2026-04-09T07:00:00Z");
+        assert(built.gitCommit == "9999999999999999999999999999999999999999");
+        assert(built.gitDirty);
+        assert(built.buildType == "RelWithDebInfo");
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -750,6 +817,7 @@ int main()
     VerifyHeadlessRunOutcomeTrackerDerivesTerminationAndExitMetadata();
     VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
     VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
+    VerifyNormalHeadlessArtifactReportBuilderAppliesRuntimeFacts();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();

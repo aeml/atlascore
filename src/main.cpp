@@ -581,29 +581,29 @@ int main(int argc, char** argv)
 
     if (headlessManifestOut.is_open())
     {
-        simlab::HeadlessRunArtifactReport artifacts{};
-        artifacts.outputPath = toAbsolutePathString(outputPath);
-        artifacts.metricsPath = toAbsolutePathString(metricsPath);
-        artifacts.summaryPath = toAbsolutePathString(summaryPath);
-        artifacts.batchIndexPath = batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath);
-        artifacts.batchIndexAppendStatus = batchIndexAppendStatus;
-        artifacts.batchIndexFailureCategory = batchIndexFailureCategory;
-        artifacts.outputWriteStatus = outputWriteStatus;
-        artifacts.outputFailureCategory = outputFailureCategory;
-        artifacts.metricsWriteStatus = metricsWriteStatus;
-        artifacts.metricsFailureCategory = metricsFailureCategory;
-        artifacts.summaryWriteStatus = summaryWriteStatus;
-        artifacts.summaryFailureCategory = summaryFailureCategory;
-        artifacts.manifestWriteStatus = manifestWriteStatus;
-        artifacts.manifestFailureCategory = manifestFailureCategory;
-        artifacts.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
-        artifacts.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
-        artifacts.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
-        artifacts.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
-        artifacts.timestampUtc = formatTimestampUtc();
-        artifacts.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
-        artifacts.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
-        artifacts.buildType = ATLASCORE_BUILD_TYPE;
+        auto artifacts = simlab::BuildNormalHeadlessArtifactReport(simlab::HeadlessRunArtifactReport{},
+                                                                   toAbsolutePathString(outputPath),
+                                                                   toAbsolutePathString(metricsPath),
+                                                                   toAbsolutePathString(summaryPath),
+                                                                   batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath),
+                                                                   batchIndexAppendStatus,
+                                                                   batchIndexFailureCategory,
+                                                                   outputWriteStatus,
+                                                                   outputFailureCategory,
+                                                                   metricsWriteStatus,
+                                                                   metricsFailureCategory,
+                                                                   summaryWriteStatus,
+                                                                   summaryFailureCategory,
+                                                                   manifestWriteStatus,
+                                                                   manifestFailureCategory,
+                                                                   startupFailureSummaryWriteStatus,
+                                                                   startupFailureSummaryFailureCategory,
+                                                                   startupFailureManifestWriteStatus,
+                                                                   startupFailureManifestFailureCategory,
+                                                                   formatTimestampUtc(),
+                                                                   ATLASCORE_BUILD_GIT_COMMIT,
+                                                                   ATLASCORE_BUILD_GIT_DIRTY != 0,
+                                                                   ATLASCORE_BUILD_TYPE);
 
         auto manifest = simlab::BuildHeadlessRunManifestReport(runSummary.frameCount,
                                                                reportContext,

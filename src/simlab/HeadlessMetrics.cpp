@@ -279,6 +279,56 @@ namespace simlab
                                     "batch_index_write_failed");
     }
 
+    HeadlessRunArtifactReport BuildNormalHeadlessArtifactReport(const HeadlessRunArtifactReport& base,
+                                                                const std::string_view outputPath,
+                                                                const std::string_view metricsPath,
+                                                                const std::string_view summaryPath,
+                                                                const std::string_view batchIndexPath,
+                                                                const std::string_view batchIndexAppendStatus,
+                                                                const std::string_view batchIndexFailureCategory,
+                                                                const std::string_view outputWriteStatus,
+                                                                const std::string_view outputFailureCategory,
+                                                                const std::string_view metricsWriteStatus,
+                                                                const std::string_view metricsFailureCategory,
+                                                                const std::string_view summaryWriteStatus,
+                                                                const std::string_view summaryFailureCategory,
+                                                                const std::string_view manifestWriteStatus,
+                                                                const std::string_view manifestFailureCategory,
+                                                                const std::string_view startupFailureSummaryWriteStatus,
+                                                                const std::string_view startupFailureSummaryFailureCategory,
+                                                                const std::string_view startupFailureManifestWriteStatus,
+                                                                const std::string_view startupFailureManifestFailureCategory,
+                                                                const std::string_view timestampUtc,
+                                                                const std::string_view gitCommit,
+                                                                const bool gitDirty,
+                                                                const std::string_view buildType)
+    {
+        auto artifacts = base;
+        artifacts.outputPath = std::string(outputPath);
+        artifacts.metricsPath = std::string(metricsPath);
+        artifacts.summaryPath = std::string(summaryPath);
+        artifacts.batchIndexPath = std::string(batchIndexPath);
+        artifacts.batchIndexAppendStatus = std::string(batchIndexAppendStatus);
+        artifacts.batchIndexFailureCategory = std::string(batchIndexFailureCategory);
+        artifacts.outputWriteStatus = std::string(outputWriteStatus);
+        artifacts.outputFailureCategory = std::string(outputFailureCategory);
+        artifacts.metricsWriteStatus = std::string(metricsWriteStatus);
+        artifacts.metricsFailureCategory = std::string(metricsFailureCategory);
+        artifacts.summaryWriteStatus = std::string(summaryWriteStatus);
+        artifacts.summaryFailureCategory = std::string(summaryFailureCategory);
+        artifacts.manifestWriteStatus = std::string(manifestWriteStatus);
+        artifacts.manifestFailureCategory = std::string(manifestFailureCategory);
+        artifacts.startupFailureSummaryWriteStatus = std::string(startupFailureSummaryWriteStatus);
+        artifacts.startupFailureSummaryFailureCategory = std::string(startupFailureSummaryFailureCategory);
+        artifacts.startupFailureManifestWriteStatus = std::string(startupFailureManifestWriteStatus);
+        artifacts.startupFailureManifestFailureCategory = std::string(startupFailureManifestFailureCategory);
+        artifacts.timestampUtc = std::string(timestampUtc);
+        artifacts.gitCommit = std::string(gitCommit);
+        artifacts.gitDirty = gitDirty;
+        artifacts.buildType = std::string(buildType);
+        return artifacts;
+    }
+
     HeadlessStartupFailureArtifactsResult WriteHeadlessStartupFailureArtifacts(const std::filesystem::path& summaryPath,
                                                                                const std::filesystem::path& manifestPath,
                                                                                const std::string_view scenarioKey,
