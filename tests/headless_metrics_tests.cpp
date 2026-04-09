@@ -540,6 +540,86 @@ namespace
         assert(failureCategory == "batch_index_write_failed");
     }
 
+    void VerifyHeadlessArtifactBootstrapCoordinatorOpensArtifactsAndWritesHeaders()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_bootstrap_unit";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        auto result = simlab::BootstrapHeadlessArtifacts(tempRoot / "gravity_run", tempRoot / "batch" / "index.csv");
+        assert(result.startupFailureCategory.empty());
+        assert(result.outputPath == (tempRoot / "gravity_run_output.txt").string());
+        assert(result.metricsPath == (tempRoot / "gravity_run_metrics.csv").string());
+        assert(result.summaryPath == (tempRoot / "gravity_run_summary.csv").string());
+        assert(result.manifestPath == (tempRoot / "gravity_run_manifest.csv").string());
+        assert(result.outputStream.is_open());
+        assert(result.metricsStream.is_open());
+        assert(result.summaryStream.is_open());
+        assert(result.manifestStream.is_open());
+        assert(result.batchIndexAppendStatus == "appended");
+        assert(result.batchIndexFailureCategory.empty());
+        assert(result.outputWriteStatus == "written");
+        assert(result.metricsWriteStatus == "written");
+        assert(result.summaryWriteStatus == "written");
+        assert(result.manifestWriteStatus == "written");
+
+        result.metricsStream.close();
+        result.summaryStream.close();
+        result.manifestStream.close();
+
+        std::ifstream metricsIn(tempRoot / "gravity_run_metrics.csv");
+        assert(metricsIn.is_open());
+        const std::string metricsCsv((std::istreambuf_iterator<char>(metricsIn)), std::istreambuf_iterator<char>());
+        assert(metricsCsv.find("frame,sim_time_seconds,world_hash") == 0);
+
+        std::ifstream summaryIn(tempRoot / "gravity_run_summary.csv");
+        assert(summaryIn.is_open());
+        const std::string summaryCsv((std::istreambuf_iterator<char>(summaryIn)), std::istreambuf_iterator<char>());
+        assert(summaryCsv.find("requested_scenario_key,resolved_scenario_key") == 0);
+
+        std::ifstream manifestIn(tempRoot / "gravity_run_manifest.csv");
+        assert(manifestIn.is_open());
+        const std::string manifestCsv((std::istreambuf_iterator<char>(manifestIn)), std::istreambuf_iterator<char>());
+        assert(manifestCsv.find("requested_scenario_key,resolved_scenario_key") == 0);
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessArtifactBootstrapCoordinatorClassifiesBatchIndexDirectoryFailureSeparately()
+    {
+        const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_bootstrap_batch_fail";
+        std::error_code ec;
+        std::filesystem::remove_all(tempRoot, ec);
+        std::filesystem::create_directories(tempRoot, ec);
+        assert(!ec);
+
+        auto result = simlab::BootstrapHeadlessArtifacts(tempRoot / "gravity_run",
+                                                         "/proc/atlascore_headless_bootstrap_batch/index.csv");
+        assert(result.startupFailureCategory.empty());
+        assert(result.outputStream.is_open());
+        assert(result.metricsStream.is_open());
+        assert(result.summaryStream.is_open());
+        assert(result.manifestStream.is_open());
+        assert(result.batchIndexAppendStatus == "append_failed");
+        assert(result.batchIndexFailureCategory == "batch_index_open_failed");
+
+        std::filesystem::remove_all(tempRoot, ec);
+    }
+
+    void VerifyHeadlessArtifactBootstrapCoordinatorClassifiesOutputDirectoryFailure()
+    {
+        auto result = simlab::BootstrapHeadlessArtifacts("/proc/atlascore_headless_bootstrap/run", {});
+        assert(result.startupFailureCategory == "output_directory_create_failed");
+        assert(!result.outputStream.is_open());
+        assert(!result.metricsStream.is_open());
+        assert(!result.summaryStream.is_open());
+        assert(!result.manifestStream.is_open());
+        assert(result.batchIndexAppendStatus == "not_requested");
+        assert(result.batchIndexFailureCategory.empty());
+    }
+
     void VerifyHeadlessStartupFailureArtifactCoordinatorWritesSummaryAndManifest()
     {
         const auto tempRoot = std::filesystem::temp_directory_path() / "atlascore_headless_startup_failure_unit";
@@ -822,6 +902,9 @@ int main()
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesWriteFailure();
+    VerifyHeadlessArtifactBootstrapCoordinatorOpensArtifactsAndWritesHeaders();
+    VerifyHeadlessArtifactBootstrapCoordinatorClassifiesBatchIndexDirectoryFailureSeparately();
+    VerifyHeadlessArtifactBootstrapCoordinatorClassifiesOutputDirectoryFailure();
     VerifyHeadlessStartupFailureArtifactCoordinatorWritesSummaryAndManifest();
     VerifyHeadlessStartupFailureArtifactCoordinatorReportsSummaryOpenFailure();
     VerifyRunConfigHashChangesWhenInputsChange();

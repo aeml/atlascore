@@ -279,6 +279,100 @@ namespace simlab
                                     "batch_index_write_failed");
     }
 
+    HeadlessArtifactBootstrapResult BootstrapHeadlessArtifacts(const std::filesystem::path& outputBasePath,
+                                                               const std::filesystem::path& batchIndexPath)
+    {
+        HeadlessArtifactBootstrapResult result{};
+        result.outputPath = outputBasePath.string() + "_output.txt";
+        result.metricsPath = outputBasePath.string() + "_metrics.csv";
+        result.summaryPath = outputBasePath.string() + "_summary.csv";
+        result.manifestPath = outputBasePath.string() + "_manifest.csv";
+        result.batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
+
+        auto ensureParentDirectoryExists = [&](const std::filesystem::path& path, const bool outputArtifact) {
+            if (!path.has_parent_path())
+            {
+                return true;
+            }
+
+            std::error_code ec;
+            std::filesystem::create_directories(path.parent_path(), ec);
+            if (!ec)
+            {
+                return true;
+            }
+
+            if (outputArtifact)
+            {
+                result.startupFailureCategory = "output_directory_create_failed";
+            }
+            else
+            {
+                result.batchIndexAppendStatus = "append_failed";
+                result.batchIndexFailureCategory = "batch_index_open_failed";
+            }
+            return false;
+        };
+
+        if (!ensureParentDirectoryExists(outputBasePath, true))
+        {
+            return result;
+        }
+        if (!batchIndexPath.empty())
+        {
+            ensureParentDirectoryExists(batchIndexPath, false);
+        }
+
+        result.outputStream.open(result.outputPath);
+        if (!result.outputStream.is_open())
+        {
+            result.startupFailureCategory = "output_file_open_failed";
+            return result;
+        }
+        MarkHeadlessArtifactOpened(result.outputWriteStatus);
+
+        result.metricsStream.open(result.metricsPath);
+        if (!result.metricsStream.is_open())
+        {
+            result.startupFailureCategory = "metrics_file_open_failed";
+            return result;
+        }
+        MarkHeadlessArtifactOpened(result.metricsWriteStatus);
+        WriteFrameMetricsCsvHeader(result.metricsStream);
+        FinalizeHeadlessArtifactWrite(result.metricsStream,
+                                      result.metricsWriteStatus,
+                                      result.metricsFailureCategory,
+                                      "metrics_write_failed");
+
+        result.summaryStream.open(result.summaryPath);
+        if (!result.summaryStream.is_open())
+        {
+            result.startupFailureCategory = "summary_file_open_failed";
+            return result;
+        }
+        MarkHeadlessArtifactOpened(result.summaryWriteStatus);
+        WriteHeadlessRunSummaryCsvHeader(result.summaryStream);
+        FinalizeHeadlessArtifactWrite(result.summaryStream,
+                                      result.summaryWriteStatus,
+                                      result.summaryFailureCategory,
+                                      "summary_write_failed");
+
+        result.manifestStream.open(result.manifestPath);
+        if (!result.manifestStream.is_open())
+        {
+            result.startupFailureCategory = "manifest_file_open_failed";
+            return result;
+        }
+        MarkHeadlessArtifactOpened(result.manifestWriteStatus);
+        WriteHeadlessRunManifestCsvHeader(result.manifestStream);
+        FinalizeHeadlessArtifactWrite(result.manifestStream,
+                                      result.manifestWriteStatus,
+                                      result.manifestFailureCategory,
+                                      "manifest_write_failed");
+
+        return result;
+    }
+
     HeadlessRunArtifactReport BuildNormalHeadlessArtifactReport(const HeadlessRunArtifactReport& base,
                                                                 const std::string_view outputPath,
                                                                 const std::string_view metricsPath,

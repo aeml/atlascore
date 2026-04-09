@@ -339,122 +339,85 @@ int main(int argc, char** argv)
 
     if (headless)
     {
-        auto ensureParentDirectoryExists = [&](const std::filesystem::path& path, const std::string& label) {
-            if (!path.has_parent_path())
-            {
-                return;
-            }
+        const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
+        const std::filesystem::path outputBasePath(outputBase);
+        auto bootstrap = simlab::BootstrapHeadlessArtifacts(outputBasePath,
+                                                            batchIndexPath.empty() ? std::filesystem::path{} : std::filesystem::path(batchIndexPath));
 
-            std::error_code ec;
-            std::filesystem::create_directories(path.parent_path(), ec);
-            if (ec)
+        outputPath = bootstrap.outputPath;
+        metricsPath = bootstrap.metricsPath;
+        summaryPath = bootstrap.summaryPath;
+        manifestPath = bootstrap.manifestPath;
+        batchIndexAppendStatus = bootstrap.batchIndexAppendStatus;
+        batchIndexFailureCategory = bootstrap.batchIndexFailureCategory;
+        outputWriteStatus = bootstrap.outputWriteStatus;
+        outputFailureCategory = bootstrap.outputFailureCategory;
+        metricsWriteStatus = bootstrap.metricsWriteStatus;
+        metricsFailureCategory = bootstrap.metricsFailureCategory;
+        summaryWriteStatus = bootstrap.summaryWriteStatus;
+        summaryFailureCategory = bootstrap.summaryFailureCategory;
+        manifestWriteStatus = bootstrap.manifestWriteStatus;
+        manifestFailureCategory = bootstrap.manifestFailureCategory;
+        headlessOut = std::move(bootstrap.outputStream);
+        headlessMetricsOut = std::move(bootstrap.metricsStream);
+        headlessSummaryOut = std::move(bootstrap.summaryStream);
+        headlessManifestOut = std::move(bootstrap.manifestStream);
+
+        if (!bootstrap.startupFailureCategory.empty())
+        {
+            outcome.MarkStartupFailureCategory(bootstrap.startupFailureCategory);
+            if (bootstrap.startupFailureCategory == "output_directory_create_failed")
             {
-                if (label == "output")
-                {
-                    classifyStartupFailure("output_directory_create_failed");
-                }
-                else
-                {
-                    batchIndexAppendStatus = "append_failed";
-                    batchIndexFailureCategory = "batch_index_open_failed";
-                }
-                logger.Error(std::string("Failed to create ") + label + " directory: " + path.parent_path().string());
+                logger.Error(std::string("Failed to create output directory: ") + outputBasePath.parent_path().string());
+            }
+            else if (bootstrap.startupFailureCategory == "output_file_open_failed")
+            {
+                logger.Error(std::string("Failed to open ") + outputPath);
+            }
+            else if (bootstrap.startupFailureCategory == "metrics_file_open_failed")
+            {
+                logger.Error(std::string("Failed to open ") + metricsPath);
+            }
+            else if (bootstrap.startupFailureCategory == "summary_file_open_failed")
+            {
+                logger.Error(std::string("Failed to open ") + summaryPath);
+            }
+            else if (bootstrap.startupFailureCategory == "manifest_file_open_failed")
+            {
+                logger.Error(std::string("Failed to open ") + manifestPath);
+            }
+        }
+
+        if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
+        {
+            logger.Error(std::string("Failed to create batch index directory: ")
+                         + std::filesystem::path(batchIndexPath).parent_path().string());
+        }
+
+        auto logHeadlessArtifactPath = [&](const std::string& label, const std::string& path) {
+            try {
+                auto cwd = std::filesystem::current_path();
+                logger.Info(std::string("Headless ") + label + " path: " + (cwd / path).string());
+            } catch(...) {
+                logger.Warn(std::string("Could not determine current working directory for headless ") + label);
             }
         };
 
-        const std::string outputBase = outputPrefix.empty() ? "headless" : outputPrefix;
-        const std::filesystem::path outputBasePath(outputBase);
-        outputPath = outputBasePath.string() + "_output.txt";
-        metricsPath = outputBasePath.string() + "_metrics.csv";
-        summaryPath = outputBasePath.string() + "_summary.csv";
-        manifestPath = outputBasePath.string() + "_manifest.csv";
-        ensureParentDirectoryExists(outputBasePath, "output");
-        if (!batchIndexPath.empty())
+        if (headlessOut.is_open())
         {
-            ensureParentDirectoryExists(std::filesystem::path(batchIndexPath), "batch index");
+            logHeadlessArtifactPath("output", outputPath);
         }
-
-        headlessOut.open(outputPath);
-        if (!headlessOut.is_open())
+        if (headlessMetricsOut.is_open())
         {
-            outcome.MarkStartupFailureCategory("output_file_open_failed");
-            logger.Error(std::string("Failed to open ") + outputPath);
+            logHeadlessArtifactPath("metrics", metricsPath);
         }
-        else
+        if (headlessSummaryOut.is_open())
         {
-            simlab::MarkHeadlessArtifactOpened(outputWriteStatus);
-            try {
-                auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless output path: ") + (cwd / outputPath).string());
-            } catch(...) {
-                logger.Warn("Could not determine current working directory for headless output");
-            }
+            logHeadlessArtifactPath("summary", summaryPath);
         }
-
-        headlessMetricsOut.open(metricsPath);
-        if (!headlessMetricsOut.is_open())
+        if (headlessManifestOut.is_open())
         {
-            outcome.MarkStartupFailureCategory("metrics_file_open_failed");
-            logger.Error(std::string("Failed to open ") + metricsPath);
-        }
-        else
-        {
-            simlab::MarkHeadlessArtifactOpened(metricsWriteStatus);
-            simlab::WriteFrameMetricsCsvHeader(headlessMetricsOut);
-            simlab::FinalizeHeadlessArtifactWrite(headlessMetricsOut,
-                                                 metricsWriteStatus,
-                                                 metricsFailureCategory,
-                                                 "metrics_write_failed");
-            try {
-                auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless metrics path: ") + (cwd / metricsPath).string());
-            } catch(...) {
-                logger.Warn("Could not determine current working directory for headless metrics");
-            }
-        }
-
-        headlessSummaryOut.open(summaryPath);
-        if (!headlessSummaryOut.is_open())
-        {
-            outcome.MarkStartupFailureCategory("summary_file_open_failed");
-            logger.Error(std::string("Failed to open ") + summaryPath);
-        }
-        else
-        {
-            simlab::MarkHeadlessArtifactOpened(summaryWriteStatus);
-            simlab::WriteHeadlessRunSummaryCsvHeader(headlessSummaryOut);
-            simlab::FinalizeHeadlessArtifactWrite(headlessSummaryOut,
-                                                 summaryWriteStatus,
-                                                 summaryFailureCategory,
-                                                 "summary_write_failed");
-            try {
-                auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless summary path: ") + (cwd / summaryPath).string());
-            } catch(...) {
-                logger.Warn("Could not determine current working directory for headless summary");
-            }
-        }
-
-        headlessManifestOut.open(manifestPath);
-        if (!headlessManifestOut.is_open())
-        {
-            outcome.MarkStartupFailureCategory("manifest_file_open_failed");
-            logger.Error(std::string("Failed to open ") + manifestPath);
-        }
-        else
-        {
-            simlab::MarkHeadlessArtifactOpened(manifestWriteStatus);
-            simlab::WriteHeadlessRunManifestCsvHeader(headlessManifestOut);
-            simlab::FinalizeHeadlessArtifactWrite(headlessManifestOut,
-                                                 manifestWriteStatus,
-                                                 manifestFailureCategory,
-                                                 "manifest_write_failed");
-            try {
-                auto cwd = std::filesystem::current_path();
-                logger.Info(std::string("Headless manifest path: ") + (cwd / manifestPath).string());
-            } catch(...) {
-                logger.Warn("Could not determine current working directory for headless manifest");
-            }
+            logHeadlessArtifactPath("manifest", manifestPath);
         }
     }
 

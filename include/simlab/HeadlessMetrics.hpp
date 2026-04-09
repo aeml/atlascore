@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -172,6 +173,29 @@ namespace simlab
         std::string buildType;
     };
 
+    struct HeadlessArtifactBootstrapResult
+    {
+        std::ofstream outputStream;
+        std::ofstream metricsStream;
+        std::ofstream summaryStream;
+        std::ofstream manifestStream;
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string manifestPath;
+        std::string startupFailureCategory;
+        std::string batchIndexAppendStatus{"not_requested"};
+        std::string batchIndexFailureCategory;
+        std::string outputWriteStatus;
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus;
+        std::string metricsFailureCategory;
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+    };
+
     struct HeadlessStartupFailureArtifactsResult
     {
         HeadlessRunSummary summary;
@@ -200,6 +224,8 @@ namespace simlab
                                             const HeadlessRunManifest& manifest,
                                             std::string& appendStatus,
                                             std::string& failureCategory);
+    HeadlessArtifactBootstrapResult BootstrapHeadlessArtifacts(const std::filesystem::path& outputBasePath,
+                                                               const std::filesystem::path& batchIndexPath);
     HeadlessRunArtifactReport BuildNormalHeadlessArtifactReport(const HeadlessRunArtifactReport& base,
                                                                 std::string_view outputPath,
                                                                 std::string_view metricsPath,
