@@ -76,6 +76,71 @@ namespace
 
 namespace simlab
 {
+    void HeadlessRunOutcomeTracker::MarkStartupFailure(const std::string_view phase, const std::string_view detail) noexcept
+    {
+        if (runStatus != "startup_failure")
+        {
+            runStatus = "startup_failure";
+            failureCategory = std::string(ClassifyHeadlessFailurePhase(phase, true));
+            failureDetail = std::string(detail);
+            exitCode = 1;
+            exitClassification = "startup_failure_exit";
+        }
+    }
+
+    void HeadlessRunOutcomeTracker::MarkStartupFailureCategory(const std::string_view category, const std::string_view detail) noexcept
+    {
+        if (runStatus != "startup_failure")
+        {
+            runStatus = "startup_failure";
+            failureCategory = std::string(category);
+            failureDetail = std::string(detail);
+            exitCode = 1;
+            exitClassification = "startup_failure_exit";
+        }
+    }
+
+    void HeadlessRunOutcomeTracker::MarkRuntimeFailure(const std::string_view phase, const std::string_view detail) noexcept
+    {
+        runStatus = "runtime_failure";
+        failureCategory = std::string(ClassifyHeadlessFailurePhase(phase, false));
+        failureDetail = std::string(detail);
+        exitCode = 1;
+        exitClassification = "runtime_failure_exit";
+    }
+
+    std::string HeadlessRunOutcomeTracker::DeriveTerminationReason(const bool boundedFrames,
+                                                                  const bool headless,
+                                                                  const bool quitRequestedByInput,
+                                                                  const bool quitRequestedByEof) const
+    {
+        if (runStatus == "startup_failure")
+        {
+            return "startup_failure";
+        }
+        if (runStatus == "runtime_failure")
+        {
+            return "runtime_failure";
+        }
+        if (boundedFrames)
+        {
+            return "frame_cap";
+        }
+        if (headless)
+        {
+            return "unbounded_headless_default";
+        }
+        if (quitRequestedByEof)
+        {
+            return "eof_quit";
+        }
+        if (quitRequestedByInput)
+        {
+            return "user_quit";
+        }
+        return {};
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;

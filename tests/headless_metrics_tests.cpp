@@ -217,6 +217,38 @@ namespace
         assert(simlab::ClassifyHeadlessFailurePhase("mystery", false) == "runtime_exception");
     }
 
+    void VerifyHeadlessRunOutcomeTrackerDerivesTerminationAndExitMetadata()
+    {
+        simlab::HeadlessRunOutcomeTracker runtimeFailure{};
+        runtimeFailure.MarkRuntimeFailure("world_update", "Test world update failure");
+        assert(runtimeFailure.runStatus == "runtime_failure");
+        assert(runtimeFailure.failureCategory == "world_update_failed");
+        assert(runtimeFailure.failureDetail == "Test world update failure");
+        assert(runtimeFailure.exitCode == 1);
+        assert(runtimeFailure.exitClassification == "runtime_failure_exit");
+        assert(runtimeFailure.DeriveTerminationReason(true, true, false, false) == "runtime_failure");
+
+        simlab::HeadlessRunOutcomeTracker startupFailure{};
+        startupFailure.MarkStartupFailure("setup", "Test scenario setup failure");
+        assert(startupFailure.runStatus == "startup_failure");
+        assert(startupFailure.failureCategory == "scenario_setup_failed");
+        assert(startupFailure.failureDetail == "Test scenario setup failure");
+        assert(startupFailure.exitCode == 1);
+        assert(startupFailure.exitClassification == "startup_failure_exit");
+
+        simlab::HeadlessRunOutcomeTracker boundedSuccess{};
+        assert(boundedSuccess.DeriveTerminationReason(true, true, false, false) == "frame_cap");
+
+        simlab::HeadlessRunOutcomeTracker headlessUnbounded{};
+        assert(headlessUnbounded.DeriveTerminationReason(false, true, false, false) == "unbounded_headless_default");
+
+        simlab::HeadlessRunOutcomeTracker eofQuit{};
+        assert(eofQuit.DeriveTerminationReason(false, false, false, true) == "eof_quit");
+
+        simlab::HeadlessRunOutcomeTracker userQuit{};
+        assert(userQuit.DeriveTerminationReason(false, false, true, false) == "user_quit");
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -399,6 +431,7 @@ int main()
     VerifySummaryCsvWriterProducesStableHeaderAndRow();
     VerifyManifestCsvWriterProducesStableHeaderAndRow();
     VerifyHeadlessFailurePhaseClassification();
+    VerifyHeadlessRunOutcomeTrackerDerivesTerminationAndExitMetadata();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();

@@ -262,11 +262,7 @@ int main(int argc, char** argv)
     std::string metricsPath;
     std::string summaryPath;
     std::string manifestPath;
-    std::string runStatus{"success"};
-    std::string failureCategory;
-    std::string failureDetail;
-    int exitCode = 0;
-    std::string exitClassification{"success_exit"};
+    simlab::HeadlessRunOutcomeTracker outcome;
     std::string batchIndexAppendStatus = batchIndexPath.empty() ? "not_requested" : "appended";
     std::string batchIndexFailureCategory;
     std::string outputWriteStatus;
@@ -284,12 +280,7 @@ int main(int argc, char** argv)
     const std::string startupFailureSummaryPath = "headless_startup_failure_summary.csv";
     const std::string startupFailureManifestPath = "headless_startup_failure_manifest.csv";
     auto classifyStartupFailure = [&](std::string_view phase, const std::string& detail = std::string{}) {
-        if (runStatus != "startup_failure")
-        {
-            runStatus = "startup_failure";
-            failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(phase, true));
-            failureDetail = detail;
-        }
+        outcome.MarkStartupFailure(phase, detail);
     };
 
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
@@ -304,10 +295,13 @@ int main(int argc, char** argv)
         failureSummary.headless = headless;
         failureSummary.runConfigHash = runConfigHash;
         failureSummary.frameCount = 0;
-        failureSummary.runStatus = "startup_failure";
+        failureSummary.runStatus = outcome.runStatus;
         failureSummary.failureCategory = category;
-        failureSummary.failureDetail = failureDetail;
-        failureSummary.terminationReason = "startup_failure";
+        failureSummary.failureDetail = outcome.failureDetail;
+        failureSummary.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
+                                                                          headless,
+                                                                          false,
+                                                                          false);
 
         std::ofstream failureSummaryOut(startupFailureSummaryPath);
         if (failureSummaryOut.is_open())
@@ -338,10 +332,13 @@ int main(int argc, char** argv)
         failureManifest.headless = headless;
         failureManifest.runConfigHash = runConfigHash;
         failureManifest.frameCount = 0;
-        failureManifest.runStatus = "startup_failure";
+        failureManifest.runStatus = outcome.runStatus;
         failureManifest.failureCategory = category;
-        failureManifest.failureDetail = failureDetail;
-        failureManifest.terminationReason = "startup_failure";
+        failureManifest.failureDetail = outcome.failureDetail;
+        failureManifest.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
+                                                                           headless,
+                                                                           false,
+                                                                           false);
         failureManifest.outputPath = "";
         failureManifest.metricsPath = "";
         failureManifest.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
@@ -360,8 +357,8 @@ int main(int argc, char** argv)
         failureManifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
         failureManifest.startupFailureManifestWriteStatus = "pending";
         failureManifest.startupFailureManifestFailureCategory = "";
-        failureManifest.exitCode = 1;
-        failureManifest.exitClassification = "startup_failure_exit";
+        failureManifest.exitCode = outcome.exitCode;
+        failureManifest.exitClassification = outcome.exitClassification;
         failureManifest.timestampUtc = formatTimestampUtc();
         failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -439,11 +436,7 @@ int main(int argc, char** argv)
         headlessOut.open(outputPath);
         if (!headlessOut.is_open())
         {
-            if (runStatus != "startup_failure")
-            {
-                runStatus = "startup_failure";
-                failureCategory = "output_file_open_failed";
-            }
+            outcome.MarkStartupFailureCategory("output_file_open_failed");
             logger.Error(std::string("Failed to open ") + outputPath);
         }
         else
@@ -460,11 +453,7 @@ int main(int argc, char** argv)
         headlessMetricsOut.open(metricsPath);
         if (!headlessMetricsOut.is_open())
         {
-            if (runStatus != "startup_failure")
-            {
-                runStatus = "startup_failure";
-                failureCategory = "metrics_file_open_failed";
-            }
+            outcome.MarkStartupFailureCategory("metrics_file_open_failed");
             logger.Error(std::string("Failed to open ") + metricsPath);
         }
         else
@@ -488,11 +477,7 @@ int main(int argc, char** argv)
         headlessSummaryOut.open(summaryPath);
         if (!headlessSummaryOut.is_open())
         {
-            if (runStatus != "startup_failure")
-            {
-                runStatus = "startup_failure";
-                failureCategory = "summary_file_open_failed";
-            }
+            outcome.MarkStartupFailureCategory("summary_file_open_failed");
             logger.Error(std::string("Failed to open ") + summaryPath);
         }
         else
@@ -516,11 +501,7 @@ int main(int argc, char** argv)
         headlessManifestOut.open(manifestPath);
         if (!headlessManifestOut.is_open())
         {
-            if (runStatus != "startup_failure")
-            {
-                runStatus = "startup_failure";
-                failureCategory = "manifest_file_open_failed";
-            }
+            outcome.MarkStartupFailureCategory("manifest_file_open_failed");
             logger.Error(std::string("Failed to open ") + manifestPath);
         }
         else
@@ -542,13 +523,11 @@ int main(int argc, char** argv)
         }
     }
 
-    if (runStatus == "startup_failure")
+    if (outcome.runStatus == "startup_failure")
     {
-        exitCode = 1;
-        exitClassification = "startup_failure_exit";
-        writeStartupFailureArtifacts(failureCategory);
+        writeStartupFailureArtifacts(outcome.failureCategory);
         logger.Info("AtlasCore shutting down.");
-        return exitCode;
+        return outcome.exitCode;
     }
 
     int frameCounter = 0;
@@ -629,14 +608,10 @@ int main(int argc, char** argv)
     }
     catch (const std::exception& ex)
     {
-        failureDetail = std::string(ex.what());
-        runStatus = "runtime_failure";
         const std::string_view failurePhase = currentRuntimeFailurePhase.empty()
             ? std::string_view{failPhase}
             : std::string_view{currentRuntimeFailurePhase};
-        failureCategory = std::string(simlab::ClassifyHeadlessFailurePhase(failurePhase, false));
-        exitCode = 1;
-        exitClassification = "runtime_failure_exit";
+        outcome.MarkRuntimeFailure(failurePhase, ex.what());
         running.store(false);
     }
 
@@ -645,27 +620,10 @@ int main(int argc, char** argv)
         quitThread.join();
     }
 
-    std::string terminationReason;
-    if (runStatus == "runtime_failure")
-    {
-        terminationReason = "runtime_failure";
-    }
-    else if (boundedFrames)
-    {
-        terminationReason = "frame_cap";
-    }
-    else if (headless)
-    {
-        terminationReason = "unbounded_headless_default";
-    }
-    else if (quitRequestedByEof.load())
-    {
-        terminationReason = "eof_quit";
-    }
-    else if (quitRequestedByInput.load())
-    {
-        terminationReason = "user_quit";
-    }
+    const std::string terminationReason = outcome.DeriveTerminationReason(boundedFrames,
+                                                                          headless,
+                                                                          quitRequestedByInput.load(),
+                                                                          quitRequestedByEof.load());
 
     auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
     runSummary.requestedScenarioKey = requestedScenarioKey;
@@ -676,9 +634,9 @@ int main(int argc, char** argv)
     runSummary.requestedFrames = requestedFrames;
     runSummary.headless = headless;
     runSummary.runConfigHash = runConfigHash;
-    runSummary.runStatus = runStatus;
-    runSummary.failureCategory = failureCategory;
-    runSummary.failureDetail = failureDetail;
+    runSummary.runStatus = outcome.runStatus;
+    runSummary.failureCategory = outcome.failureCategory;
+    runSummary.failureDetail = outcome.failureDetail;
     runSummary.terminationReason = terminationReason;
     if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
     {
@@ -704,9 +662,9 @@ int main(int argc, char** argv)
         manifest.headless = headless;
         manifest.runConfigHash = runConfigHash;
         manifest.frameCount = runSummary.frameCount;
-        manifest.runStatus = runStatus;
-        manifest.failureCategory = failureCategory;
-        manifest.failureDetail = failureDetail;
+        manifest.runStatus = outcome.runStatus;
+        manifest.failureCategory = outcome.failureCategory;
+        manifest.failureDetail = outcome.failureDetail;
         manifest.terminationReason = terminationReason;
         manifest.outputPath = toAbsolutePathString(outputPath);
         manifest.metricsPath = toAbsolutePathString(metricsPath);
@@ -726,8 +684,8 @@ int main(int argc, char** argv)
         manifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
         manifest.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
         manifest.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
-        manifest.exitCode = exitCode;
-        manifest.exitClassification = exitClassification;
+        manifest.exitCode = outcome.exitCode;
+        manifest.exitClassification = outcome.exitClassification;
         manifest.timestampUtc = formatTimestampUtc();
         manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
         manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
@@ -791,5 +749,5 @@ int main(int argc, char** argv)
     }
 
     logger.Info("AtlasCore shutting down.");
-    return exitCode;
+    return outcome.exitCode;
 }

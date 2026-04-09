@@ -115,6 +115,23 @@ namespace simlab
         std::string buildType;
     };
 
+    struct HeadlessRunOutcomeTracker
+    {
+        std::string runStatus{"success"};
+        std::string failureCategory;
+        std::string failureDetail;
+        int exitCode{0};
+        std::string exitClassification{"success_exit"};
+
+        void MarkStartupFailure(std::string_view phase, std::string_view detail = {}) noexcept;
+        void MarkStartupFailureCategory(std::string_view category, std::string_view detail = {}) noexcept;
+        void MarkRuntimeFailure(std::string_view phase, std::string_view detail = {}) noexcept;
+        std::string DeriveTerminationReason(bool boundedFrames,
+                                            bool headless,
+                                            bool quitRequestedByInput,
+                                            bool quitRequestedByEof) const;
+    };
+
     class HeadlessRunSummaryAccumulator
     {
     public:
