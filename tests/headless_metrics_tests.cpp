@@ -249,6 +249,114 @@ namespace
         assert(userQuit.DeriveTerminationReason(false, false, true, false) == "user_quit");
     }
 
+    void VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata()
+    {
+        simlab::HeadlessRunSummary aggregate{};
+        aggregate.scenarioKey = "gravity";
+        aggregate.frameCount = 12;
+        aggregate.finalWorldHash = 321;
+        aggregate.totalCollisionCount = 44;
+
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "bad_key";
+        context.resolvedScenarioKey = "gravity";
+        context.fallbackUsed = true;
+        context.fixedDtSeconds = 1.0 / 60.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 12;
+        context.headless = true;
+        context.runConfigHash = 999;
+        context.terminationReason = "frame_cap";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+
+        const auto summary = simlab::BuildHeadlessRunSummaryReport(aggregate, context, outcome);
+        assert(summary.scenarioKey == "gravity");
+        assert(summary.requestedScenarioKey == "bad_key");
+        assert(summary.resolvedScenarioKey == "gravity");
+        assert(summary.fallbackUsed);
+        assert(summary.fixedDtSeconds == 1.0 / 60.0);
+        assert(summary.boundedFrames);
+        assert(summary.requestedFrames == 12u);
+        assert(summary.headless);
+        assert(summary.runConfigHash == 999u);
+        assert(summary.frameCount == 12u);
+        assert(summary.runStatus == "success");
+        assert(summary.failureCategory.empty());
+        assert(summary.failureDetail.empty());
+        assert(summary.terminationReason == "frame_cap");
+        assert(summary.finalWorldHash == 321u);
+        assert(summary.totalCollisionCount == 44u);
+    }
+
+    void VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata()
+    {
+        simlab::HeadlessRunReportContext context{};
+        context.requestedScenarioKey = "fail_setup";
+        context.resolvedScenarioKey = "fail_setup";
+        context.fallbackUsed = false;
+        context.fixedDtSeconds = 1.0 / 120.0;
+        context.boundedFrames = true;
+        context.requestedFrames = 2;
+        context.headless = true;
+        context.runConfigHash = 1234;
+        context.terminationReason = "startup_failure";
+
+        simlab::HeadlessRunArtifactReport artifacts{};
+        artifacts.outputPath = "";
+        artifacts.metricsPath = "";
+        artifacts.summaryPath = "/tmp/headless_startup_failure_summary.csv";
+        artifacts.batchIndexPath = "";
+        artifacts.batchIndexAppendStatus = "not_requested";
+        artifacts.batchIndexFailureCategory = "";
+        artifacts.outputWriteStatus = "";
+        artifacts.outputFailureCategory = "";
+        artifacts.metricsWriteStatus = "";
+        artifacts.metricsFailureCategory = "";
+        artifacts.summaryWriteStatus = "";
+        artifacts.summaryFailureCategory = "";
+        artifacts.manifestWriteStatus = "written";
+        artifacts.manifestFailureCategory = "";
+        artifacts.startupFailureSummaryWriteStatus = "written";
+        artifacts.startupFailureSummaryFailureCategory = "";
+        artifacts.startupFailureManifestWriteStatus = "pending";
+        artifacts.startupFailureManifestFailureCategory = "";
+        artifacts.timestampUtc = "2026-04-09T04:30:00Z";
+        artifacts.gitCommit = "abcdef0123456789abcdef0123456789abcdef01";
+        artifacts.gitDirty = false;
+        artifacts.buildType = "Debug";
+
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        outcome.MarkStartupFailure("setup", "Test scenario setup failure");
+
+        const auto manifest = simlab::BuildHeadlessRunManifestReport(0u, context, artifacts, outcome);
+        assert(manifest.scenarioKey == "fail_setup");
+        assert(manifest.requestedScenarioKey == "fail_setup");
+        assert(manifest.resolvedScenarioKey == "fail_setup");
+        assert(!manifest.fallbackUsed);
+        assert(manifest.fixedDtSeconds == 1.0 / 120.0);
+        assert(manifest.boundedFrames);
+        assert(manifest.requestedFrames == 2u);
+        assert(manifest.headless);
+        assert(manifest.runConfigHash == 1234u);
+        assert(manifest.frameCount == 0u);
+        assert(manifest.runStatus == "startup_failure");
+        assert(manifest.failureCategory == "scenario_setup_failed");
+        assert(manifest.failureDetail == "Test scenario setup failure");
+        assert(manifest.terminationReason == "startup_failure");
+        assert(manifest.summaryPath == "/tmp/headless_startup_failure_summary.csv");
+        assert(manifest.batchIndexAppendStatus == "not_requested");
+        assert(manifest.manifestWriteStatus == "written");
+        assert(manifest.startupFailureSummaryWriteStatus == "written");
+        assert(manifest.startupFailureManifestWriteStatus == "pending");
+        assert(manifest.exitCode == 1);
+        assert(manifest.exitClassification == "startup_failure_exit");
+        assert(manifest.timestampUtc == "2026-04-09T04:30:00Z");
+        assert(manifest.gitCommit == "abcdef0123456789abcdef0123456789abcdef01");
+        assert(!manifest.gitDirty);
+        assert(manifest.buildType == "Debug");
+    }
+
     void VerifyManifestCsvWriterProducesStableHeaderAndRow()
     {
         simlab::HeadlessRunManifest manifest{};
@@ -432,6 +540,8 @@ int main()
     VerifyManifestCsvWriterProducesStableHeaderAndRow();
     VerifyHeadlessFailurePhaseClassification();
     VerifyHeadlessRunOutcomeTrackerDerivesTerminationAndExitMetadata();
+    VerifyHeadlessRunSummaryReportBuilderAppliesSharedMetadata();
+    VerifyHeadlessRunManifestReportBuilderAppliesSharedMetadata();
     VerifyRunConfigHashChangesWhenInputsChange();
     VerifyUnboundedFrameMetadataSerializesExplicitly();
     VerifyManifestCsvWriterSerializesBatchIndexWriteFailures();

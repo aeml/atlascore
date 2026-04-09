@@ -284,24 +284,27 @@ int main(int argc, char** argv)
     };
 
     auto writeStartupFailureArtifacts = [&](const std::string& category) {
-        simlab::HeadlessRunSummary failureSummary{};
-        failureSummary.scenarioKey = selectedScenarioKey;
-        failureSummary.requestedScenarioKey = requestedScenarioKey;
-        failureSummary.resolvedScenarioKey = selectedScenarioKey;
-        failureSummary.fallbackUsed = fallbackUsed;
-        failureSummary.fixedDtSeconds = fixedDtSeconds;
-        failureSummary.boundedFrames = boundedFrames;
-        failureSummary.requestedFrames = requestedFrames;
-        failureSummary.headless = headless;
-        failureSummary.runConfigHash = runConfigHash;
-        failureSummary.frameCount = 0;
-        failureSummary.runStatus = outcome.runStatus;
-        failureSummary.failureCategory = category;
-        failureSummary.failureDetail = outcome.failureDetail;
-        failureSummary.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
+        simlab::HeadlessRunReportContext reportContext{};
+        reportContext.requestedScenarioKey = requestedScenarioKey;
+        reportContext.resolvedScenarioKey = selectedScenarioKey;
+        reportContext.fallbackUsed = fallbackUsed;
+        reportContext.fixedDtSeconds = fixedDtSeconds;
+        reportContext.boundedFrames = boundedFrames;
+        reportContext.requestedFrames = requestedFrames;
+        reportContext.headless = headless;
+        reportContext.runConfigHash = runConfigHash;
+        reportContext.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
                                                                           headless,
                                                                           false,
                                                                           false);
+
+        simlab::HeadlessRunSummary failureSummaryAggregate{};
+        failureSummaryAggregate.scenarioKey = selectedScenarioKey;
+        failureSummaryAggregate.frameCount = 0;
+        auto failureSummary = simlab::BuildHeadlessRunSummaryReport(failureSummaryAggregate,
+                                                                    reportContext,
+                                                                    outcome);
+        failureSummary.failureCategory = category;
 
         std::ofstream failureSummaryOut(startupFailureSummaryPath);
         if (failureSummaryOut.is_open())
@@ -321,48 +324,35 @@ int main(int argc, char** argv)
             logger.Error(std::string("Failed to open startup failure summary: ") + startupFailureSummaryPath);
         }
 
-        simlab::HeadlessRunManifest failureManifest{};
-        failureManifest.scenarioKey = selectedScenarioKey;
-        failureManifest.requestedScenarioKey = requestedScenarioKey;
-        failureManifest.resolvedScenarioKey = selectedScenarioKey;
-        failureManifest.fallbackUsed = fallbackUsed;
-        failureManifest.fixedDtSeconds = fixedDtSeconds;
-        failureManifest.boundedFrames = boundedFrames;
-        failureManifest.requestedFrames = requestedFrames;
-        failureManifest.headless = headless;
-        failureManifest.runConfigHash = runConfigHash;
-        failureManifest.frameCount = 0;
-        failureManifest.runStatus = outcome.runStatus;
+        simlab::HeadlessRunArtifactReport failureArtifacts{};
+        failureArtifacts.outputPath = "";
+        failureArtifacts.metricsPath = "";
+        failureArtifacts.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
+        failureArtifacts.batchIndexPath = "";
+        failureArtifacts.batchIndexAppendStatus = "not_requested";
+        failureArtifacts.batchIndexFailureCategory = "";
+        failureArtifacts.outputWriteStatus = "";
+        failureArtifacts.outputFailureCategory = "";
+        failureArtifacts.metricsWriteStatus = "";
+        failureArtifacts.metricsFailureCategory = "";
+        failureArtifacts.summaryWriteStatus = "";
+        failureArtifacts.summaryFailureCategory = "";
+        failureArtifacts.manifestWriteStatus = "written";
+        failureArtifacts.manifestFailureCategory = "";
+        failureArtifacts.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
+        failureArtifacts.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
+        failureArtifacts.startupFailureManifestWriteStatus = "pending";
+        failureArtifacts.startupFailureManifestFailureCategory = "";
+        failureArtifacts.timestampUtc = formatTimestampUtc();
+        failureArtifacts.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
+        failureArtifacts.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
+        failureArtifacts.buildType = ATLASCORE_BUILD_TYPE;
+
+        auto failureManifest = simlab::BuildHeadlessRunManifestReport(0u,
+                                                                      reportContext,
+                                                                      failureArtifacts,
+                                                                      outcome);
         failureManifest.failureCategory = category;
-        failureManifest.failureDetail = outcome.failureDetail;
-        failureManifest.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
-                                                                           headless,
-                                                                           false,
-                                                                           false);
-        failureManifest.outputPath = "";
-        failureManifest.metricsPath = "";
-        failureManifest.summaryPath = toAbsolutePathString(startupFailureSummaryPath);
-        failureManifest.batchIndexPath = "";
-        failureManifest.batchIndexAppendStatus = "not_requested";
-        failureManifest.batchIndexFailureCategory = "";
-        failureManifest.outputWriteStatus = "";
-        failureManifest.outputFailureCategory = "";
-        failureManifest.metricsWriteStatus = "";
-        failureManifest.metricsFailureCategory = "";
-        failureManifest.summaryWriteStatus = "";
-        failureManifest.summaryFailureCategory = "";
-        failureManifest.manifestWriteStatus = "written";
-        failureManifest.manifestFailureCategory = "";
-        failureManifest.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
-        failureManifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
-        failureManifest.startupFailureManifestWriteStatus = "pending";
-        failureManifest.startupFailureManifestFailureCategory = "";
-        failureManifest.exitCode = outcome.exitCode;
-        failureManifest.exitClassification = outcome.exitClassification;
-        failureManifest.timestampUtc = formatTimestampUtc();
-        failureManifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
-        failureManifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
-        failureManifest.buildType = ATLASCORE_BUILD_TYPE;
 
         std::ofstream failureManifestOut(startupFailureManifestPath);
         if (failureManifestOut.is_open())
@@ -625,19 +615,20 @@ int main(int argc, char** argv)
                                                                           quitRequestedByInput.load(),
                                                                           quitRequestedByEof.load());
 
-    auto runSummary = headlessSummaryAccumulator.Build(selectedScenarioKey);
-    runSummary.requestedScenarioKey = requestedScenarioKey;
-    runSummary.resolvedScenarioKey = selectedScenarioKey;
-    runSummary.fallbackUsed = fallbackUsed;
-    runSummary.fixedDtSeconds = fixedDtSeconds;
-    runSummary.boundedFrames = boundedFrames;
-    runSummary.requestedFrames = requestedFrames;
-    runSummary.headless = headless;
-    runSummary.runConfigHash = runConfigHash;
-    runSummary.runStatus = outcome.runStatus;
-    runSummary.failureCategory = outcome.failureCategory;
-    runSummary.failureDetail = outcome.failureDetail;
-    runSummary.terminationReason = terminationReason;
+    simlab::HeadlessRunReportContext reportContext{};
+    reportContext.requestedScenarioKey = requestedScenarioKey;
+    reportContext.resolvedScenarioKey = selectedScenarioKey;
+    reportContext.fallbackUsed = fallbackUsed;
+    reportContext.fixedDtSeconds = fixedDtSeconds;
+    reportContext.boundedFrames = boundedFrames;
+    reportContext.requestedFrames = requestedFrames;
+    reportContext.headless = headless;
+    reportContext.runConfigHash = runConfigHash;
+    reportContext.terminationReason = terminationReason;
+
+    auto runSummary = simlab::BuildHeadlessRunSummaryReport(headlessSummaryAccumulator.Build(selectedScenarioKey),
+                                                            reportContext,
+                                                            outcome);
     if (headlessSummaryOut.is_open() && summaryFailureCategory.empty())
     {
         simlab::WriteHeadlessRunSummaryCsvRow(headlessSummaryOut, runSummary);
@@ -651,45 +642,34 @@ int main(int argc, char** argv)
 
     if (headlessManifestOut.is_open())
     {
-        simlab::HeadlessRunManifest manifest{};
-        manifest.scenarioKey = selectedScenarioKey;
-        manifest.requestedScenarioKey = requestedScenarioKey;
-        manifest.resolvedScenarioKey = selectedScenarioKey;
-        manifest.fallbackUsed = fallbackUsed;
-        manifest.fixedDtSeconds = fixedDtSeconds;
-        manifest.boundedFrames = boundedFrames;
-        manifest.requestedFrames = requestedFrames;
-        manifest.headless = headless;
-        manifest.runConfigHash = runConfigHash;
-        manifest.frameCount = runSummary.frameCount;
-        manifest.runStatus = outcome.runStatus;
-        manifest.failureCategory = outcome.failureCategory;
-        manifest.failureDetail = outcome.failureDetail;
-        manifest.terminationReason = terminationReason;
-        manifest.outputPath = toAbsolutePathString(outputPath);
-        manifest.metricsPath = toAbsolutePathString(metricsPath);
-        manifest.summaryPath = toAbsolutePathString(summaryPath);
-        manifest.batchIndexPath = batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath);
-        manifest.batchIndexAppendStatus = batchIndexAppendStatus;
-        manifest.batchIndexFailureCategory = batchIndexFailureCategory;
-        manifest.outputWriteStatus = outputWriteStatus;
-        manifest.outputFailureCategory = outputFailureCategory;
-        manifest.metricsWriteStatus = metricsWriteStatus;
-        manifest.metricsFailureCategory = metricsFailureCategory;
-        manifest.summaryWriteStatus = summaryWriteStatus;
-        manifest.summaryFailureCategory = summaryFailureCategory;
-        manifest.manifestWriteStatus = manifestWriteStatus;
-        manifest.manifestFailureCategory = manifestFailureCategory;
-        manifest.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
-        manifest.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
-        manifest.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
-        manifest.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
-        manifest.exitCode = outcome.exitCode;
-        manifest.exitClassification = outcome.exitClassification;
-        manifest.timestampUtc = formatTimestampUtc();
-        manifest.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
-        manifest.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
-        manifest.buildType = ATLASCORE_BUILD_TYPE;
+        simlab::HeadlessRunArtifactReport artifacts{};
+        artifacts.outputPath = toAbsolutePathString(outputPath);
+        artifacts.metricsPath = toAbsolutePathString(metricsPath);
+        artifacts.summaryPath = toAbsolutePathString(summaryPath);
+        artifacts.batchIndexPath = batchIndexPath.empty() ? std::string{} : toAbsolutePathString(batchIndexPath);
+        artifacts.batchIndexAppendStatus = batchIndexAppendStatus;
+        artifacts.batchIndexFailureCategory = batchIndexFailureCategory;
+        artifacts.outputWriteStatus = outputWriteStatus;
+        artifacts.outputFailureCategory = outputFailureCategory;
+        artifacts.metricsWriteStatus = metricsWriteStatus;
+        artifacts.metricsFailureCategory = metricsFailureCategory;
+        artifacts.summaryWriteStatus = summaryWriteStatus;
+        artifacts.summaryFailureCategory = summaryFailureCategory;
+        artifacts.manifestWriteStatus = manifestWriteStatus;
+        artifacts.manifestFailureCategory = manifestFailureCategory;
+        artifacts.startupFailureSummaryWriteStatus = startupFailureSummaryWriteStatus;
+        artifacts.startupFailureSummaryFailureCategory = startupFailureSummaryFailureCategory;
+        artifacts.startupFailureManifestWriteStatus = startupFailureManifestWriteStatus;
+        artifacts.startupFailureManifestFailureCategory = startupFailureManifestFailureCategory;
+        artifacts.timestampUtc = formatTimestampUtc();
+        artifacts.gitCommit = ATLASCORE_BUILD_GIT_COMMIT;
+        artifacts.gitDirty = ATLASCORE_BUILD_GIT_DIRTY != 0;
+        artifacts.buildType = ATLASCORE_BUILD_TYPE;
+
+        auto manifest = simlab::BuildHeadlessRunManifestReport(runSummary.frameCount,
+                                                               reportContext,
+                                                               artifacts,
+                                                               outcome);
 
         if (!batchIndexPath.empty())
         {

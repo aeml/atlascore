@@ -132,6 +132,53 @@ namespace simlab
                                             bool quitRequestedByEof) const;
     };
 
+    struct HeadlessRunReportContext
+    {
+        std::string requestedScenarioKey;
+        std::string resolvedScenarioKey;
+        bool fallbackUsed{false};
+        double fixedDtSeconds{0.0};
+        bool boundedFrames{false};
+        std::size_t requestedFrames{0};
+        bool headless{false};
+        std::uint64_t runConfigHash{0};
+        std::string terminationReason;
+    };
+
+    struct HeadlessRunArtifactReport
+    {
+        std::string outputPath;
+        std::string metricsPath;
+        std::string summaryPath;
+        std::string batchIndexPath;
+        std::string batchIndexAppendStatus;
+        std::string batchIndexFailureCategory;
+        std::string outputWriteStatus;
+        std::string outputFailureCategory;
+        std::string metricsWriteStatus;
+        std::string metricsFailureCategory;
+        std::string summaryWriteStatus;
+        std::string summaryFailureCategory;
+        std::string manifestWriteStatus;
+        std::string manifestFailureCategory;
+        std::string startupFailureSummaryWriteStatus;
+        std::string startupFailureSummaryFailureCategory;
+        std::string startupFailureManifestWriteStatus;
+        std::string startupFailureManifestFailureCategory;
+        std::string timestampUtc;
+        std::string gitCommit;
+        bool gitDirty{false};
+        std::string buildType;
+    };
+
+    HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
+                                                     const HeadlessRunReportContext& context,
+                                                     const HeadlessRunOutcomeTracker& outcome);
+    HeadlessRunManifest BuildHeadlessRunManifestReport(std::size_t frameCount,
+                                                       const HeadlessRunReportContext& context,
+                                                       const HeadlessRunArtifactReport& artifacts,
+                                                       const HeadlessRunOutcomeTracker& outcome);
+
     class HeadlessRunSummaryAccumulator
     {
     public:

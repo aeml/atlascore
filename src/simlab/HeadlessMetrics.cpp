@@ -141,6 +141,73 @@ namespace simlab
         return {};
     }
 
+    HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
+                                                     const HeadlessRunReportContext& context,
+                                                     const HeadlessRunOutcomeTracker& outcome)
+    {
+        auto summary = aggregate;
+        summary.requestedScenarioKey = context.requestedScenarioKey;
+        summary.resolvedScenarioKey = context.resolvedScenarioKey;
+        summary.fallbackUsed = context.fallbackUsed;
+        summary.fixedDtSeconds = context.fixedDtSeconds;
+        summary.boundedFrames = context.boundedFrames;
+        summary.requestedFrames = context.requestedFrames;
+        summary.headless = context.headless;
+        summary.runConfigHash = context.runConfigHash;
+        summary.runStatus = outcome.runStatus;
+        summary.failureCategory = outcome.failureCategory;
+        summary.failureDetail = outcome.failureDetail;
+        summary.terminationReason = context.terminationReason;
+        return summary;
+    }
+
+    HeadlessRunManifest BuildHeadlessRunManifestReport(const std::size_t frameCount,
+                                                       const HeadlessRunReportContext& context,
+                                                       const HeadlessRunArtifactReport& artifacts,
+                                                       const HeadlessRunOutcomeTracker& outcome)
+    {
+        HeadlessRunManifest manifest{};
+        manifest.scenarioKey = context.resolvedScenarioKey;
+        manifest.requestedScenarioKey = context.requestedScenarioKey;
+        manifest.resolvedScenarioKey = context.resolvedScenarioKey;
+        manifest.fallbackUsed = context.fallbackUsed;
+        manifest.fixedDtSeconds = context.fixedDtSeconds;
+        manifest.boundedFrames = context.boundedFrames;
+        manifest.requestedFrames = context.requestedFrames;
+        manifest.headless = context.headless;
+        manifest.runConfigHash = context.runConfigHash;
+        manifest.frameCount = frameCount;
+        manifest.runStatus = outcome.runStatus;
+        manifest.failureCategory = outcome.failureCategory;
+        manifest.failureDetail = outcome.failureDetail;
+        manifest.terminationReason = context.terminationReason;
+        manifest.outputPath = artifacts.outputPath;
+        manifest.metricsPath = artifacts.metricsPath;
+        manifest.summaryPath = artifacts.summaryPath;
+        manifest.batchIndexPath = artifacts.batchIndexPath;
+        manifest.batchIndexAppendStatus = artifacts.batchIndexAppendStatus;
+        manifest.batchIndexFailureCategory = artifacts.batchIndexFailureCategory;
+        manifest.outputWriteStatus = artifacts.outputWriteStatus;
+        manifest.outputFailureCategory = artifacts.outputFailureCategory;
+        manifest.metricsWriteStatus = artifacts.metricsWriteStatus;
+        manifest.metricsFailureCategory = artifacts.metricsFailureCategory;
+        manifest.summaryWriteStatus = artifacts.summaryWriteStatus;
+        manifest.summaryFailureCategory = artifacts.summaryFailureCategory;
+        manifest.manifestWriteStatus = artifacts.manifestWriteStatus;
+        manifest.manifestFailureCategory = artifacts.manifestFailureCategory;
+        manifest.startupFailureSummaryWriteStatus = artifacts.startupFailureSummaryWriteStatus;
+        manifest.startupFailureSummaryFailureCategory = artifacts.startupFailureSummaryFailureCategory;
+        manifest.startupFailureManifestWriteStatus = artifacts.startupFailureManifestWriteStatus;
+        manifest.startupFailureManifestFailureCategory = artifacts.startupFailureManifestFailureCategory;
+        manifest.exitCode = outcome.exitCode;
+        manifest.exitClassification = outcome.exitClassification;
+        manifest.timestampUtc = artifacts.timestampUtc;
+        manifest.gitCommit = artifacts.gitCommit;
+        manifest.gitDirty = artifacts.gitDirty;
+        manifest.buildType = artifacts.buildType;
+        return manifest;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;
