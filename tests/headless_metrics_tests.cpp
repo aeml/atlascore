@@ -895,6 +895,68 @@ namespace
         assert(log.find("Failed to open batch index: /tmp/atlascore_batch/index.csv") != std::string::npos);
     }
 
+    void VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts()
+    {
+        simlab::HeadlessRunOutcomeTracker outcome{};
+        const auto prepared = simlab::PrepareHeadlessRunFinalization(
+            outcome,
+            "requested_gravity",
+            "gravity",
+            true,
+            1.0 / 60.0,
+            true,
+            180,
+            true,
+            424242,
+            true,
+            false,
+            "/tmp/headless_output.txt",
+            "/tmp/headless_metrics.csv",
+            "/tmp/headless_summary.csv",
+            "/tmp/batch.csv",
+            "appended",
+            "",
+            "written",
+            "",
+            "written",
+            "",
+            "written",
+            "",
+            "written",
+            "",
+            "not_applicable",
+            "",
+            "not_applicable",
+            "",
+            "2026-04-09T10:00:00Z",
+            "abcdef0123456789abcdef0123456789abcdef01",
+            false,
+            "Debug");
+
+        assert(prepared.context.requestedScenarioKey == "requested_gravity");
+        assert(prepared.context.resolvedScenarioKey == "gravity");
+        assert(prepared.context.fallbackUsed);
+        assert(prepared.context.fixedDtSeconds == 1.0 / 60.0);
+        assert(prepared.context.boundedFrames);
+        assert(prepared.context.requestedFrames == 180u);
+        assert(prepared.context.headless);
+        assert(prepared.context.runConfigHash == 424242u);
+        assert(prepared.context.terminationReason == "frame_cap");
+        assert(prepared.artifacts.outputPath == "/tmp/headless_output.txt");
+        assert(prepared.artifacts.metricsPath == "/tmp/headless_metrics.csv");
+        assert(prepared.artifacts.summaryPath == "/tmp/headless_summary.csv");
+        assert(prepared.artifacts.batchIndexPath == "/tmp/batch.csv");
+        assert(prepared.artifacts.batchIndexAppendStatus == "appended");
+        assert(prepared.artifacts.outputWriteStatus == "written");
+        assert(prepared.artifacts.metricsWriteStatus == "written");
+        assert(prepared.artifacts.summaryWriteStatus == "written");
+        assert(prepared.artifacts.manifestWriteStatus == "written");
+        assert(prepared.artifacts.timestampUtc == "2026-04-09T10:00:00Z");
+        assert(prepared.artifacts.gitCommit == "abcdef0123456789abcdef0123456789abcdef01");
+        assert(!prepared.artifacts.gitDirty);
+        assert(prepared.artifacts.buildType == "Debug");
+    }
+
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
     {
         std::string writeStatus;
@@ -1375,6 +1437,7 @@ int main()
     VerifyHeadlessStartupCoordinatorWritesFallbackArtifactsForSetupFailure();
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
+    VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();
     VerifyHeadlessBatchIndexAppendCoordinatorWritesHeaderAndRows();
     VerifyHeadlessBatchIndexAppendCoordinatorClassifiesOpenFailure();

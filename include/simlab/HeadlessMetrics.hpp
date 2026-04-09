@@ -271,6 +271,12 @@ namespace simlab
         bool startupFailureManifestOpened{false};
     };
 
+    struct HeadlessRunFinalizationPreparation
+    {
+        HeadlessRunReportContext context;
+        HeadlessRunArtifactReport artifacts;
+    };
+
     HeadlessRunSummary BuildHeadlessRunSummaryReport(const HeadlessRunSummary& aggregate,
                                                      const HeadlessRunReportContext& context,
                                                      const HeadlessRunOutcomeTracker& outcome);
@@ -360,6 +366,39 @@ namespace simlab
     void LogHeadlessFinalizationMessages(const core::Logger& logger,
                                          std::string_view batchIndexPath,
                                          std::string_view batchIndexFailureCategory);
+    HeadlessRunFinalizationPreparation PrepareHeadlessRunFinalization(const HeadlessRunOutcomeTracker& outcome,
+                                                                      std::string_view requestedScenarioKey,
+                                                                      std::string_view resolvedScenarioKey,
+                                                                      bool fallbackUsed,
+                                                                      double fixedDtSeconds,
+                                                                      bool boundedFrames,
+                                                                      std::size_t requestedFrames,
+                                                                      bool headless,
+                                                                      std::uint64_t runConfigHash,
+                                                                      bool quitRequestedByInput,
+                                                                      bool quitRequestedByEof,
+                                                                      std::string_view outputPath,
+                                                                      std::string_view metricsPath,
+                                                                      std::string_view summaryPath,
+                                                                      std::string_view batchIndexPath,
+                                                                      std::string_view batchIndexAppendStatus,
+                                                                      std::string_view batchIndexFailureCategory,
+                                                                      std::string_view outputWriteStatus,
+                                                                      std::string_view outputFailureCategory,
+                                                                      std::string_view metricsWriteStatus,
+                                                                      std::string_view metricsFailureCategory,
+                                                                      std::string_view summaryWriteStatus,
+                                                                      std::string_view summaryFailureCategory,
+                                                                      std::string_view manifestWriteStatus,
+                                                                      std::string_view manifestFailureCategory,
+                                                                      std::string_view startupFailureSummaryWriteStatus,
+                                                                      std::string_view startupFailureSummaryFailureCategory,
+                                                                      std::string_view startupFailureManifestWriteStatus,
+                                                                      std::string_view startupFailureManifestFailureCategory,
+                                                                      std::string_view timestampUtc,
+                                                                      std::string_view gitCommit,
+                                                                      bool gitDirty,
+                                                                      std::string_view buildType);
 
     class HeadlessRunSummaryAccumulator
     {

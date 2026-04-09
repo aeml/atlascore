@@ -803,6 +803,80 @@ namespace simlab
         }
     }
 
+    HeadlessRunFinalizationPreparation PrepareHeadlessRunFinalization(const HeadlessRunOutcomeTracker& outcome,
+                                                                      const std::string_view requestedScenarioKey,
+                                                                      const std::string_view resolvedScenarioKey,
+                                                                      const bool fallbackUsed,
+                                                                      const double fixedDtSeconds,
+                                                                      const bool boundedFrames,
+                                                                      const std::size_t requestedFrames,
+                                                                      const bool headless,
+                                                                      const std::uint64_t runConfigHash,
+                                                                      const bool quitRequestedByInput,
+                                                                      const bool quitRequestedByEof,
+                                                                      const std::string_view outputPath,
+                                                                      const std::string_view metricsPath,
+                                                                      const std::string_view summaryPath,
+                                                                      const std::string_view batchIndexPath,
+                                                                      const std::string_view batchIndexAppendStatus,
+                                                                      const std::string_view batchIndexFailureCategory,
+                                                                      const std::string_view outputWriteStatus,
+                                                                      const std::string_view outputFailureCategory,
+                                                                      const std::string_view metricsWriteStatus,
+                                                                      const std::string_view metricsFailureCategory,
+                                                                      const std::string_view summaryWriteStatus,
+                                                                      const std::string_view summaryFailureCategory,
+                                                                      const std::string_view manifestWriteStatus,
+                                                                      const std::string_view manifestFailureCategory,
+                                                                      const std::string_view startupFailureSummaryWriteStatus,
+                                                                      const std::string_view startupFailureSummaryFailureCategory,
+                                                                      const std::string_view startupFailureManifestWriteStatus,
+                                                                      const std::string_view startupFailureManifestFailureCategory,
+                                                                      const std::string_view timestampUtc,
+                                                                      const std::string_view gitCommit,
+                                                                      const bool gitDirty,
+                                                                      const std::string_view buildType)
+    {
+        HeadlessRunFinalizationPreparation result{};
+        result.context.requestedScenarioKey = std::string(requestedScenarioKey);
+        result.context.resolvedScenarioKey = std::string(resolvedScenarioKey);
+        result.context.fallbackUsed = fallbackUsed;
+        result.context.fixedDtSeconds = fixedDtSeconds;
+        result.context.boundedFrames = boundedFrames;
+        result.context.requestedFrames = requestedFrames;
+        result.context.headless = headless;
+        result.context.runConfigHash = runConfigHash;
+        result.context.terminationReason = outcome.DeriveTerminationReason(boundedFrames,
+                                                                           headless,
+                                                                           quitRequestedByInput,
+                                                                           quitRequestedByEof);
+
+        result.artifacts = BuildNormalHeadlessArtifactReport(HeadlessRunArtifactReport{},
+                                                             outputPath,
+                                                             metricsPath,
+                                                             summaryPath,
+                                                             batchIndexPath,
+                                                             batchIndexAppendStatus,
+                                                             batchIndexFailureCategory,
+                                                             outputWriteStatus,
+                                                             outputFailureCategory,
+                                                             metricsWriteStatus,
+                                                             metricsFailureCategory,
+                                                             summaryWriteStatus,
+                                                             summaryFailureCategory,
+                                                             manifestWriteStatus,
+                                                             manifestFailureCategory,
+                                                             startupFailureSummaryWriteStatus,
+                                                             startupFailureSummaryFailureCategory,
+                                                             startupFailureManifestWriteStatus,
+                                                             startupFailureManifestFailureCategory,
+                                                             timestampUtc,
+                                                             gitCommit,
+                                                             gitDirty,
+                                                             buildType);
+        return result;
+    }
+
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)
     {
         ++m_frameCount;
