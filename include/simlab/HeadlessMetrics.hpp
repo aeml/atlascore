@@ -292,11 +292,21 @@ namespace simlab
         std::string batchIndexPath;
         std::string startupFailureSummaryPath;
         std::string startupFailureManifestPath;
+        std::string startupFailureCategory;
+        std::string batchIndexFailureCategory;
+        bool outputOpened{false};
+        bool metricsOpened{false};
+        bool summaryOpened{false};
+        bool manifestOpened{false};
+        bool startupFailure{false};
+        bool startupFailureSummaryOpened{false};
+        bool startupFailureManifestOpened{false};
     };
 
     struct HeadlessFinalizationLoggingPreparation
     {
         std::string batchIndexPath;
+        std::string batchIndexFailureCategory;
     };
 
     struct HeadlessLocalState
@@ -429,7 +439,8 @@ namespace simlab
                                                                    std::string_view batchIndexPath,
                                                                    std::string_view startupFailureSummaryPath,
                                                                    std::string_view startupFailureManifestPath);
-    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(std::string_view batchIndexPath);
+    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(std::string_view batchIndexPath,
+                                                                              std::string_view batchIndexFailureCategory);
     HeadlessLocalState BuildHeadlessLocalState(std::string_view batchIndexPath);
     HeadlessStartupCoordinatorResult CoordinateHeadlessStartup(ecs::World& world,
                                                                IScenario& scenario,
@@ -437,18 +448,9 @@ namespace simlab
                                                                const HeadlessStartupCoordinatorConfig& config,
                                                                const std::function<void(std::string_view)>& maybeFailPhase);
     void LogHeadlessStartupMessages(const core::Logger& logger,
-                                    const HeadlessStartupCoordinatorResult& startup,
-                                    const HeadlessRunOutcomeTracker& outcome,
-                                    std::string_view outputPath,
-                                    std::string_view metricsPath,
-                                    std::string_view summaryPath,
-                                    std::string_view manifestPath,
-                                    std::string_view batchIndexPath,
-                                    std::string_view startupFailureSummaryPath,
-                                    std::string_view startupFailureManifestPath);
+                                    const HeadlessStartupLoggingPreparation& preparation);
     void LogHeadlessFinalizationMessages(const core::Logger& logger,
-                                         std::string_view batchIndexPath,
-                                         std::string_view batchIndexFailureCategory);
+                                         const HeadlessFinalizationLoggingPreparation& preparation);
     HeadlessRunFinalizationPreparation PrepareHeadlessRunFinalization(const HeadlessRunOutcomeTracker& outcome,
                                                                       std::string_view requestedScenarioKey,
                                                                       std::string_view resolvedScenarioKey,

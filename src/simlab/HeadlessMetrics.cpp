@@ -734,13 +734,27 @@ namespace simlab
         prepared.batchIndexPath = std::string(batchIndexPath);
         prepared.startupFailureSummaryPath = std::string(startupFailureSummaryPath);
         prepared.startupFailureManifestPath = std::string(startupFailureManifestPath);
+        prepared.startupFailureCategory = startup.bootstrap.startupFailureCategory;
+        prepared.batchIndexFailureCategory = startup.bootstrap.batchIndexFailureCategory;
+        prepared.outputOpened = startup.bootstrap.outputStream.is_open();
+        prepared.metricsOpened = startup.bootstrap.metricsStream.is_open();
+        prepared.summaryOpened = startup.bootstrap.summaryStream.is_open();
+        prepared.manifestOpened = startup.bootstrap.manifestStream.is_open();
+        prepared.startupFailure = startup.startupFailureSummaryOpened
+            || startup.startupFailureManifestOpened
+            || !startup.startupFailureSummaryFailureCategory.empty()
+            || !startup.startupFailureManifestFailureCategory.empty();
+        prepared.startupFailureSummaryOpened = startup.startupFailureSummaryOpened;
+        prepared.startupFailureManifestOpened = startup.startupFailureManifestOpened;
         return prepared;
     }
 
-    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(const std::string_view batchIndexPath)
+    HeadlessFinalizationLoggingPreparation PrepareHeadlessFinalizationLogging(const std::string_view batchIndexPath,
+                                                                              const std::string_view batchIndexFailureCategory)
     {
         HeadlessFinalizationLoggingPreparation prepared{};
         prepared.batchIndexPath = batchIndexPath.empty() ? std::string{} : std::filesystem::absolute(std::filesystem::path(batchIndexPath)).string();
+        prepared.batchIndexFailureCategory = std::string(batchIndexFailureCategory);
         return prepared;
     }
 
@@ -826,45 +840,37 @@ namespace simlab
     }
 
     void LogHeadlessStartupMessages(const core::Logger& logger,
-                                    const HeadlessStartupCoordinatorResult& startup,
-                                    const HeadlessRunOutcomeTracker& outcome,
-                                    const std::string_view outputPath,
-                                    const std::string_view metricsPath,
-                                    const std::string_view summaryPath,
-                                    const std::string_view manifestPath,
-                                    const std::string_view batchIndexPath,
-                                    const std::string_view startupFailureSummaryPath,
-                                    const std::string_view startupFailureManifestPath)
+                                    const HeadlessStartupLoggingPreparation& preparation)
     {
-        if (!startup.bootstrap.startupFailureCategory.empty())
+        if (!preparation.startupFailureCategory.empty())
         {
-            if (startup.bootstrap.startupFailureCategory == "output_directory_create_failed")
+            if (preparation.startupFailureCategory == "output_directory_create_failed")
             {
                 logger.Error(std::string("Failed to create output directory: ")
-                             + std::filesystem::path(outputPath).parent_path().string());
+                             + std::filesystem::path(preparation.outputPath).parent_path().string());
             }
-            else if (startup.bootstrap.startupFailureCategory == "output_file_open_failed")
+            else if (preparation.startupFailureCategory == "output_file_open_failed")
             {
-                logger.Error(std::string("Failed to open ") + std::string(outputPath));
+                logger.Error(std::string("Failed to open ") + preparation.outputPath);
             }
-            else if (startup.bootstrap.startupFailureCategory == "metrics_file_open_failed")
+            else if (preparation.startupFailureCategory == "metrics_file_open_failed")
             {
-                logger.Error(std::string("Failed to open ") + std::string(metricsPath));
+                logger.Error(std::string("Failed to open ") + preparation.metricsPath);
             }
-            else if (startup.bootstrap.startupFailureCategory == "summary_file_open_failed")
+            else if (preparation.startupFailureCategory == "summary_file_open_failed")
             {
-                logger.Error(std::string("Failed to open ") + std::string(summaryPath));
+                logger.Error(std::string("Failed to open ") + preparation.summaryPath);
             }
-            else if (startup.bootstrap.startupFailureCategory == "manifest_file_open_failed")
+            else if (preparation.startupFailureCategory == "manifest_file_open_failed")
             {
-                logger.Error(std::string("Failed to open ") + std::string(manifestPath));
+                logger.Error(std::string("Failed to open ") + preparation.manifestPath);
             }
         }
 
-        if (startup.bootstrap.batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
+        if (preparation.batchIndexFailureCategory == "batch_index_open_failed" && !preparation.batchIndexPath.empty())
         {
             logger.Error(std::string("Failed to create batch index directory: ")
-                         + std::filesystem::path(batchIndexPath).parent_path().string());
+                         + std::filesystem::path(preparation.batchIndexPath).parent_path().string());
         }
 
         auto logHeadlessArtifactPath = [&](const std::string& label, const std::string_view path) {
@@ -879,43 +885,42 @@ namespace simlab
             }
         };
 
-        if (startup.bootstrap.outputStream.is_open())
+        if (preparation.outputOpened)
         {
-            logHeadlessArtifactPath("output", outputPath);
+            logHeadlessArtifactPath("output", preparation.outputPath);
         }
-        if (startup.bootstrap.metricsStream.is_open())
+        if (preparation.metricsOpened)
         {
-            logHeadlessArtifactPath("metrics", metricsPath);
+            logHeadlessArtifactPath("metrics", preparation.metricsPath);
         }
-        if (startup.bootstrap.summaryStream.is_open())
+        if (preparation.summaryOpened)
         {
-            logHeadlessArtifactPath("summary", summaryPath);
+            logHeadlessArtifactPath("summary", preparation.summaryPath);
         }
-        if (startup.bootstrap.manifestStream.is_open())
+        if (preparation.manifestOpened)
         {
-            logHeadlessArtifactPath("manifest", manifestPath);
+            logHeadlessArtifactPath("manifest", preparation.manifestPath);
         }
 
-        if (outcome.runStatus == "startup_failure")
+        if (preparation.startupFailure)
         {
-            if (!startup.startupFailureSummaryOpened)
+            if (!preparation.startupFailureSummaryOpened)
             {
-                logger.Error(std::string("Failed to open startup failure summary: ") + std::string(startupFailureSummaryPath));
+                logger.Error(std::string("Failed to open startup failure summary: ") + preparation.startupFailureSummaryPath);
             }
-            if (!startup.startupFailureManifestOpened)
+            if (!preparation.startupFailureManifestOpened)
             {
-                logger.Error(std::string("Failed to open startup failure manifest: ") + std::string(startupFailureManifestPath));
+                logger.Error(std::string("Failed to open startup failure manifest: ") + preparation.startupFailureManifestPath);
             }
         }
     }
 
     void LogHeadlessFinalizationMessages(const core::Logger& logger,
-                                         const std::string_view batchIndexPath,
-                                         const std::string_view batchIndexFailureCategory)
+                                         const HeadlessFinalizationLoggingPreparation& preparation)
     {
-        if (batchIndexFailureCategory == "batch_index_open_failed" && !batchIndexPath.empty())
+        if (preparation.batchIndexFailureCategory == "batch_index_open_failed" && !preparation.batchIndexPath.empty())
         {
-            logger.Error(std::string("Failed to open batch index: ") + std::string(batchIndexPath));
+            logger.Error(std::string("Failed to open batch index: ") + preparation.batchIndexPath);
         }
     }
 

@@ -266,16 +266,7 @@ int main(int argc, char** argv)
                                                                       batchIndexPath,
                                                                       headlessState.startupFailureSummaryPath,
                                                                       headlessState.startupFailureManifestPath);
-    simlab::LogHeadlessStartupMessages(logger,
-                                      startup,
-                                      outcome,
-                                      startupLogging.outputPath,
-                                      startupLogging.metricsPath,
-                                      startupLogging.summaryPath,
-                                      startupLogging.manifestPath,
-                                      startupLogging.batchIndexPath,
-                                      startupLogging.startupFailureSummaryPath,
-                                      startupLogging.startupFailureManifestPath);
+    simlab::LogHeadlessStartupMessages(logger, startupLogging);
 
     simlab::ApplyHeadlessStartupResult(headlessState, std::move(startup));
 
@@ -395,10 +386,9 @@ int main(int argc, char** argv)
 
     simlab::ApplyHeadlessRunFinalizationResult(headlessState, finalization);
 
-    const auto finalizationLogging = simlab::PrepareHeadlessFinalizationLogging(batchIndexPath);
-    simlab::LogHeadlessFinalizationMessages(logger,
-                                            finalizationLogging.batchIndexPath,
-                                            headlessState.batchIndexFailureCategory);
+    const auto finalizationLogging = simlab::PrepareHeadlessFinalizationLogging(batchIndexPath,
+                                                                                 headlessState.batchIndexFailureCategory);
+    simlab::LogHeadlessFinalizationMessages(logger, finalizationLogging);
 
     logger.Info("AtlasCore shutting down.");
     return outcome.exitCode;

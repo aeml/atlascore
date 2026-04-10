@@ -988,6 +988,12 @@ namespace
         startup.bootstrap.metricsPath = "artifacts/run_metrics.csv";
         startup.bootstrap.summaryPath = "artifacts/run_summary.csv";
         startup.bootstrap.manifestPath = "artifacts/run_manifest.csv";
+        startup.bootstrap.startupFailureCategory = "metrics_file_open_failed";
+        startup.bootstrap.batchIndexFailureCategory = "batch_index_open_failed";
+        startup.bootstrap.outputStream.open("/dev/null");
+        startup.bootstrap.summaryStream.open("/dev/null");
+        startup.startupFailureSummaryOpened = false;
+        startup.startupFailureManifestOpened = true;
 
         const auto prepared = simlab::PrepareHeadlessStartupLogging(
             startup,
@@ -1002,6 +1008,14 @@ namespace
         assert(prepared.batchIndexPath == "artifacts/batch/index.csv");
         assert(prepared.startupFailureSummaryPath == "headless_startup_failure_summary.csv");
         assert(prepared.startupFailureManifestPath == "headless_startup_failure_manifest.csv");
+        assert(prepared.startupFailureCategory == "metrics_file_open_failed");
+        assert(prepared.batchIndexFailureCategory == "batch_index_open_failed");
+        assert(prepared.outputOpened);
+        assert(!prepared.metricsOpened);
+        assert(prepared.summaryOpened);
+        assert(!prepared.manifestOpened);
+        assert(!prepared.startupFailureSummaryOpened);
+        assert(prepared.startupFailureManifestOpened);
     }
 
     void VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures()
@@ -1023,9 +1037,7 @@ namespace
         startup.bootstrap.batchIndexFailureCategory = "batch_index_open_failed";
         startup.startupFailureSummaryOpened = false;
         startup.startupFailureManifestOpened = false;
-
-        simlab::HeadlessRunOutcomeTracker outcome{};
-        outcome.MarkStartupFailure("setup", "Test scenario setup failure");
+        startup.startupFailureSummaryFailureCategory = "startup_failure_summary_open_failed";
 
         const auto prepared = simlab::PrepareHeadlessStartupLogging(
             startup,
@@ -1033,16 +1045,7 @@ namespace
             "headless_startup_failure_summary.csv",
             "headless_startup_failure_manifest.csv");
 
-        simlab::LogHeadlessStartupMessages(logger,
-                                          startup,
-                                          outcome,
-                                          prepared.outputPath,
-                                          prepared.metricsPath,
-                                          prepared.summaryPath,
-                                          prepared.manifestPath,
-                                          prepared.batchIndexPath,
-                                          prepared.startupFailureSummaryPath,
-                                          prepared.startupFailureManifestPath);
+        simlab::LogHeadlessStartupMessages(logger, prepared);
 
         const auto log = sink->str();
         assert(log.find("Failed to open artifacts/run_metrics.csv") != std::string::npos);
@@ -1057,11 +1060,14 @@ namespace
 
     void VerifyFinalizationLoggingPreparationResolvesBatchIndexPath()
     {
-        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("artifacts/batch/index.csv");
+        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("artifacts/batch/index.csv",
+                                                                         "batch_index_open_failed");
         assert(prepared.batchIndexPath.find("artifacts/batch/index.csv") != std::string::npos);
+        assert(prepared.batchIndexFailureCategory == "batch_index_open_failed");
 
-        const auto emptyPrepared = simlab::PrepareHeadlessFinalizationLogging("");
+        const auto emptyPrepared = simlab::PrepareHeadlessFinalizationLogging("", "");
         assert(emptyPrepared.batchIndexPath.empty());
+        assert(emptyPrepared.batchIndexFailureCategory.empty());
     }
 
     void VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure()
@@ -1070,10 +1076,9 @@ namespace
         auto sink = std::make_shared<std::ostringstream>();
         logger.SetOutput(sink);
 
-        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("/tmp/atlascore_batch/index.csv");
-        simlab::LogHeadlessFinalizationMessages(logger,
-                                               prepared.batchIndexPath,
-                                               "batch_index_open_failed");
+        const auto prepared = simlab::PrepareHeadlessFinalizationLogging("/tmp/atlascore_batch/index.csv",
+                                                                         "batch_index_open_failed");
+        simlab::LogHeadlessFinalizationMessages(logger, prepared);
 
         const auto log = sink->str();
         assert(log.find("Failed to open batch index: /tmp/atlascore_batch/index.csv") != std::string::npos);
