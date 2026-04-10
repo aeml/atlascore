@@ -94,7 +94,7 @@ namespace
         std::filesystem::remove(manifestPath);
 
         const int rc = std::system(command.c_str());
-        assert(rc == 0);
+        assert(NormalizeExitCode(rc) == 0);
         assert(std::filesystem::exists(metricsPath));
         assert(std::filesystem::exists(summaryPath));
         assert(std::filesystem::exists(outputPath));
@@ -620,6 +620,18 @@ namespace
 
         const int rc = std::system("./atlascore_app fail_setup < /dev/null > /tmp/atlascore_interactive_fail_setup.log 2>&1");
         assert(NormalizeExitCode(rc) == 1);
+
+        const auto logLines = ReadLines("/tmp/atlascore_interactive_fail_setup.log");
+        bool sawShutdownLog = false;
+        for (const auto& line : logLines)
+        {
+            if (line.find("AtlasCore shutting down.") != std::string::npos)
+            {
+                sawShutdownLog = true;
+                break;
+            }
+        }
+        assert(sawShutdownLog);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");

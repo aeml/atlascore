@@ -695,32 +695,30 @@ namespace simlab
         return config;
     }
 
-    AppliedHeadlessStartupResult ApplyHeadlessStartupResult(HeadlessStartupCoordinatorResult startup)
+    void ApplyHeadlessStartupResult(HeadlessLocalState& state, HeadlessStartupCoordinatorResult startup)
     {
-        AppliedHeadlessStartupResult applied{};
-        applied.outputPath = std::move(startup.bootstrap.outputPath);
-        applied.metricsPath = std::move(startup.bootstrap.metricsPath);
-        applied.summaryPath = std::move(startup.bootstrap.summaryPath);
-        applied.manifestPath = std::move(startup.bootstrap.manifestPath);
-        applied.batchIndexAppendStatus = std::move(startup.bootstrap.batchIndexAppendStatus);
-        applied.batchIndexFailureCategory = std::move(startup.bootstrap.batchIndexFailureCategory);
-        applied.outputWriteStatus = std::move(startup.bootstrap.outputWriteStatus);
-        applied.outputFailureCategory = std::move(startup.bootstrap.outputFailureCategory);
-        applied.metricsWriteStatus = std::move(startup.bootstrap.metricsWriteStatus);
-        applied.metricsFailureCategory = std::move(startup.bootstrap.metricsFailureCategory);
-        applied.summaryWriteStatus = std::move(startup.bootstrap.summaryWriteStatus);
-        applied.summaryFailureCategory = std::move(startup.bootstrap.summaryFailureCategory);
-        applied.manifestWriteStatus = std::move(startup.bootstrap.manifestWriteStatus);
-        applied.manifestFailureCategory = std::move(startup.bootstrap.manifestFailureCategory);
-        applied.startupFailureSummaryWriteStatus = std::move(startup.startupFailureSummaryWriteStatus);
-        applied.startupFailureSummaryFailureCategory = std::move(startup.startupFailureSummaryFailureCategory);
-        applied.startupFailureManifestWriteStatus = std::move(startup.startupFailureManifestWriteStatus);
-        applied.startupFailureManifestFailureCategory = std::move(startup.startupFailureManifestFailureCategory);
-        applied.outputStream = std::move(startup.bootstrap.outputStream);
-        applied.metricsStream = std::move(startup.bootstrap.metricsStream);
-        applied.summaryStream = std::move(startup.bootstrap.summaryStream);
-        applied.manifestStream = std::move(startup.bootstrap.manifestStream);
-        return applied;
+        state.outputPath = std::move(startup.bootstrap.outputPath);
+        state.metricsPath = std::move(startup.bootstrap.metricsPath);
+        state.summaryPath = std::move(startup.bootstrap.summaryPath);
+        state.manifestPath = std::move(startup.bootstrap.manifestPath);
+        state.batchIndexAppendStatus = std::move(startup.bootstrap.batchIndexAppendStatus);
+        state.batchIndexFailureCategory = std::move(startup.bootstrap.batchIndexFailureCategory);
+        state.outputWriteStatus = std::move(startup.bootstrap.outputWriteStatus);
+        state.outputFailureCategory = std::move(startup.bootstrap.outputFailureCategory);
+        state.metricsWriteStatus = std::move(startup.bootstrap.metricsWriteStatus);
+        state.metricsFailureCategory = std::move(startup.bootstrap.metricsFailureCategory);
+        state.summaryWriteStatus = std::move(startup.bootstrap.summaryWriteStatus);
+        state.summaryFailureCategory = std::move(startup.bootstrap.summaryFailureCategory);
+        state.manifestWriteStatus = std::move(startup.bootstrap.manifestWriteStatus);
+        state.manifestFailureCategory = std::move(startup.bootstrap.manifestFailureCategory);
+        state.startupFailureSummaryWriteStatus = std::move(startup.startupFailureSummaryWriteStatus);
+        state.startupFailureSummaryFailureCategory = std::move(startup.startupFailureSummaryFailureCategory);
+        state.startupFailureManifestWriteStatus = std::move(startup.startupFailureManifestWriteStatus);
+        state.startupFailureManifestFailureCategory = std::move(startup.startupFailureManifestFailureCategory);
+        state.outputStream = std::move(startup.bootstrap.outputStream);
+        state.metricsStream = std::move(startup.bootstrap.metricsStream);
+        state.summaryStream = std::move(startup.bootstrap.summaryStream);
+        state.manifestStream = std::move(startup.bootstrap.manifestStream);
     }
 
     HeadlessStartupLoggingPreparation PrepareHeadlessStartupLogging(const HeadlessStartupCoordinatorResult& startup,
@@ -995,16 +993,15 @@ namespace simlab
         return result;
     }
 
-    AppliedHeadlessRunFinalizationResult ApplyHeadlessRunFinalizationResult(const HeadlessRunFinalizationResult& finalization)
+    void ApplyHeadlessRunFinalizationResult(HeadlessLocalState& state,
+                                            const HeadlessRunFinalizationResult& finalization)
     {
-        AppliedHeadlessRunFinalizationResult applied{};
-        applied.summaryWriteStatus = finalization.artifacts.summaryWriteStatus;
-        applied.summaryFailureCategory = finalization.artifacts.summaryFailureCategory;
-        applied.manifestWriteStatus = finalization.artifacts.manifestWriteStatus;
-        applied.manifestFailureCategory = finalization.artifacts.manifestFailureCategory;
-        applied.batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
-        applied.batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
-        return applied;
+        state.summaryWriteStatus = finalization.artifacts.summaryWriteStatus;
+        state.summaryFailureCategory = finalization.artifacts.summaryFailureCategory;
+        state.manifestWriteStatus = finalization.artifacts.manifestWriteStatus;
+        state.manifestFailureCategory = finalization.artifacts.manifestFailureCategory;
+        state.batchIndexAppendStatus = finalization.artifacts.batchIndexAppendStatus;
+        state.batchIndexFailureCategory = finalization.artifacts.batchIndexFailureCategory;
     }
 
     void HeadlessRunSummaryAccumulator::AddFrame(const FrameMetrics& metrics)

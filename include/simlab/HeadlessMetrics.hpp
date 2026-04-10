@@ -283,42 +283,6 @@ namespace simlab
         HeadlessRunArtifactReport artifacts;
     };
 
-    struct AppliedHeadlessStartupResult
-    {
-        std::string outputPath;
-        std::string metricsPath;
-        std::string summaryPath;
-        std::string manifestPath;
-        std::string batchIndexAppendStatus;
-        std::string batchIndexFailureCategory;
-        std::string outputWriteStatus;
-        std::string outputFailureCategory;
-        std::string metricsWriteStatus;
-        std::string metricsFailureCategory;
-        std::string summaryWriteStatus;
-        std::string summaryFailureCategory;
-        std::string manifestWriteStatus;
-        std::string manifestFailureCategory;
-        std::string startupFailureSummaryWriteStatus;
-        std::string startupFailureSummaryFailureCategory;
-        std::string startupFailureManifestWriteStatus;
-        std::string startupFailureManifestFailureCategory;
-        std::ofstream outputStream;
-        std::ofstream metricsStream;
-        std::ofstream summaryStream;
-        std::ofstream manifestStream;
-    };
-
-    struct AppliedHeadlessRunFinalizationResult
-    {
-        std::string summaryWriteStatus;
-        std::string summaryFailureCategory;
-        std::string manifestWriteStatus;
-        std::string manifestFailureCategory;
-        std::string batchIndexAppendStatus;
-        std::string batchIndexFailureCategory;
-    };
-
     struct HeadlessStartupLoggingPreparation
     {
         std::string outputPath;
@@ -460,7 +424,7 @@ namespace simlab
                                                                            std::string_view gitCommit,
                                                                            bool gitDirty,
                                                                            std::string_view buildType);
-    AppliedHeadlessStartupResult ApplyHeadlessStartupResult(HeadlessStartupCoordinatorResult startup);
+    void ApplyHeadlessStartupResult(HeadlessLocalState& state, HeadlessStartupCoordinatorResult startup);
     HeadlessStartupLoggingPreparation PrepareHeadlessStartupLogging(const HeadlessStartupCoordinatorResult& startup,
                                                                    std::string_view batchIndexPath,
                                                                    std::string_view startupFailureSummaryPath,
@@ -518,7 +482,8 @@ namespace simlab
                                                                       std::string_view gitCommit,
                                                                       bool gitDirty,
                                                                       std::string_view buildType);
-    AppliedHeadlessRunFinalizationResult ApplyHeadlessRunFinalizationResult(const HeadlessRunFinalizationResult& finalization);
+    void ApplyHeadlessRunFinalizationResult(HeadlessLocalState& state,
+                                            const HeadlessRunFinalizationResult& finalization);
 
     class HeadlessRunSummaryAccumulator
     {

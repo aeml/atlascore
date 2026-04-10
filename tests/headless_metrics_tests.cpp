@@ -934,26 +934,27 @@ namespace
         startup.bootstrap.summaryStream.open("/dev/null");
         startup.bootstrap.manifestStream.open("/dev/null");
 
-        auto applied = simlab::ApplyHeadlessStartupResult(std::move(startup));
+        auto state = simlab::BuildHeadlessLocalState("");
+        simlab::ApplyHeadlessStartupResult(state, std::move(startup));
 
-        assert(applied.outputPath == "artifacts/run_output.txt");
-        assert(applied.metricsPath == "artifacts/run_metrics.csv");
-        assert(applied.summaryPath == "artifacts/run_summary.csv");
-        assert(applied.manifestPath == "artifacts/run_manifest.csv");
-        assert(applied.batchIndexAppendStatus == "append_failed");
-        assert(applied.batchIndexFailureCategory == "batch_index_open_failed");
-        assert(applied.outputWriteStatus == "written");
-        assert(applied.metricsWriteStatus == "write_failed");
-        assert(applied.metricsFailureCategory == "metrics_write_failed");
-        assert(applied.summaryWriteStatus == "written");
-        assert(applied.manifestWriteStatus == "written");
-        assert(applied.startupFailureSummaryWriteStatus == "written");
-        assert(applied.startupFailureManifestWriteStatus == "write_failed");
-        assert(applied.startupFailureManifestFailureCategory == "startup_failure_manifest_write_failed");
-        assert(applied.outputStream.is_open());
-        assert(applied.metricsStream.is_open());
-        assert(applied.summaryStream.is_open());
-        assert(applied.manifestStream.is_open());
+        assert(state.outputPath == "artifacts/run_output.txt");
+        assert(state.metricsPath == "artifacts/run_metrics.csv");
+        assert(state.summaryPath == "artifacts/run_summary.csv");
+        assert(state.manifestPath == "artifacts/run_manifest.csv");
+        assert(state.batchIndexAppendStatus == "append_failed");
+        assert(state.batchIndexFailureCategory == "batch_index_open_failed");
+        assert(state.outputWriteStatus == "written");
+        assert(state.metricsWriteStatus == "write_failed");
+        assert(state.metricsFailureCategory == "metrics_write_failed");
+        assert(state.summaryWriteStatus == "written");
+        assert(state.manifestWriteStatus == "written");
+        assert(state.startupFailureSummaryWriteStatus == "written");
+        assert(state.startupFailureManifestWriteStatus == "write_failed");
+        assert(state.startupFailureManifestFailureCategory == "startup_failure_manifest_write_failed");
+        assert(state.outputStream.is_open());
+        assert(state.metricsStream.is_open());
+        assert(state.summaryStream.is_open());
+        assert(state.manifestStream.is_open());
     }
 
     void VerifyHeadlessLocalStateBuilderSeedsDefaults()
@@ -1150,14 +1151,15 @@ namespace
         finalization.artifacts.batchIndexAppendStatus = "append_failed";
         finalization.artifacts.batchIndexFailureCategory = "batch_index_open_failed";
 
-        const auto applied = simlab::ApplyHeadlessRunFinalizationResult(finalization);
+        auto state = simlab::BuildHeadlessLocalState("");
+        simlab::ApplyHeadlessRunFinalizationResult(state, finalization);
 
-        assert(applied.summaryWriteStatus == "write_failed");
-        assert(applied.summaryFailureCategory == "summary_write_failed");
-        assert(applied.manifestWriteStatus == "written");
-        assert(applied.manifestFailureCategory.empty());
-        assert(applied.batchIndexAppendStatus == "append_failed");
-        assert(applied.batchIndexFailureCategory == "batch_index_open_failed");
+        assert(state.summaryWriteStatus == "write_failed");
+        assert(state.summaryFailureCategory == "summary_write_failed");
+        assert(state.manifestWriteStatus == "written");
+        assert(state.manifestFailureCategory.empty());
+        assert(state.batchIndexAppendStatus == "append_failed");
+        assert(state.batchIndexFailureCategory == "batch_index_open_failed");
     }
 
     void VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure()
