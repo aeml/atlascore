@@ -234,24 +234,6 @@ int main(int argc, char** argv)
     core::FixedTimestepLoop loop{static_cast<float>(fixedDtSeconds)};
 
     std::thread quitThread;
-    const bool useInputQuitThread = !headless && maxFrames <= 0;
-    if (useInputQuitThread)
-    {
-        // Stop interactive simulations when Enter is pressed.
-        quitThread = std::thread([&running, &quitRequestedByInput, &quitRequestedByEof, &logger]() {
-            logger.Info("Press Enter to quit...");
-            std::string line;
-            if (std::getline(std::cin, line))
-            {
-                quitRequestedByInput.store(true);
-            }
-            else
-            {
-                quitRequestedByEof.store(true);
-            }
-            running.store(false);
-        });
-    }
 
     simlab::HeadlessRunSummaryAccumulator headlessSummaryAccumulator;
     auto headlessState = simlab::BuildHeadlessLocalState(batchIndexPath);
@@ -323,6 +305,25 @@ int main(int argc, char** argv)
     {
         logger.Info("AtlasCore shutting down.");
         return outcome.exitCode;
+    }
+
+    const bool useInputQuitThread = !headless && maxFrames <= 0;
+    if (useInputQuitThread)
+    {
+        // Stop interactive simulations when Enter is pressed.
+        quitThread = std::thread([&running, &quitRequestedByInput, &quitRequestedByEof, &logger]() {
+            logger.Info("Press Enter to quit...");
+            std::string line;
+            if (std::getline(std::cin, line))
+            {
+                quitRequestedByInput.store(true);
+            }
+            else
+            {
+                quitRequestedByEof.store(true);
+            }
+            running.store(false);
+        });
     }
 
     simlab::HeadlessRuntimeFrameState runtimeFrameState{};

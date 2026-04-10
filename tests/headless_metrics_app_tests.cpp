@@ -25,6 +25,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cerrno>
+#ifdef __unix__
+#include <sys/wait.h>
+#endif
 
 namespace
 {
@@ -61,6 +64,21 @@ namespace
         assert(errno == 0);
         assert(parseEnd == text.c_str() + text.size());
         return value;
+    }
+
+    int NormalizeExitCode(const int rc)
+    {
+#ifdef __unix__
+        if (WIFEXITED(rc))
+        {
+            return WEXITSTATUS(rc);
+        }
+        if (WIFSIGNALED(rc))
+        {
+            return 128 + WTERMSIG(rc);
+        }
+#endif
+        return rc;
     }
 
     void VerifyHeadlessRunWritesExpectedFiles(const std::string& command,
@@ -574,7 +592,7 @@ namespace
         std::filesystem::remove(fallbackManifestPath);
 
         const int rc = std::system("./atlascore_app fail_setup --headless --frames=2 --output-prefix=artifacts/fail_setup > /tmp/atlascore_headless_setup_failure.log 2>&1");
-        assert(rc != 0);
+        assert(NormalizeExitCode(rc) == 1);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
@@ -587,6 +605,31 @@ namespace
         assert(manifestColumns[9] == "startup_failure");
         assert(manifestColumns[10] == "scenario_setup_failed");
         assert(manifestColumns[11] == "Test scenario setup failure");
+        assert(manifestColumns[12] == "startup_failure");
+        assert(manifestColumns[31] == "1");
+        assert(manifestColumns[32] == "startup_failure_exit");
+    }
+
+    void VerifyInteractiveNonTtySetupFailureReturnsStartupFailureExit()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto fallbackSummaryPath = cwd / "headless_startup_failure_summary.csv";
+        const auto fallbackManifestPath = cwd / "headless_startup_failure_manifest.csv";
+        std::filesystem::remove(fallbackSummaryPath);
+        std::filesystem::remove(fallbackManifestPath);
+
+        const int rc = std::system("./atlascore_app fail_setup < /dev/null > /tmp/atlascore_interactive_fail_setup.log 2>&1");
+        assert(NormalizeExitCode(rc) == 1);
+
+        const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
+        assert(summaryColumns[9] == "startup_failure");
+        assert(summaryColumns[10] == "scenario_setup_failed");
+        assert(summaryColumns[12] == "startup_failure");
+
+        const auto manifestColumns = SplitCsvRow(ReadLines(fallbackManifestPath)[1]);
+        assert(manifestColumns.size() == 37u);
+        assert(manifestColumns[9] == "startup_failure");
+        assert(manifestColumns[10] == "scenario_setup_failed");
         assert(manifestColumns[12] == "startup_failure");
         assert(manifestColumns[31] == "1");
         assert(manifestColumns[32] == "startup_failure_exit");
@@ -823,6 +866,7 @@ int main()
     VerifySummaryOpenFailureIsClassified();
     VerifyManifestOpenFailureIsClassified();
     VerifyScenarioSetupFailureIsExported();
+    VerifyInteractiveNonTtySetupFailureReturnsStartupFailureExit();
     VerifyScenarioUpdateFailureIsExported();
     VerifyWorldUpdateFailureIsExported();
     VerifyScenarioRenderFailureIsExported();
