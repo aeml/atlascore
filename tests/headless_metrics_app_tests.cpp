@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
-#include <charconv>
 #include <algorithm>
+#include <cerrno>
 
 namespace
 {
@@ -55,12 +55,11 @@ namespace
 
     double ParseDouble(const std::string& text)
     {
-        double value = 0.0;
-        const auto* begin = text.data();
-        const auto* end = text.data() + text.size();
-        const auto result = std::from_chars(begin, end, value);
-        assert(result.ec == std::errc{});
-        assert(result.ptr == end);
+        char* parseEnd = nullptr;
+        errno = 0;
+        const double value = std::strtod(text.c_str(), &parseEnd);
+        assert(errno == 0);
+        assert(parseEnd == text.c_str() + text.size());
         return value;
     }
 
