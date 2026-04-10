@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <string>
 
 int main()
 {
@@ -48,6 +49,38 @@ int main()
     assert(failUpdate != nullptr);
     assert(failWorldUpdate != nullptr);
     assert(failRender != nullptr);
+
+    const auto directSelection = simlab::ScenarioRegistry::ResolveScenarioSelection("fluid", 0);
+    assert(directSelection.scenario != nullptr);
+    assert(directSelection.requestedKey == "fluid");
+    assert(directSelection.selectedKey == "fluid");
+    assert(!directSelection.fallbackUsed);
+    assert(!directSelection.shouldLogUnknownScenario);
+    assert(!directSelection.shouldLogSelectedScenario);
+
+    const auto fallbackSelection = simlab::ScenarioRegistry::ResolveScenarioSelection("does-not-exist", 0);
+    assert(fallbackSelection.scenario != nullptr);
+    assert(fallbackSelection.requestedKey == "does-not-exist");
+    assert(fallbackSelection.selectedKey == "gravity");
+    assert(fallbackSelection.fallbackUsed);
+    assert(fallbackSelection.shouldLogUnknownScenario);
+    assert(!fallbackSelection.shouldLogSelectedScenario);
+    assert(fallbackSelection.unknownScenarioKey == "does-not-exist");
+
+    const auto menuSelection = simlab::ScenarioRegistry::ResolveScenarioSelection("", 1);
+    assert(menuSelection.scenario != nullptr);
+    assert(menuSelection.requestedKey == "wrecking");
+    assert(menuSelection.selectedKey == "wrecking");
+    assert(!menuSelection.fallbackUsed);
+    assert(!menuSelection.shouldLogUnknownScenario);
+    assert(menuSelection.shouldLogSelectedScenario);
+
+    const auto outOfRangeMenuSelection = simlab::ScenarioRegistry::ResolveScenarioSelection("", 99);
+    assert(outOfRangeMenuSelection.scenario != nullptr);
+    assert(outOfRangeMenuSelection.requestedKey == "gravity");
+    assert(outOfRangeMenuSelection.selectedKey == "gravity");
+    assert(!outOfRangeMenuSelection.fallbackUsed);
+    assert(outOfRangeMenuSelection.shouldLogSelectedScenario);
 
     std::cout << "Scenario registry tests passed\n";
     return 0;

@@ -17,9 +17,11 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
-#include <vector>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace ecs { class World; }
 
@@ -55,6 +57,17 @@ namespace simlab
         const char*    subcategory; // optional subgroup, e.g., "Text Renderer Tests"
     };
 
+    struct ScenarioSelectionResult
+    {
+        std::unique_ptr<IScenario> scenario;
+        std::string requestedKey;
+        std::string selectedKey;
+        bool fallbackUsed{false};
+        bool shouldLogUnknownScenario{false};
+        bool shouldLogSelectedScenario{false};
+        std::string unknownScenarioKey;
+    };
+
     class ScenarioRegistry
     {
     public:
@@ -64,6 +77,8 @@ namespace simlab
         static const std::vector<ScenarioDesc>& All();
         static ScenarioFactory FindFactory(const std::string& key);
         static std::unique_ptr<IScenario> Create(const std::string& key);
+        static ScenarioSelectionResult ResolveScenarioSelection(std::string_view requestedKey,
+                                                                std::size_t menuChoiceIndex);
 
     private:
         static std::vector<ScenarioDesc>& Storage();

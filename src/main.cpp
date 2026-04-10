@@ -124,72 +124,52 @@ int main(int argc, char** argv)
     }
 
     // Determine scenario by CLI arg or interactive menu
-    std::unique_ptr<simlab::IScenario> scenario;
-    std::string selectedScenarioKey;
-    const std::string requestedScenarioKey = scenarioArg.empty() ? (options.empty() ? std::string{} : options.front().key) : scenarioArg;
-    bool fallbackUsed = false;
-    if (!scenarioArg.empty())
+    std::size_t menuChoiceIndex = 0;
+    if (scenarioArg.empty())
     {
-        auto factory = simlab::ScenarioRegistry::FindFactory(scenarioArg);
-        if (factory)
-        {
-            scenario = factory();
-            selectedScenarioKey = scenarioArg;
-        }
-        else
-        {
-            logger.Error(std::string("Unknown scenario: ") + scenarioArg);
-            if (!options.empty())
-            {
-                scenario = options.front().factory();
-                selectedScenarioKey = options.front().key;
-                fallbackUsed = true;
-            }
-        }
-    }
-    else
-    {
-        // Simple flat menu
         std::cout << "========================================\n";
         std::cout << "      AtlasCore Simulation Framework    \n";
         std::cout << "========================================\n";
         std::cout << "Select a simulation to run:\n";
-        
-        for (size_t i = 0; i < options.size(); ++i)
+
+        for (std::size_t i = 0; i < options.size(); ++i)
         {
             std::cout << "  [" << (i + 1) << "] " << options[i].title << " (" << options[i].key << ")\n";
         }
-        
+
         std::cout << "\nEnter choice number (default 1): ";
         std::string line;
         std::getline(std::cin, line);
-        
-        size_t choice = 1;
         if (!line.empty())
         {
-            try {
-                unsigned long p = std::stoul(line);
-                if (p >= 1 && p <= options.size())
+            try
+            {
+                const auto parsed = std::stoul(line);
+                if (parsed >= 1 && parsed <= options.size())
                 {
-                    choice = static_cast<size_t>(p);
+                    menuChoiceIndex = static_cast<std::size_t>(parsed - 1);
                 }
-            } catch (...) {}
-        }
-
-        if (!options.empty())
-        {
-            const auto& selected = options[choice - 1];
-            scenario = selected.factory();
-            selectedScenarioKey = selected.key;
-            logger.Info(std::string("Running scenario: ") + selected.key);
+            }
+            catch (...)
+            {
+            }
         }
     }
-    if (!scenario && !options.empty())
+
+    auto selection = simlab::ScenarioRegistry::ResolveScenarioSelection(scenarioArg, menuChoiceIndex);
+    if (selection.shouldLogUnknownScenario)
     {
-        scenario = options.front().factory();
-        selectedScenarioKey = options.front().key;
+        logger.Error(std::string("Unknown scenario: ") + selection.unknownScenarioKey);
+    }
+    if (selection.shouldLogSelectedScenario)
+    {
+        logger.Info(std::string("Running scenario: ") + selection.selectedKey);
     }
 
+    auto scenario = std::move(selection.scenario);
+    const std::string requestedScenarioKey = selection.requestedKey;
+    const std::string selectedScenarioKey = selection.selectedKey;
+    const bool fallbackUsed = selection.fallbackUsed;
     if (!scenario)
     {
         logger.Error("No scenario available to run.");

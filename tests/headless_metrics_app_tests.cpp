@@ -376,6 +376,39 @@ namespace
         assert(manifestColumns[32] == "success_exit");
     }
 
+    void VerifyInteractiveMenuSelectionIsExportedHonestly()
+    {
+        const auto cwd = std::filesystem::current_path();
+        const auto prefix = cwd / "artifacts" / "interactive_menu_run";
+        std::filesystem::remove(prefix.string() + "_metrics.csv");
+        std::filesystem::remove(prefix.string() + "_summary.csv");
+        std::filesystem::remove(prefix.string() + "_output.txt");
+        std::filesystem::remove(prefix.string() + "_manifest.csv");
+
+        const int rc = std::system("printf '2\n' | ./atlascore_app --headless --frames=2 --output-prefix=artifacts/interactive_menu_run > /tmp/atlascore_headless_interactive_menu.log 2>&1");
+        assert(NormalizeExitCode(rc) == 0);
+
+        const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
+        const auto summaryColumns = SplitCsvRow(summaryLines[1]);
+        assert(summaryColumns.size() == 25u);
+        assert(summaryColumns[0] == "wrecking");
+        assert(summaryColumns[1] == "wrecking");
+        assert(summaryColumns[2] == "0");
+        assert(summaryColumns[4] == "1");
+        assert(summaryColumns[9] == "success");
+        assert(summaryColumns[12] == "frame_cap");
+
+        const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
+        const auto manifestColumns = SplitCsvRow(manifestLines[1]);
+        assert(manifestColumns.size() == 37u);
+        assert(manifestColumns[0] == "wrecking");
+        assert(manifestColumns[1] == "wrecking");
+        assert(manifestColumns[2] == "0");
+        assert(manifestColumns[4] == "1");
+        assert(manifestColumns[9] == "success");
+        assert(manifestColumns[12] == "frame_cap");
+    }
+
     void VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason()
     {
         const auto cwd = std::filesystem::current_path();
@@ -872,6 +905,7 @@ int main()
     VerifyAppWritesPrefixedHeadlessArtifacts();
     VerifyBatchIndexAppendsAcrossRuns();
     VerifyFallbackScenarioSelectionIsExported();
+    VerifyInteractiveMenuSelectionIsExportedHonestly();
     VerifyHeadlessUnboundedRunUsesExplicitDefaultTerminationReason();
     VerifyOutputDirectoryCreateFailureIsClassified();
     VerifyMetricsOpenFailureIsClassified();

@@ -129,6 +129,46 @@ namespace simlab
         return {};
     }
 
+    ScenarioSelectionResult ScenarioRegistry::ResolveScenarioSelection(const std::string_view requestedKey,
+                                                                       const std::size_t menuChoiceIndex)
+    {
+        static std::once_flag once;
+        std::call_once(once, RegisterBuiltIns);
+
+        ScenarioSelectionResult result{};
+        const auto& options = All();
+        if (options.empty())
+        {
+            return result;
+        }
+
+        if (!requestedKey.empty())
+        {
+            result.requestedKey = std::string(requestedKey);
+            result.scenario = Create(result.requestedKey);
+            if (result.scenario)
+            {
+                result.selectedKey = result.requestedKey;
+                return result;
+            }
+
+            result.scenario = options.front().factory();
+            result.selectedKey = options.front().key;
+            result.fallbackUsed = true;
+            result.shouldLogUnknownScenario = true;
+            result.unknownScenarioKey = result.requestedKey;
+            return result;
+        }
+
+        const auto choice = menuChoiceIndex < options.size() ? menuChoiceIndex : 0u;
+        const auto& selected = options[choice];
+        result.requestedKey = selected.key;
+        result.selectedKey = selected.key;
+        result.scenario = selected.factory();
+        result.shouldLogSelectedScenario = true;
+        return result;
+    }
+
     void SetHeadlessRendering(bool enabled)
     {
         HeadlessFlag().store(enabled, std::memory_order_relaxed);
