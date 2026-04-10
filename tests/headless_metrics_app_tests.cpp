@@ -25,8 +25,15 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cerrno>
-#if !defined(_WIN32)
+#include <string_view>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#else
+#include <fcntl.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 namespace
@@ -81,11 +88,6 @@ namespace
         return rc;
     }
 
-    std::string QuoteForShell(const std::filesystem::path& path)
-    {
-        return '"' + path.string() + '"';
-    }
-
     std::filesystem::path BuildLogPath(const std::string_view name)
     {
         const auto logDir = std::filesystem::current_path() / "artifacts" / "test_logs";
@@ -93,51 +95,196 @@ namespace
         return logDir / std::filesystem::path(name);
     }
 
-    std::string AppExecutableCommand()
+    std::filesystem::path AppExecutablePath()
     {
 #ifdef _WIN32
-        return ".\\atlascore_app.exe";
+        return std::filesystem::current_path() / "atlascore_app.exe";
 #else
-        return "./atlascore_app";
+        return std::filesystem::current_path() / "atlascore_app";
 #endif
     }
+
+    std::vector<std::string> BuildAppArgumentList(const std::string_view arguments)
+    {
+        std::vector<std::string> parts;
+        std::stringstream stream{std::string(arguments)};
+        std::string part;
+        while (stream >> part)
+        {
+            parts.push_back(part);
+        }
+        return parts;
+    }
+
+#ifdef _WIN32
+    int RunProcess(const std::vector<std::string>& arguments,
+                   const std::filesystem::path& logPath,
+                   const std::string* stdinText,
+                   const bool closeStdin)
+    {
+        SECURITY_ATTRIBUTES securityAttributes{};
+        securityAttributes.nLength = sizeof(securityAttributes);
+        securityAttributes.lpSecurityDescriptor = nullptr;
+        securityAttributes.bInheritHandle = TRUE;
+
+        HANDLE logHandle = CreateFileW(logPath.wstring().c_str(),
+                                       GENERIC_WRITE,
+                                       FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                       &securityAttributes,
+                                       CREATE_ALWAYS,
+                                       FILE_ATTRIBUTE_NORMAL,
+                                       nullptr);
+        assert(logHandle != INVALID_HANDLE_VALUE);
+
+        HANDLE stdinRead = nullptr;
+        HANDLE stdinWrite = nullptr;
+        HANDLE childStdin = nullptr;
+        if (stdinText || closeStdin)
+        {
+            HANDLE readPipe = nullptr;
+            HANDLE writePipe = nullptr;
+            assert(CreatePipe(&readPipe, &writePipe, &securityAttributes, 0));
+            assert(SetHandleInformation(writePipe, HANDLE_FLAG_INHERIT, 0));
+            childStdin = readPipe;
+            if (stdinText)
+            {
+                DWORD bytesWritten = 0;
+                assert(WriteFile(writePipe,
+                                 stdinText->data(),
+                                 static_cast<DWORD>(stdinText->size()),
+                                 &bytesWritten,
+                                 nullptr));
+                assert(bytesWritten == stdinText->size());
+            }
+            CloseHandle(writePipe);
+            stdinRead = readPipe;
+        }
+
+        std::wstring commandLine = L"\"" + AppExecutablePath().wstring() + L"\"";
+        for (const auto& argument : arguments)
+        {
+            commandLine += L" ";
+            commandLine += std::wstring(argument.begin(), argument.end());
+        }
+
+        STARTUPINFOW startupInfo{};
+        startupInfo.cb = sizeof(startupInfo);
+        startupInfo.dwFlags = STARTF_USESTDHANDLES;
+        startupInfo.hStdOutput = logHandle;
+        startupInfo.hStdError = logHandle;
+        startupInfo.hStdInput = childStdin ? childStdin : GetStdHandle(STD_INPUT_HANDLE);
+
+        PROCESS_INFORMATION processInfo{};
+        std::wstring mutableCommandLine = commandLine;
+        const BOOL created = CreateProcessW(nullptr,
+                                            mutableCommandLine.data(),
+                                            nullptr,
+                                            nullptr,
+                                            TRUE,
+                                            0,
+                                            nullptr,
+                                            nullptr,
+                                            &startupInfo,
+                                            &processInfo);
+        if (childStdin)
+        {
+            CloseHandle(childStdin);
+        }
+        CloseHandle(logHandle);
+        assert(created != FALSE);
+
+        WaitForSingleObject(processInfo.hProcess, INFINITE);
+        DWORD exitCode = 0;
+        assert(GetExitCodeProcess(processInfo.hProcess, &exitCode));
+        CloseHandle(processInfo.hThread);
+        CloseHandle(processInfo.hProcess);
+        return static_cast<int>(exitCode);
+    }
+#else
+    int RunProcess(const std::vector<std::string>& arguments,
+                   const std::filesystem::path& logPath,
+                   const std::string* stdinText,
+                   const bool closeStdin)
+    {
+        int logFd = ::open(logPath.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+        assert(logFd >= 0);
+
+        int stdinPipe[2]{-1, -1};
+        const bool usePipe = stdinText || closeStdin;
+        if (usePipe)
+        {
+            assert(pipe(stdinPipe) == 0);
+        }
+
+        const pid_t pid = fork();
+        assert(pid >= 0);
+        if (pid == 0)
+        {
+            if (usePipe)
+            {
+                close(stdinPipe[1]);
+                assert(dup2(stdinPipe[0], STDIN_FILENO) >= 0);
+                close(stdinPipe[0]);
+            }
+            assert(dup2(logFd, STDOUT_FILENO) >= 0);
+            assert(dup2(logFd, STDERR_FILENO) >= 0);
+            close(logFd);
+
+            std::vector<std::string> fullArguments;
+            fullArguments.push_back(AppExecutablePath().string());
+            fullArguments.insert(fullArguments.end(), arguments.begin(), arguments.end());
+
+            std::vector<char*> argv;
+            argv.reserve(fullArguments.size() + 1);
+            for (auto& argument : fullArguments)
+            {
+                argv.push_back(argument.data());
+            }
+            argv.push_back(nullptr);
+            execv(AppExecutablePath().c_str(), argv.data());
+            _exit(127);
+        }
+
+        close(logFd);
+        if (usePipe)
+        {
+            close(stdinPipe[0]);
+            if (stdinText && !stdinText->empty())
+            {
+                const ssize_t written = write(stdinPipe[1], stdinText->data(), stdinText->size());
+                assert(written == static_cast<ssize_t>(stdinText->size()));
+            }
+            close(stdinPipe[1]);
+        }
+
+        int status = 0;
+        assert(waitpid(pid, &status, 0) == pid);
+        return status;
+    }
+#endif
 
     int RunAppCommand(const std::string_view arguments,
                       const std::filesystem::path& logPath)
     {
-        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
-                                  + " > " + QuoteForShell(logPath) + " 2>&1";
-        return std::system(command.c_str());
+        return RunProcess(BuildAppArgumentList(arguments), logPath, nullptr, false);
     }
 
     int RunAppCommandWithNullInput(const std::string_view arguments,
                                    const std::filesystem::path& logPath)
     {
-#ifdef _WIN32
-        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
-                                  + " < NUL > " + QuoteForShell(logPath) + " 2>&1";
-#else
-        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
-                                  + " < /dev/null > " + QuoteForShell(logPath) + " 2>&1";
-#endif
-        return std::system(command.c_str());
+        return RunProcess(BuildAppArgumentList(arguments), logPath, nullptr, true);
     }
 
     int RunAppCommandWithPipedLine(const std::string_view line,
                                    const std::string_view arguments,
                                    const std::filesystem::path& logPath)
     {
-#ifdef _WIN32
-        const std::string command = "echo " + std::string(line) + " | " + AppExecutableCommand() + " "
-                                  + std::string(arguments) + " > " + QuoteForShell(logPath) + " 2>&1";
-#else
-        const std::string command = "printf '" + std::string(line) + "\\n' | " + AppExecutableCommand() + " "
-                                  + std::string(arguments) + " > " + QuoteForShell(logPath) + " 2>&1";
-#endif
-        return std::system(command.c_str());
+        const std::string stdinText = std::string(line) + "\n";
+        return RunProcess(BuildAppArgumentList(arguments), logPath, &stdinText, false);
     }
 
-    void VerifyHeadlessRunWritesExpectedFiles(const std::string& command,
+    void VerifyHeadlessRunWritesExpectedFiles(const std::string_view arguments,
+                                              const std::filesystem::path& logPath,
                                               const std::filesystem::path& metricsPath,
                                               const std::filesystem::path& summaryPath,
                                               const std::filesystem::path& outputPath,
@@ -149,7 +296,7 @@ namespace
         std::filesystem::remove(outputPath);
         std::filesystem::remove(manifestPath);
 
-        const int rc = std::system(command.c_str());
+        const int rc = RunAppCommand(arguments, logPath);
         assert(NormalizeExitCode(rc) == 0);
         assert(std::filesystem::exists(metricsPath));
         assert(std::filesystem::exists(summaryPath));
@@ -275,7 +422,8 @@ namespace
         const auto manifestPath = cwd / "headless_manifest.csv";
 
         const auto logPath = BuildLogPath("headless_metrics_app_test.log");
-        VerifyHeadlessRunWritesExpectedFiles(AppExecutableCommand() + " gravity --headless --frames=3 > " + QuoteForShell(logPath) + " 2>&1",
+        VerifyHeadlessRunWritesExpectedFiles("gravity --headless --frames=3",
+                                             logPath,
                                              metricsPath,
                                              summaryPath,
                                              outputPath,
@@ -295,7 +443,8 @@ namespace
         std::filesystem::remove_all(cwd / "artifacts");
 
         const auto logPath = BuildLogPath("headless_metrics_prefixed_app_test.log");
-        VerifyHeadlessRunWritesExpectedFiles(AppExecutableCommand() + " gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run > " + QuoteForShell(logPath) + " 2>&1",
+        VerifyHeadlessRunWritesExpectedFiles("gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run",
+                                             logPath,
                                              prefix.string() + "_metrics.csv",
                                              prefix.string() + "_summary.csv",
                                              prefix.string() + "_output.txt",
