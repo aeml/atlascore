@@ -235,6 +235,12 @@ int main(int argc, char** argv)
 
     std::thread quitThread;
 
+    const auto interactiveQuit = simlab::PrepareInteractiveQuitHandling(headless,
+                                                                         maxFrames,
+                                                                         running,
+                                                                         quitRequestedByInput,
+                                                                         quitRequestedByEof);
+
     simlab::HeadlessRunSummaryAccumulator headlessSummaryAccumulator;
     auto headlessState = simlab::BuildHeadlessLocalState(batchIndexPath);
     auto& outcome = headlessState.outcome;
@@ -276,22 +282,11 @@ int main(int argc, char** argv)
         return outcome.exitCode;
     }
 
-    const bool useInputQuitThread = !headless && maxFrames <= 0;
-    if (useInputQuitThread)
+    if (interactiveQuit.enabled)
     {
-        // Stop interactive simulations when Enter is pressed.
-        quitThread = std::thread([&running, &quitRequestedByInput, &quitRequestedByEof, &logger]() {
-            logger.Info("Press Enter to quit...");
-            std::string line;
-            if (std::getline(std::cin, line))
-            {
-                quitRequestedByInput.store(true);
-            }
-            else
-            {
-                quitRequestedByEof.store(true);
-            }
-            running.store(false);
+        quitThread = std::thread([interactiveQuit, &logger]() {
+            simlab::LogInteractiveQuitPrompt(logger, interactiveQuit);
+            simlab::RunInteractiveQuitInputLoop(interactiveQuit, std::cin);
         });
     }
 

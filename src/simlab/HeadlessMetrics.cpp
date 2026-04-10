@@ -924,6 +924,49 @@ namespace simlab
         }
     }
 
+    InteractiveQuitPreparation PrepareInteractiveQuitHandling(const bool headless,
+                                                              const int maxFrames,
+                                                              std::atomic<bool>& running,
+                                                              std::atomic<bool>& quitRequestedByInput,
+                                                              std::atomic<bool>& quitRequestedByEof)
+    {
+        InteractiveQuitPreparation prepared{};
+        prepared.enabled = !headless && maxFrames <= 0;
+        prepared.running = &running;
+        prepared.quitRequestedByInput = &quitRequestedByInput;
+        prepared.quitRequestedByEof = &quitRequestedByEof;
+        return prepared;
+    }
+
+    void LogInteractiveQuitPrompt(const core::Logger& logger,
+                                  const InteractiveQuitPreparation& preparation)
+    {
+        if (preparation.enabled)
+        {
+            logger.Info("Press Enter to quit...");
+        }
+    }
+
+    void RunInteractiveQuitInputLoop(const InteractiveQuitPreparation& preparation,
+                                     std::istream& input)
+    {
+        if (!preparation.running || !preparation.quitRequestedByInput || !preparation.quitRequestedByEof)
+        {
+            return;
+        }
+
+        std::string line;
+        if (std::getline(input, line))
+        {
+            preparation.quitRequestedByInput->store(true);
+        }
+        else
+        {
+            preparation.quitRequestedByEof->store(true);
+        }
+        preparation.running->store(false);
+    }
+
     HeadlessRunFinalizationPreparation PrepareHeadlessRunFinalization(const HeadlessRunOutcomeTracker& outcome,
                                                                       const std::string_view requestedScenarioKey,
                                                                       const std::string_view resolvedScenarioKey,

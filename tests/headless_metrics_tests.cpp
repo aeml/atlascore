@@ -22,6 +22,7 @@
 #include "simlab/HeadlessMetrics.hpp"
 #include "simlab/Scenario.hpp"
 
+#include <atomic>
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -1084,6 +1085,100 @@ namespace
         assert(log.find("Failed to open batch index: /tmp/atlascore_batch/index.csv") != std::string::npos);
     }
 
+    void VerifyInteractiveQuitPreparationCapturesStateReferences()
+    {
+        std::atomic<bool> running{true};
+        std::atomic<bool> quitRequestedByInput{false};
+        std::atomic<bool> quitRequestedByEof{false};
+
+        const auto prepared = simlab::PrepareInteractiveQuitHandling(false, -1,
+                                                                     running,
+                                                                     quitRequestedByInput,
+                                                                     quitRequestedByEof);
+
+        assert(prepared.enabled);
+        assert(prepared.running == &running);
+        assert(prepared.quitRequestedByInput == &quitRequestedByInput);
+        assert(prepared.quitRequestedByEof == &quitRequestedByEof);
+
+        const auto headlessPrepared = simlab::PrepareInteractiveQuitHandling(true, -1,
+                                                                             running,
+                                                                             quitRequestedByInput,
+                                                                             quitRequestedByEof);
+        assert(!headlessPrepared.enabled);
+        assert(headlessPrepared.running == &running);
+        assert(headlessPrepared.quitRequestedByInput == &quitRequestedByInput);
+        assert(headlessPrepared.quitRequestedByEof == &quitRequestedByEof);
+
+        const auto boundedPrepared = simlab::PrepareInteractiveQuitHandling(false, 30,
+                                                                            running,
+                                                                            quitRequestedByInput,
+                                                                            quitRequestedByEof);
+        assert(!boundedPrepared.enabled);
+    }
+
+    void VerifyInteractiveQuitThreadSetsInputAndStopsRunning()
+    {
+        std::atomic<bool> running{true};
+        std::atomic<bool> quitRequestedByInput{false};
+        std::atomic<bool> quitRequestedByEof{false};
+        const auto prepared = simlab::PrepareInteractiveQuitHandling(false, -1,
+                                                                     running,
+                                                                     quitRequestedByInput,
+                                                                     quitRequestedByEof);
+
+        std::istringstream input{"\n"};
+        simlab::RunInteractiveQuitInputLoop(prepared, input);
+
+        assert(!running.load());
+        assert(quitRequestedByInput.load());
+        assert(!quitRequestedByEof.load());
+    }
+
+    void VerifyInteractiveQuitThreadSetsEofAndStopsRunning()
+    {
+        std::atomic<bool> running{true};
+        std::atomic<bool> quitRequestedByInput{false};
+        std::atomic<bool> quitRequestedByEof{false};
+        const auto prepared = simlab::PrepareInteractiveQuitHandling(false, -1,
+                                                                     running,
+                                                                     quitRequestedByInput,
+                                                                     quitRequestedByEof);
+
+        std::istringstream input;
+        simlab::RunInteractiveQuitInputLoop(prepared, input);
+
+        assert(!running.load());
+        assert(!quitRequestedByInput.load());
+        assert(quitRequestedByEof.load());
+    }
+
+    void VerifyInteractiveQuitThreadLogsPromptOnlyWhenEnabled()
+    {
+        core::Logger logger;
+        auto sink = std::make_shared<std::ostringstream>();
+        logger.SetOutput(sink);
+
+        std::atomic<bool> running{true};
+        std::atomic<bool> quitRequestedByInput{false};
+        std::atomic<bool> quitRequestedByEof{false};
+        const auto enabled = simlab::PrepareInteractiveQuitHandling(false, -1,
+                                                                    running,
+                                                                    quitRequestedByInput,
+                                                                    quitRequestedByEof);
+        simlab::LogInteractiveQuitPrompt(logger, enabled);
+        assert(sink->str().find("Press Enter to quit...") != std::string::npos);
+
+        sink->str("");
+        sink->clear();
+        const auto disabled = simlab::PrepareInteractiveQuitHandling(true, -1,
+                                                                     running,
+                                                                     quitRequestedByInput,
+                                                                     quitRequestedByEof);
+        simlab::LogInteractiveQuitPrompt(logger, disabled);
+        assert(sink->str().empty());
+    }
+
     void VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts()
     {
         simlab::HeadlessRunOutcomeTracker outcome{};
@@ -1659,6 +1754,10 @@ int main()
     VerifyHeadlessStartupLoggingReportsPathsAndStartupFailures();
     VerifyFinalizationLoggingPreparationResolvesBatchIndexPath();
     VerifyHeadlessFinalizationLoggingReportsBatchIndexOpenFailure();
+    VerifyInteractiveQuitPreparationCapturesStateReferences();
+    VerifyInteractiveQuitThreadSetsInputAndStopsRunning();
+    VerifyInteractiveQuitThreadSetsEofAndStopsRunning();
+    VerifyInteractiveQuitThreadLogsPromptOnlyWhenEnabled();
     VerifyHeadlessFinalizationPreparationBuildsReportContextAndArtifacts();
     VerifyFinalizationResultApplicationCopiesArtifactStatuses();
     VerifyHeadlessArtifactIoHelpersReportSuccessAndFailure();

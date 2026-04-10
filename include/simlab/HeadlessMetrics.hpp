@@ -19,6 +19,7 @@
 
 #include "core/Logger.hpp"
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -309,6 +310,14 @@ namespace simlab
         std::string batchIndexFailureCategory;
     };
 
+    struct InteractiveQuitPreparation
+    {
+        bool enabled{false};
+        std::atomic<bool>* running{nullptr};
+        std::atomic<bool>* quitRequestedByInput{nullptr};
+        std::atomic<bool>* quitRequestedByEof{nullptr};
+    };
+
     struct HeadlessLocalState
     {
         std::ofstream outputStream;
@@ -451,6 +460,15 @@ namespace simlab
                                     const HeadlessStartupLoggingPreparation& preparation);
     void LogHeadlessFinalizationMessages(const core::Logger& logger,
                                          const HeadlessFinalizationLoggingPreparation& preparation);
+    InteractiveQuitPreparation PrepareInteractiveQuitHandling(bool headless,
+                                                              int maxFrames,
+                                                              std::atomic<bool>& running,
+                                                              std::atomic<bool>& quitRequestedByInput,
+                                                              std::atomic<bool>& quitRequestedByEof);
+    void LogInteractiveQuitPrompt(const core::Logger& logger,
+                                  const InteractiveQuitPreparation& preparation);
+    void RunInteractiveQuitInputLoop(const InteractiveQuitPreparation& preparation,
+                                     std::istream& input);
     HeadlessRunFinalizationPreparation PrepareHeadlessRunFinalization(const HeadlessRunOutcomeTracker& outcome,
                                                                       std::string_view requestedScenarioKey,
                                                                       std::string_view resolvedScenarioKey,
