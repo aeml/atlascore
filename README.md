@@ -29,11 +29,11 @@ AtlasCore is a modern C++20 simulation framework for deterministic, testable, sy
 - Final vision: [final_vision.md](final_vision.md)
 - Planned media folder: [`docs/media/`](docs/media/)
 
-## Preview placeholders
-![AtlasCore demo placeholder](docs/media/demo-terminal.svg)
-![AtlasCore headless output placeholder](docs/media/headless-output.svg)
+## Preview
+![AtlasCore demo terminal capture](docs/media/demo-terminal.svg)
+![AtlasCore headless output capture](docs/media/headless-output.svg)
 
-> Replace the placeholder SVG files in `docs/media/` with terminal captures or GIFs from real scenarios. Add an animated capture as `docs/media/demo-loop.gif` when ready.
+> README visuals are generated from real AtlasCore runs in a clean clone so the project shows actual output rather than fake terminal art.
 
 ## System architecture
 

@@ -1,8 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
   <rect width="1280" height="720" fill="#0b1020"/>
-  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#111827" stroke="#60a5fa" stroke-width="3" stroke-dasharray="12 10"/>
-  <text x="640" y="210" text-anchor="middle" fill="#eff6ff" font-size="42" font-family="Arial, sans-serif">AtlasCore README Placeholder</text>
-  <text x="640" y="280" text-anchor="middle" fill="#93c5fd" font-size="28" font-family="Arial, sans-serif">Replace with interactive demo terminal capture</text>
-  <text x="640" y="330" text-anchor="middle" fill="#93c5fd" font-size="28" font-family="Arial, sans-serif">Show motion, scenario structure, and legible simulation output</text>
-  <text x="640" y="600" text-anchor="middle" fill="#bfdbfe" font-size="24" font-family="Arial, sans-serif">docs/media/demo-terminal.svg → replace with real capture</text>
+  <rect x="40" y="40" width="1200" height="640" rx="18" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+  <circle cx="80" cy="76" r="8" fill="#ef4444"/>
+  <circle cx="105" cy="76" r="8" fill="#f59e0b"/>
+  <circle cx="130" cy="76" r="8" fill="#22c55e"/>
+  <text x="165" y="83" fill="#93c5fd" font-size="22" font-family="Menlo, Consolas, monospace">atlascore_app interactive menu</text>
+
+  <text x="70" y="135" fill="#a7f3d0" font-size="20" font-family="Menlo, Consolas, monospace">[2026-04-10 19:00:15] INFO: AtlasCore starting up...</text>
+  <text x="70" y="175" fill="#e5e7eb" font-size="22" font-family="Menlo, Consolas, monospace">========================================</text>
+  <text x="70" y="205" fill="#f8fafc" font-size="24" font-family="Menlo, Consolas, monospace">      AtlasCore Simulation Framework</text>
+  <text x="70" y="235" fill="#e5e7eb" font-size="22" font-family="Menlo, Consolas, monospace">========================================</text>
+  <text x="70" y="280" fill="#fde68a" font-size="21" font-family="Menlo, Consolas, monospace">Select a simulation to run:</text>
+  <text x="90" y="320" fill="#cbd5e1" font-size="20" font-family="Menlo, Consolas, monospace">[1] Planetary Gravity (N-Body)            (gravity)</text>
+  <text x="90" y="350" fill="#cbd5e1" font-size="20" font-family="Menlo, Consolas, monospace">[2] Wrecking Ball (Joints &amp; Collisions) (wrecking)</text>
+  <text x="90" y="380" fill="#cbd5e1" font-size="20" font-family="Menlo, Consolas, monospace">[3] Particle Fluid (High Entity Count)    (fluid)</text>
+  <text x="90" y="410" fill="#f8fafc" font-size="20" font-family="Menlo, Consolas, monospace">[4] Full Demo (All Systems Active)        (demo)</text>
+
+  <rect x="70" y="455" width="1140" height="92" rx="12" fill="#111827" stroke="#1d4ed8"/>
+  <text x="90" y="492" fill="#93c5fd" font-size="19" font-family="Menlo, Consolas, monospace">Run interactively with ./atlascore_app or pick a scenario directly:</text>
+  <text x="90" y="524" fill="#e5e7eb" font-size="19" font-family="Menlo, Consolas, monospace">./atlascore_app demo</text>
+
+  <text x="70" y="590" fill="#cbd5e1" font-size="18" font-family="Arial, sans-serif">Real capture source: demo menu output from a local AtlasCore run in a clean clone.</text>
+  <text x="70" y="620" fill="#94a3b8" font-size="17" font-family="Arial, sans-serif">This README visual is generated from actual app output instead of a fabricated mock terminal.</text>
 </svg>

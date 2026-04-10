@@ -1,8 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
   <rect width="1280" height="720" fill="#111827"/>
-  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#0f172a" stroke="#34d399" stroke-width="3" stroke-dasharray="12 10"/>
-  <text x="640" y="210" text-anchor="middle" fill="#ecfdf5" font-size="42" font-family="Arial, sans-serif">AtlasCore README Placeholder</text>
-  <text x="640" y="280" text-anchor="middle" fill="#86efac" font-size="28" font-family="Arial, sans-serif">Replace with headless output or determinism-oriented capture</text>
-  <text x="640" y="330" text-anchor="middle" fill="#86efac" font-size="28" font-family="Arial, sans-serif">Use real scenario output that communicates stability and testability</text>
-  <text x="640" y="600" text-anchor="middle" fill="#bbf7d0" font-size="24" font-family="Arial, sans-serif">docs/media/headless-output.svg → replace with real capture</text>
+  <text x="70" y="80" fill="#ecfdf5" font-size="34" font-family="Arial, sans-serif" font-weight="700">AtlasCore headless gravity run</text>
+  <text x="70" y="115" fill="#86efac" font-size="20" font-family="Arial, sans-serif">Real run: gravity --headless --frames=120 --output-prefix=artifacts/readme/gravity</text>
+
+  <rect x="70" y="150" width="740" height="500" rx="16" fill="#0f172a" stroke="#334155"/>
+  <text x="100" y="188" fill="#e5e7eb" font-size="18" font-family="Menlo, Consolas, monospace">--- FRAME SNAPSHOT ---</text>
+  <text x="100" y="228" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                               o      o o  o</text>
+  <text x="100" y="252" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                  o                                    o</text>
+  <text x="100" y="276" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                             o      o  o                        o</text>
+  <text x="100" y="300" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">              o    o   o   o  o       o       o</text>
+  <text x="100" y="324" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">           o                 oo    o o @@@o     o o      o</text>
+  <text x="100" y="348" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                                  o   @   @o o</text>
+  <text x="100" y="372" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                              o  o   @o    @     o  o</text>
+  <text x="100" y="396" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                            o  o o o@       @o    o</text>
+  <text x="100" y="420" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">                      o             @   o   @          o o</text>
+  <text x="100" y="444" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">     o             o                @       @         o</text>
+  <text x="100" y="468" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">              o  o           o    o  @     @</text>
+  <text x="100" y="492" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">             o     o  o            o  @   @o</text>
+  <text x="100" y="516" fill="#cbd5e1" font-size="16" font-family="Menlo, Consolas, monospace">           o                 o  o      @@@                             o</text>
+  <text x="100" y="560" fill="#94a3b8" font-size="16" font-family="Menlo, Consolas, monospace">ASCII frame excerpt from gravity_output.txt</text>
+
+  <rect x="850" y="150" width="360" height="500" rx="16" fill="#0b1220" stroke="#334155"/>
+  <text x="880" y="190" fill="#f8fafc" font-size="22" font-family="Arial, sans-serif">Run summary</text>
+  <text x="880" y="235" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">scenario: gravity</text>
+  <text x="880" y="265" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">frame_count: 120</text>
+  <text x="880" y="295" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">run_status: success</text>
+  <text x="880" y="325" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">termination: frame_cap</text>
+  <text x="880" y="355" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">rigid_bodies: 101</text>
+  <text x="880" y="385" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">dynamic_bodies: 100</text>
+  <text x="880" y="415" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">peak_collisions: 62</text>
+  <text x="880" y="445" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">avg_update_s: 0.000718</text>
+  <text x="880" y="475" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">avg_render_s: 0.000045</text>
+  <text x="880" y="505" fill="#cbd5e1" font-size="18" font-family="Menlo, Consolas, monospace">avg_frame_s: 0.000764</text>
+  <text x="880" y="560" fill="#86efac" font-size="18" font-family="Arial, sans-serif">Real source files:</text>
+  <text x="880" y="590" fill="#94a3b8" font-size="16" font-family="Menlo, Consolas, monospace">gravity_output.txt</text>
+  <text x="880" y="614" fill="#94a3b8" font-size="16" font-family="Menlo, Consolas, monospace">gravity_metrics.csv</text>
+  <text x="880" y="638" fill="#94a3b8" font-size="16" font-family="Menlo, Consolas, monospace">gravity_summary.csv</text>
 </svg>

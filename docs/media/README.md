@@ -2,9 +2,13 @@
 
 Drop README-facing visual assets here.
 
-Recommended files:
-- `demo-terminal.png` — terminal capture of the interactive demo scenario
-- `headless-output.png` — screenshot of headless output or determinism-oriented run output
+Current README assets:
+- `demo-terminal.svg` — interactive menu/demo capture generated from a real local run
+- `headless-output.svg` — gravity headless output summary generated from a real local run
+
+Recommended next assets:
+- `demo-terminal.png` — raster export if you want a social-preview-friendly variant
+- `headless-output.png` — raster export for platforms with weak SVG rendering
 - `demo-loop.gif` — short animated terminal capture of a scenario running
 
 Guidelines:
