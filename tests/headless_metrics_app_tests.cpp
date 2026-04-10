@@ -741,7 +741,16 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_write_failure_run --batch-index=/dev/full > /tmp/atlascore_headless_batch_write_failure.log 2>&1");
+        const std::filesystem::path batchIndexPath = std::filesystem::exists("/dev/full")
+                                                   ? std::filesystem::path("/dev/full")
+                                                   : std::filesystem::path("/definitely_missing/atlascore_batch_index.csv");
+        const std::string expectedFailureCategory = batchIndexPath == std::filesystem::path("/dev/full")
+                                                  ? "batch_index_write_failed"
+                                                  : "batch_index_open_failed";
+        const std::string command = "./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_write_failure_run --batch-index="
+                                  + batchIndexPath.string()
+                                  + " > /tmp/atlascore_headless_batch_write_failure.log 2>&1";
+        const int rc = std::system(command.c_str());
         assert(rc == 0);
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
@@ -751,9 +760,9 @@ namespace
         assert(manifestColumns[10].empty());
         assert(manifestColumns[11].empty());
         assert(manifestColumns[12] == "frame_cap");
-        assert(manifestColumns[16] == "/dev/full");
+        assert(manifestColumns[16] == batchIndexPath.string());
         assert(manifestColumns[17] == "append_failed");
-        assert(manifestColumns[18] == "batch_index_write_failed");
+        assert(manifestColumns[18] == expectedFailureCategory);
         assert(manifestColumns[19] == "written");
         assert(manifestColumns[20].empty());
         assert(manifestColumns[21] == "written");

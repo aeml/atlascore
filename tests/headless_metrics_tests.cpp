@@ -1269,9 +1269,15 @@ namespace
         simlab::HeadlessRunManifest manifest{};
         std::string appendStatus{"appended"};
         std::string failureCategory;
-        simlab::AppendHeadlessManifestToBatchIndex("/dev/full", manifest, appendStatus, failureCategory);
+        const std::filesystem::path batchIndexPath = std::filesystem::exists("/dev/full")
+                                                   ? std::filesystem::path("/dev/full")
+                                                   : std::filesystem::path("/definitely_missing/atlascore_batch_index.csv");
+        simlab::AppendHeadlessManifestToBatchIndex(batchIndexPath, manifest, appendStatus, failureCategory);
         assert(appendStatus == "append_failed");
-        assert(failureCategory == "batch_index_write_failed");
+        const std::string expectedFailureCategory = batchIndexPath == std::filesystem::path("/dev/full")
+                                                  ? "batch_index_write_failed"
+                                                  : "batch_index_open_failed";
+        assert(failureCategory == expectedFailureCategory);
     }
 
     void VerifyHeadlessArtifactBootstrapCoordinatorOpensArtifactsAndWritesHeaders()
