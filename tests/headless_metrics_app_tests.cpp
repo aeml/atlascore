@@ -81,6 +81,62 @@ namespace
         return rc;
     }
 
+    std::string QuoteForShell(const std::filesystem::path& path)
+    {
+        return '"' + path.string() + '"';
+    }
+
+    std::filesystem::path BuildLogPath(const std::string_view name)
+    {
+        const auto logDir = std::filesystem::current_path() / "artifacts" / "test_logs";
+        std::filesystem::create_directories(logDir);
+        return logDir / std::filesystem::path(name);
+    }
+
+    std::string AppExecutableCommand()
+    {
+#ifdef _WIN32
+        return ".\\atlascore_app.exe";
+#else
+        return "./atlascore_app";
+#endif
+    }
+
+    int RunAppCommand(const std::string_view arguments,
+                      const std::filesystem::path& logPath)
+    {
+        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
+                                  + " > " + QuoteForShell(logPath) + " 2>&1";
+        return std::system(command.c_str());
+    }
+
+    int RunAppCommandWithNullInput(const std::string_view arguments,
+                                   const std::filesystem::path& logPath)
+    {
+#ifdef _WIN32
+        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
+                                  + " < NUL > " + QuoteForShell(logPath) + " 2>&1";
+#else
+        const std::string command = AppExecutableCommand() + " " + std::string(arguments)
+                                  + " < /dev/null > " + QuoteForShell(logPath) + " 2>&1";
+#endif
+        return std::system(command.c_str());
+    }
+
+    int RunAppCommandWithPipedLine(const std::string_view line,
+                                   const std::string_view arguments,
+                                   const std::filesystem::path& logPath)
+    {
+#ifdef _WIN32
+        const std::string command = "echo " + std::string(line) + " | " + AppExecutableCommand() + " "
+                                  + std::string(arguments) + " > " + QuoteForShell(logPath) + " 2>&1";
+#else
+        const std::string command = "printf '" + std::string(line) + "\\n' | " + AppExecutableCommand() + " "
+                                  + std::string(arguments) + " > " + QuoteForShell(logPath) + " 2>&1";
+#endif
+        return std::system(command.c_str());
+    }
+
     void VerifyHeadlessRunWritesExpectedFiles(const std::string& command,
                                               const std::filesystem::path& metricsPath,
                                               const std::filesystem::path& summaryPath,
@@ -218,7 +274,8 @@ namespace
         const auto outputPath = cwd / "headless_output.txt";
         const auto manifestPath = cwd / "headless_manifest.csv";
 
-        VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 > /tmp/atlascore_headless_metrics_app_test.log 2>&1",
+        const auto logPath = BuildLogPath("headless_metrics_app_test.log");
+        VerifyHeadlessRunWritesExpectedFiles(AppExecutableCommand() + " gravity --headless --frames=3 > " + QuoteForShell(logPath) + " 2>&1",
                                              metricsPath,
                                              summaryPath,
                                              outputPath,
@@ -237,7 +294,8 @@ namespace
         std::filesystem::remove(prefix.string() + "_manifest.csv");
         std::filesystem::remove_all(cwd / "artifacts");
 
-        VerifyHeadlessRunWritesExpectedFiles("./atlascore_app gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run > /tmp/atlascore_headless_metrics_prefixed_app_test.log 2>&1",
+        const auto logPath = BuildLogPath("headless_metrics_prefixed_app_test.log");
+        VerifyHeadlessRunWritesExpectedFiles(AppExecutableCommand() + " gravity --headless --frames=3 --output-prefix=artifacts/gravity_batch_run > " + QuoteForShell(logPath) + " 2>&1",
                                              prefix.string() + "_metrics.csv",
                                              prefix.string() + "_summary.csv",
                                              prefix.string() + "_output.txt",
@@ -252,10 +310,12 @@ namespace
         std::filesystem::remove(batchIndexPath);
         std::filesystem::remove_all(cwd / "artifacts" / "batch_runs");
 
-        const int firstRc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_a --batch-index=artifacts/batch_index.csv > /tmp/atlascore_headless_batch_index_a.log 2>&1");
-        assert(firstRc == 0);
-        const int secondRc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_b --batch-index=artifacts/batch_index.csv > /tmp/atlascore_headless_batch_index_b.log 2>&1");
-        assert(secondRc == 0);
+        const int firstRc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_a --batch-index=artifacts/batch_index.csv",
+                                          BuildLogPath("headless_batch_index_a.log"));
+        assert(NormalizeExitCode(firstRc) == 0);
+        const int secondRc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/batch_runs/gravity_b --batch-index=artifacts/batch_index.csv",
+                                           BuildLogPath("headless_batch_index_b.log"));
+        assert(NormalizeExitCode(secondRc) == 0);
 
         const auto lines = ReadLines(batchIndexPath);
         assert(lines.size() == 3);
@@ -331,8 +391,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app does-not-exist --headless --frames=2 --output-prefix=artifacts/fallback_run > /tmp/atlascore_headless_fallback_selection.log 2>&1");
-        assert(rc == 0);
+        const int rc = RunAppCommand("does-not-exist --headless --frames=2 --output-prefix=artifacts/fallback_run",
+                                     BuildLogPath("headless_fallback_selection.log"));
+        assert(NormalizeExitCode(rc) == 0);
 
         const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
@@ -385,7 +446,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("printf '2\n' | ./atlascore_app --headless --frames=2 --output-prefix=artifacts/interactive_menu_run > /tmp/atlascore_headless_interactive_menu.log 2>&1");
+        const int rc = RunAppCommandWithPipedLine("2",
+                                                  "--headless --frames=2 --output-prefix=artifacts/interactive_menu_run",
+                                                  BuildLogPath("headless_interactive_menu.log"));
         assert(NormalizeExitCode(rc) == 0);
 
         const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
@@ -418,8 +481,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app gravity --headless --output-prefix=artifacts/headless_default_run > /tmp/atlascore_headless_default_termination.log 2>&1");
-        assert(rc == 0);
+        const int rc = RunAppCommand("gravity --headless --output-prefix=artifacts/headless_default_run",
+                                     BuildLogPath("headless_default_termination.log"));
+        assert(NormalizeExitCode(rc) == 0);
 
         const auto summaryLines = ReadLines(prefix.string() + "_summary.csv");
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
@@ -475,8 +539,9 @@ namespace
             blocker << "not a directory";
         }
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_output_base/run > /tmp/atlascore_headless_output_open_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/blocked_output_base/run",
+                                     BuildLogPath("headless_output_open_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryLines = ReadLines(fallbackSummaryPath);
         const auto summaryColumns = SplitCsvRow(summaryLines[1]);
@@ -529,8 +594,9 @@ namespace
         std::filesystem::remove(fallbackManifestPath);
         std::filesystem::create_directories(metricsBlockPath);
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_metrics_open > /tmp/atlascore_headless_metrics_open_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/blocked_metrics_open",
+                                     BuildLogPath("headless_metrics_open_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
@@ -563,8 +629,9 @@ namespace
         std::filesystem::remove(fallbackManifestPath);
         std::filesystem::create_directories(summaryBlockPath);
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_summary_open > /tmp/atlascore_headless_summary_open_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/blocked_summary_open",
+                                     BuildLogPath("headless_summary_open_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
@@ -597,8 +664,9 @@ namespace
         std::filesystem::remove(fallbackManifestPath);
         std::filesystem::create_directories(manifestBlockPath);
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/blocked_manifest_open > /tmp/atlascore_headless_manifest_open_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/blocked_manifest_open",
+                                     BuildLogPath("headless_manifest_open_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
         assert(summaryColumns[9] == "startup_failure");
@@ -624,7 +692,8 @@ namespace
         std::filesystem::remove(fallbackSummaryPath);
         std::filesystem::remove(fallbackManifestPath);
 
-        const int rc = std::system("./atlascore_app fail_setup --headless --frames=2 --output-prefix=artifacts/fail_setup > /tmp/atlascore_headless_setup_failure.log 2>&1");
+        const int rc = RunAppCommand("fail_setup --headless --frames=2 --output-prefix=artifacts/fail_setup",
+                                     BuildLogPath("headless_setup_failure.log"));
         assert(NormalizeExitCode(rc) == 1);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(fallbackSummaryPath)[1]);
@@ -651,10 +720,11 @@ namespace
         std::filesystem::remove(fallbackSummaryPath);
         std::filesystem::remove(fallbackManifestPath);
 
-        const int rc = std::system("./atlascore_app fail_setup < /dev/null > /tmp/atlascore_interactive_fail_setup.log 2>&1");
+        const auto logPath = BuildLogPath("interactive_fail_setup.log");
+        const int rc = RunAppCommandWithNullInput("fail_setup", logPath);
         assert(NormalizeExitCode(rc) == 1);
 
-        const auto logLines = ReadLines("/tmp/atlascore_interactive_fail_setup.log");
+        const auto logLines = ReadLines(logPath);
         bool sawShutdownLog = false;
         for (const auto& line : logLines)
         {
@@ -689,8 +759,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app fail_update --headless --frames=2 --output-prefix=artifacts/fail_update > /tmp/atlascore_headless_update_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("fail_update --headless --frames=2 --output-prefix=artifacts/fail_update",
+                                     BuildLogPath("headless_update_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
@@ -720,8 +791,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app fail_world_update --headless --frames=2 --output-prefix=artifacts/fail_world_update > /tmp/atlascore_headless_world_update_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("fail_world_update --headless --frames=2 --output-prefix=artifacts/fail_world_update",
+                                     BuildLogPath("headless_world_update_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
@@ -751,8 +823,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app fail_render --headless --frames=2 --output-prefix=artifacts/fail_render > /tmp/atlascore_headless_render_failure.log 2>&1");
-        assert(rc != 0);
+        const int rc = RunAppCommand("fail_render --headless --frames=2 --output-prefix=artifacts/fail_render",
+                                     BuildLogPath("headless_render_failure.log"));
+        assert(NormalizeExitCode(rc) != 0);
 
         const auto summaryColumns = SplitCsvRow(ReadLines(prefix.string() + "_summary.csv")[1]);
         assert(summaryColumns[8] == "0");
@@ -791,8 +864,9 @@ namespace
             blocker << "not a directory";
         }
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_append_failure_run --batch-index=artifacts/blocked_batch_index/runs.csv > /tmp/atlascore_headless_batch_append_failure.log 2>&1");
-        assert(rc == 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/batch_append_failure_run --batch-index=artifacts/blocked_batch_index/runs.csv",
+                                     BuildLogPath("headless_batch_append_failure.log"));
+        assert(NormalizeExitCode(rc) == 0);
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
@@ -829,17 +903,20 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
+#ifdef _WIN32
+        const std::filesystem::path batchIndexPath = std::filesystem::path("Z:/definitely_missing/atlascore_batch_index.csv");
+        const std::string expectedFailureCategory = "batch_index_open_failed";
+#else
         const std::filesystem::path batchIndexPath = std::filesystem::exists("/dev/full")
                                                    ? std::filesystem::path("/dev/full")
                                                    : std::filesystem::path("/definitely_missing/atlascore_batch_index.csv");
         const std::string expectedFailureCategory = batchIndexPath == std::filesystem::path("/dev/full")
                                                   ? "batch_index_write_failed"
                                                   : "batch_index_open_failed";
-        const std::string command = "./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/batch_write_failure_run --batch-index="
-                                  + batchIndexPath.string()
-                                  + " > /tmp/atlascore_headless_batch_write_failure.log 2>&1";
-        const int rc = std::system(command.c_str());
-        assert(rc == 0);
+#endif
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/batch_write_failure_run --batch-index=" + batchIndexPath.string(),
+                                     BuildLogPath("headless_batch_write_failure.log"));
+        assert(NormalizeExitCode(rc) == 0);
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
@@ -876,8 +953,9 @@ namespace
         std::filesystem::remove(prefix.string() + "_output.txt");
         std::filesystem::remove(prefix.string() + "_manifest.csv");
 
-        const int rc = std::system("./atlascore_app gravity --headless --frames=2 --output-prefix=artifacts/summary_write_failure --batch-index=artifacts/summary_write_failure_batch.csv > /tmp/atlascore_headless_summary_write_failure.log 2>&1");
-        assert(rc == 0);
+        const int rc = RunAppCommand("gravity --headless --frames=2 --output-prefix=artifacts/summary_write_failure --batch-index=artifacts/summary_write_failure_batch.csv",
+                                     BuildLogPath("headless_summary_write_failure.log"));
+        assert(NormalizeExitCode(rc) == 0);
 
         const auto manifestLines = ReadLines(prefix.string() + "_manifest.csv");
         const auto manifestColumns = SplitCsvRow(manifestLines[1]);
