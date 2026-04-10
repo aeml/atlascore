@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cerrno>
-#ifdef __unix__
+#if !defined(_WIN32)
 #include <sys/wait.h>
 #endif
 
@@ -68,7 +68,7 @@ namespace
 
     int NormalizeExitCode(const int rc)
     {
-#ifdef __unix__
+#if !defined(_WIN32)
         if (WIFEXITED(rc))
         {
             return WEXITSTATUS(rc);
