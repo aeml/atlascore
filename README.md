@@ -1,192 +1,125 @@
-# AtlasCore ![CI](https://github.com/aeml/atlascore/actions/workflows/ci.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/coverage-%2Fcoverage-blue)](https://aeml.github.io/atlascore/coverage/) [![Docs](https://img.shields.io/badge/docs-doxygen-green)](https://aeml.github.io/atlascore/)
+# AtlasCore
 
-AtlasCore is a modern C++20 simulation framework for deterministic, testable, systems-heavy experiments across ECS composition, multithreaded job scheduling, fixed-timestep physics, and lightweight ASCII rendering.
+AtlasCore is a C++ systems architecture project for building and testing small simulation workloads. In plain English: it is a compact simulation framework with an ECS world, a fixed-step update loop, physics systems, optional ASCII output, and a headless mode for repeatable runs and regression testing.
 
-## Why this project exists
-- Explore engine-style architecture without hiding the interesting parts behind heavyweight dependencies
-- Make determinism, scheduling, physics, and scenario-driven testing first-class concerns
-- Provide a compact but serious codebase for simulation, concurrency, and systems design work
+## Overview
 
-## Technical highlights
-- Multithreaded job scheduling with optional parallel physics/collision phases
-- ECS with type-erased component registries and polymorphic system updates
-- Deterministic fixed-timestep physics covering integration, collision detection, resolution, and constraints
-- Simulation Lab scenarios for demos, headless runs, benchmarks, and determinism hashing
-- Extensive self-tests plus CI coverage, sanitizer jobs, and published docs
+AtlasCore is organized like a small engine-style runtime rather than a single demo program. The codebase is split into focused modules for core timing/logging, ECS state management, physics, a standalone job system, ASCII rendering, and scenario-driven simulation runs.
 
-## What it demonstrates
-- concurrency and systems programming
-- determinism and testability
-- simulation / engine architecture
-- shipping discipline beyond toy demos
+The main application drives scenarios through a fixed timestep of `1/60` seconds, which makes the update path easier to reason about and test. Built-in scenarios such as `gravity`, `wrecking`, `fluid`, and `demo` exercise the same runtime with different workloads.
 
-## Recommended visuals to add
-- Terminal capture or GIF of the `demo` scenario running
-- Screenshot of headless output or determinism-oriented scenario output
-- One architecture image or annotated screenshot showing modules / simulation flow
+## What this demonstrates
 
-## Vision and media
-- Final vision: [final_vision.md](final_vision.md)
-- Planned media folder: [`docs/media/`](docs/media/)
+- C++20 systems programming with explicit ownership and small module boundaries
+- ECS-oriented simulation design with separate entities, components, and systems
+- Deterministic update patterns: fixed timestep, ordered system execution, and world-state hashing tests
+- Performance-minded design choices such as dense component storage, bounded update catch-up, and optional job dispatch for larger physics workloads
+- Maintainability through clear module separation, headless automation hooks, and a broad CTest suite
 
-## Preview
-![AtlasCore demo terminal capture](docs/media/demo-terminal.svg)
-![AtlasCore headless output capture](docs/media/headless-output.svg)
+## Architecture
 
-> README visuals are generated from real AtlasCore runs in a clean clone so the project shows actual output rather than fake terminal art.
-
-## System architecture
+AtlasCore keeps the runtime pieces separate so simulation code is easy to extend without rewriting the engine loop.
 
 ```mermaid
-graph TD
-    App[atlascore_app] --> SimLab[Scenario Registry / SimLab]
-    SimLab --> Loop[FixedTimestepLoop]
-    Loop --> Jobs[JobSystem]
-    Loop --> ECS[World / ECS]
-    ECS --> Physics[Physics Systems]
-    ECS --> Render[ASCII Renderer]
-    Physics --> Hashing[Determinism Hashing / Tests]
-    Jobs --> Physics
-    Render --> Output[Interactive Terminal or Headless Output]
+flowchart LR
+    App[atlascore_app] --> Loop[FixedTimestepLoop]
+    App --> Registry[ScenarioRegistry]
+    Registry --> Scenario[Scenario]
+    Loop --> Scenario
+    Loop --> World[ecs::World]
+    World --> Systems[Ordered ISystem updates]
+    Systems --> Physics[physics::PhysicsSystem]
+    Physics --> Jobs[optional jobs::JobSystem]
+    Scenario --> Render[ascii::TextRenderer]
+    World --> Hash[simlab::WorldHasher]
+    Hash --> Tests[determinism tests]
 ```
 
-See [sysarchitecture.md](sysarchitecture.md) for deeper design notes. Module-specific docs live under [docs/](docs/).
+Key modules:
 
-## Modules
+| Module | Role |
+| --- | --- |
+| `core` | Clock, logging, and fixed-timestep loop |
+| `ecs` | Entity IDs, component storage, ordered system updates |
+| `physics` | Integration, collision detection, constraint solving, resolution |
+| `jobs` | Worker-pool job dispatch used by larger physics passes |
+| `simlab` | Scenario registry, headless metrics, world hashing, run orchestration |
+| `ascii` | Lightweight terminal rendering for interactive scenarios |
 
-| Module   | Key Types / Responsibilities |
-|----------|------------------------------|
-| core     | `Logger`, `Clock`, `FixedTimestepLoop` (stable fixed delta) |
-| jobs     | `JobSystem` (worker pool, scheduling, optional parallelization hooks) |
-| ecs      | `World`, `ComponentStorage<T>`, `ISystem` polymorphic updates |
-| physics  | Components: `TransformComponent`, `RigidBodyComponent`, `DistanceJointComponent`, `EnvironmentForces`, `AABBComponent`, `CircleColliderComponent`; Systems: `PhysicsIntegrationSystem`, `CollisionSystem`, `CollisionResolutionSystem`, `ConstraintResolutionSystem`, `PhysicsSystem` orchestrator |
-| ascii    | `TextRenderer` + `Renderer` (terminal diff rendering) |
-| simlab   | Scenario registry, hashing tools, built‑in scenarios (see below) |
+## ECS / simulation model
 
-## Scenarios (SimLab)
+The ECS centers on `ecs::World`, which owns entities, type-erased component stores, and a list of polymorphic systems. `ComponentStorage<T>` uses dense vectors plus an entity-to-index map, so iteration stays contiguous while lookup and removal remain direct.
 
-Scenario keys (CLI):
+Simulation flow is straightforward:
 
-```
-demo             # Full Demo (All Systems Active)
-gravity          # Planetary Gravity (N-Body)
-wrecking         # Wrecking Ball (Joints & Collisions)
-fluid            # Particle Fluid (High Entity Count)
-```
+1. A scenario builds an `ecs::World` in `Setup`.
+2. The app runs a fixed-step loop at `1/60` seconds.
+3. Each tick calls scenario logic, then `world.Update(dt)`.
+4. `world.Update(dt)` runs systems in insertion order.
+5. Rendering is either interactive ASCII output or headless file export.
 
-Run interactively (menu-driven) with `./atlascore_app` (no args) or pick a key: `./atlascore_app demo`. Use `--headless` or env `ATLASCORE_HEADLESS=1` for file-based headless exports. Add `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead of the default `headless_*` files. Add `--batch-index=PATH.csv` to append each run manifest row into a shared batch ledger.
+The physics pipeline is explicit. `physics::PhysicsSystem` substeps each frame, integrates bodies, syncs broadphase bounds, detects collisions, resolves positions, solves joints, updates velocities, and then resolves collision velocities. When workloads are large enough, integration and collision detection can dispatch batch jobs through `jobs::JobSystem`; the code keeps deterministic behavior in mind by sorting collision work and merging per-task results in order.
 
-## Directory Structure (Public Headers)
+Determinism is a first-class concern in the current codebase. `core::FixedTimestepLoop` clamps frame time, bounds catch-up work, and advances the simulation in fixed increments. `simlab::WorldHasher` hashes ECS world state, and the determinism tests rerun built-in scenarios and compare hash streams across identical runs.
 
-```
-include/
-  core/      Clock.hpp, FixedTimestepLoop.hpp, Logger.hpp
-  jobs/      JobSystem.hpp
-  ecs/       World.hpp, ComponentStorage.hpp
-  physics/   Components.hpp, Systems.hpp, CollisionSystem.hpp
-  ascii/     TextRenderer.hpp, Renderer.hpp
-  simlab/    Scenario.hpp (plus registry + hashing in src/simlab)
-src/         (module implementations)
-tests/       (CTest executables driven by CMake options)
-docs/        (module docs + workflows)
-```
+## Tech stack
 
-## Building
+- C++20
+- CMake 3.20+
+- Standard library threading and synchronization primitives
+- CTest for test execution
+- GitHub Actions for CI across Linux, macOS, and Windows
 
-Prerequisites: CMake ≥ 3.20, a C++20 compiler (MSVC 17+, Clang, or GCC). Optional: Ninja.
+## Build instructions
 
-Windows (MSVC):
-```powershell
-mkdir build
-cd build
-cmake -G "Visual Studio 17 2022" ..
-cmake --build . --config Debug --parallel
-```
-
-Linux / macOS (Clang/GCC):
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --parallel
-```
-
-Options:
-* `ATLASCORE_BUILD_TESTS=ON|OFF` (default ON)
-* `ATLASCORE_ENABLE_COVERAGE=ON` (GNU/Clang only; adds `--coverage -O0 -g -fprofile-update=atomic`)
-
-## Running & CLI
+AtlasCore uses CMake and builds a library plus the `atlascore_app` executable.
 
 ```bash
-./atlascore_app                 # interactive menu
-./atlascore_app demo            # full demo (pendulum, tower, particles)
-./atlascore_app gravity         # specific scenario
-./atlascore_app fluid --headless
-./atlascore_app demo --headless --frames=300  # auto-quit after 300 frames
-./atlascore_app gravity --headless --frames=300 --output-prefix=artifacts/gravity_run
-./atlascore_app gravity --headless --frames=300 --output-prefix=artifacts/gravity_run --batch-index=artifacts/batch_index.csv
-ATLASCORE_HEADLESS=1 ./atlascore_app wrecking  # env flag alternative
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_BUILD_TESTS=ON
+cmake --build build --config Debug --parallel
 ```
 
-Headless output files default to `headless_output.txt`, `headless_metrics.csv`, `headless_summary.csv`, and `headless_manifest.csv` (all overwritten per run). Use `--output-prefix=PATH_BASE` to write `PATH_BASE_output.txt`, `PATH_BASE_metrics.csv`, `PATH_BASE_summary.csv`, and `PATH_BASE_manifest.csv` instead. The per-frame metrics CSV includes frame index, simulated time, world hash, collision count, rigid-body count, dynamic-body count, transform count, update wall time, render wall time, and total frame wall time. The summary CSV now records scenario-selection honesty fields (`requested_scenario_key`, `resolved_scenario_key`, `fallback_used`) plus run config metadata (`fixed_dt_seconds`, `bounded_frames`, `requested_frames`, `headless`, `run_config_hash`), run outcome fields (`run_status`, `failure_category`, `failure_detail`), and `termination_reason` before the aggregate timing/state fields. `bounded_frames=0` means the run was not frame-capped and `requested_frames` is therefore the sentinel `0`. Current successful termination reasons are `frame_cap`, `unbounded_headless_default`, `user_quit`, and `eof_quit`. Current startup failure categories now distinguish `output_directory_create_failed`, `output_file_open_failed`, `metrics_file_open_failed`, `summary_file_open_failed`, `manifest_file_open_failed`, `scenario_setup_failed`, and `batch_index_open_failed`. Runtime failures are now exported separately as `scenario_update_failed`, `world_update_failed`, or `scenario_render_failed` instead of vanishing into a bare nonzero exit, and `failure_detail` preserves the exception message when the runtime has one. When startup fails before the normal artifacts can be opened, AtlasCore falls back to `headless_startup_failure_summary.csv` and `headless_startup_failure_manifest.csv` so automation still gets an honest record. The manifest CSV also records per-artifact export status fields: `output_write_status`, `output_failure_category`, `metrics_write_status`, `metrics_failure_category`, `summary_write_status`, and `summary_failure_category`, alongside the existing batch-index linkage/status fields. It now also records the reporter’s own health: `manifest_write_status`, `manifest_failure_category`, `startup_failure_summary_write_status`, `startup_failure_summary_failure_category`, `startup_failure_manifest_write_status`, and `startup_failure_manifest_failure_category`. It also records the process exit contract directly: `exit_code` and `exit_classification`. `written` means the stream stayed healthy through flush, `write_failed` means the run reached that write path but the stream did not survive flush, and `not_applicable` means that artifact path was never relevant for that run shape. Current export failure categories include `output_write_failed`, `metrics_write_failed`, `summary_write_failed`, `manifest_write_failed`, `startup_failure_summary_write_failed`, and `startup_failure_manifest_write_failed`. Current exit classifications are `success_exit` for successful runs and `startup_failure_exit` when AtlasCore exits early after writing startup-failure artifacts. Batch-index fields still distinguish `not_requested`, `appended`, and `append_failed`; current batch index failure categories distinguish `batch_index_open_failed` from `batch_index_write_failed`, so sweeps can tell the difference between path/setup problems and late write/flush failures. The manifest CSV records the same selection/config fingerprint plus frame count, resolved artifact paths, export health, reporter health, exit contract, batch linkage, a UTC timestamp, the build git commit, dirty-state flag, and build type so batch runs can be indexed against the exact binary provenance and invocation shape that produced them. If `--batch-index=PATH.csv` is provided, AtlasCore still tries to append the same manifest row into that shared CSV, writing the header only when the file is created/empty.
+Notes:
+
+- `ATLASCORE_BUILD_TESTS` defaults to `ON`
+- `ATLASCORE_ENABLE_COVERAGE=ON` is available for GNU/Clang builds
+
+## Run instructions
+
+Run the app from the repository root:
+
+```bash
+./build/atlascore_app
+./build/atlascore_app demo
+./build/atlascore_app gravity --headless --frames=300
+./build/atlascore_app fluid --headless --frames=300 --output-prefix=artifacts/fluid_run
+```
+
+Built-in scenario keys in the repo today:
+
+- `gravity`
+- `wrecking`
+- `fluid`
+- `demo`
+
+Headless mode can emit output and metrics artifacts for repeatable runs and automated checks.
 
 ## Testing
 
-CTest targets (enabled when `ATLASCORE_BUILD_TESTS=ON`) include:
+The repo includes unit-style and scenario-level tests covering ECS behavior, physics behavior, collision behavior, job waiting semantics, scenario registry behavior, headless metrics, and determinism.
 
-`atlascore_selftests`, `atlascore_determinism_tests`, `atlascore_collision_tests`, `atlascore_determinism_collision_tests`, `atlascore_text_renderer_tests`, `atlascore_text_renderer_extra_tests`, `atlascore_ecs_extra_tests`, `atlascore_ecs_physics_tests`, `atlascore_physics_stability_tests`, `atlascore_physics_circle_broadphase_tests`, `atlascore_simlab_scenarios_tests`, `atlascore_simlab_determinism_tests`, `atlascore_scenario_update_contract_tests`, `atlascore_ecs_collision_tests`, `atlascore_jobs_wait_tests`, `atlascore_scenario_registry_tests`, `atlascore_coverage_tests`.
-
-Run all:
-```bash
-ctest --output-on-failure
-```
-Specific target:
-```bash
-ctest -R AtlasCoreCollisionTests
-```
-
-## Determinism
-
-Determinism tests hash full world state (transforms, rigid bodies, AABBs, circle colliders, and joints) and compare repeated runs. `atlascore_simlab_determinism_tests` now runs the built-in scenarios twice and asserts the per-step hash stream matches exactly. Use fixed timestep loop (`1/60s`) to maintain sim stability.
-
-## Coverage (GNU/Clang)
+Run the test suite with:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DATLASCORE_ENABLE_COVERAGE=ON
-cmake --build build --parallel
-cd build && ctest --output-on-failure
-lcov --directory . --capture --output-file coverage.info
-lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
-genhtml coverage.info --output-directory coverage-report
+ctest --test-dir build -C Debug --output-on-failure
 ```
 
-GitHub Actions publishes Doxygen docs and coverage HTML (`/coverage`).
-The CI workflow also runs a dedicated Linux sanitizer job (ASan + UBSan).
+Examples of determinism-focused coverage in the current codebase:
 
-## Roadmap (High-Level)
+- `AtlasCoreDeterminismTests`
+- `AtlasCoreDeterminismCollisionTests`
+- `AtlasCoreSimlabDeterminismTests`
 
-Short term:
-* Expand scenario variety (rain, clouds, profiling‑oriented benchmarks)
-* Additional physics constraints & joint compliance behaviors
-* ECS storage optimization (move toward contiguous / archetype iteration)
-* Lightweight profiling overlays through ASCII renderer (HUD + metrics)
+## Project status
 
-Longer term:
-* More robust collision shapes (rotated boxes, line segments)
-* Parallel solver phases with determinism controls
-* Scenario scripting / data export formats beyond headless text
-
-## Contributing
-
-See [docs/contributing.md](docs/contributing.md) and module docs (`docs/*.md`). Please keep changes small, add/extend tests, and preserve deterministic behavior when modifying physics or scheduling.
-
-Project improvement tracking lives in [docs/implementation_backlog.md](docs/implementation_backlog.md).
-
-## License
-
-This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
-
-## Author
-
-Created by [Robert Mendola](https://mendola.tech)
-
----
-Enjoy exploring AtlasCore – feedback & improvements welcome.
+AtlasCore is an active portfolio-style C++ systems architecture project. The current repository already contains a working ECS, fixed-step simulation loop, modular physics pipeline, standalone job system, headless execution path, and a substantial automated test suite. It reads as an intentionally engineering-focused codebase rather than a one-off demo.
